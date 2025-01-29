@@ -3,3 +3,16 @@
 @tailwind utilities;
 
 
+@layer utilities {
+
+}
+
+@layer components {
+  .container {
+    @apply max-w-[70ch] m-auto
+  }
+
+  .checkbox {
+    @apply border-[1px] border-black
+  }
+}

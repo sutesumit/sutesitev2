@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "<sumitsute />",
-  description: "Sumit Sute's Developer Portfolio Website",
-  keywords: ['developer', 'portfolio', 'Sumit Sute', 'web development', 'JavaScript', 'React', 'Next.js'],
+  title: "sumit sute",
+  description: "Sumit Sute – Full-Stack Developer specializing in React, Next.js & modern web technologies. Explore my projects and skills.",  
+  keywords: ['developer', 'portfolio', 'Sumit Sute', 'web development', 'JavaScript', 'TypeScript', 'React', 'Next.js'],
   authors: [{ name: 'Sumit Sute', url: 'https://sumitsute.com/about' }],
   metadataBase: new URL('https://sumitsute.com'),
   openGraph: {
