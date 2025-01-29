@@ -1,3 +1,4 @@
+import Link from 'next/link'
 
 export default function Home() {
   return (
@@ -9,7 +10,7 @@ export default function Home() {
         <br/>
         <p>Projects I am currently working on:</p>
         <ul className="project-list">
-          <li>- art portfolio</li>
+          <li><Link href="https://www.art.sumitsute.com/">- art portfolio</Link></li>
           <li></li>
         </ul>
       </div>
