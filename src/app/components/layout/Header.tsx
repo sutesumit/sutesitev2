@@ -6,7 +6,7 @@ const Header = () => {
     <header className='header fixed w-full'>
       <nav className='navbar container flex justify-between items-baseline p-1 border-b-2 lowercase'>
         <ul className='nav__list-left'>
-          <li className='nav-title'><Link href="/">&lt;SumitSute /&gt;</Link></li>
+          <li className='nav-title'><Link href="/">Sumit Sute</Link></li>
         </ul>
         <ul className="nav__list-right flex gap-4">
           <li><Link href="/">Work</Link></li>

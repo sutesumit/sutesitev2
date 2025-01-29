@@ -13,6 +13,9 @@ export default {
         foreground: "var(--foreground)",
       },
     },
+    fontFamily: {
+      'roboto-mono': ["var(--font-roboto-mono)", "monospace"],
+    }
   },
   plugins: [],
 } satisfies Config;
