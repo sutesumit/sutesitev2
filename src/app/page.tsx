@@ -1,4 +1,3 @@
-import Image from "next/image";
 
 export default function Home() {
   return (
@@ -6,7 +5,7 @@ export default function Home() {
       <div>
         <p>Hellos.</p>
         <br/>
-        <p>I transitioned from being an artist to a self-taught full-stack developer, but my goal remains the same—using creative mediums to tell stories and challenge perspectives. Now, I write code to build autonomous digital experiences—hoping to collaborate with others who seek to engineer ideas.</p>
+        <p>I&apos;m a full-stack developer, self-taught and deeply influenced by my practice as an artist, still driven by the goal of using creative mediums to tell stories and challenge perspective.</p>
         <br/>
         <p>Projects I am currently working on:</p>
         <ul className="project-list">
