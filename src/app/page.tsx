@@ -6,7 +6,7 @@ export default function Home() {
       <div>
         <p>Hellos. Sumit Sute here. </p>
         <br/>
-        <p>I'm a full-stack developer, self-taught and deeply influenced by my practice as an artist.</p>
+        <p>I&apos;m a full-stack developer, self-taught and deeply influenced by my practice as an artist.</p>
         <br/>
         <p>I create interactive digital art exploring the intersection of personal archives, inherited emotions, and the political.  My work, informed by the feminist principle that the personal is political, imagines web technologies as a medium for artistic expression and self-reflection.</p>
         <br/>
