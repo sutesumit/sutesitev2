@@ -2,10 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
 @layer base {
   body {
     @apply font-roboto-mono text-sm
-  } 
+  }
+  
+  .project-list {
+    padding: 0.5rem 0;
+    color: blue;
+  }
+
+  .project-list li {
+    position: relative;
+    padding-inline-start: 1rem;
+  }
+
+
+  .project-list li::before {
+    content: '\\';
+    position: absolute;
+    left: 0rem;
+  }
+
+  .project-list li:hover::before {
+    content: '/';
+
+  }
 }
 
 @layer utilities {
