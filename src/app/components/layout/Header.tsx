@@ -7,7 +7,7 @@ const Header = () => {
   return (
     <header className='header fixed w-full'>
       <nav className='navbar container flex justify-between items-baseline p-2 border-b-2 border-slate-100 lowercase'>
-        <ul className='nav__list-left'>
+        <ul className='nav__list-left flex gap-1 items-baseline'>
           <li className='nav-title'><Link href="/">Sumit Sute</Link></li>
         </ul>
         <ul className="nav__list-right flex gap-4 items-baseline">

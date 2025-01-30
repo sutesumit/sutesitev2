@@ -16,7 +16,6 @@ export default function Home() {
         <p>Projects I am currently working on:</p>
         <ul className="project-list">
           <li><Link href="https://www.art.sumitsute.com/">art portfolio</Link></li>
-          <li></li>
         </ul>
       </div>
     </article>
