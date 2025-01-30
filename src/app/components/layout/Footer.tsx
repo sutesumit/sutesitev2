@@ -2,11 +2,11 @@
 import React from 'react'
 
 const Footer = () => {
-  const [currentTime, setCurrentTime] = React.useState(new Date().getHours() + ":" + new Date().getMinutes() + ":" + new Date().getSeconds())
+  const [currentTime, setCurrentTime] = React.useState(new Date().toLocaleTimeString())
 
   React.useEffect(() => {
     const interval =setInterval(() => {
-      setCurrentTime(new Date().getHours() + ":" + new Date().getMinutes() + ":" + new Date().getSeconds())
+      setCurrentTime(new Date().toLocaleTimeString())
     }, 1000)
 
     return () => clearInterval(interval)
