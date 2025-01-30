@@ -1,10 +1,13 @@
 import Link from 'next/link'
+import SeedingPlant from './components/specific/SeedingPlant';
 
 export default function Home() {
   return (
     <article className="p-10 container flex items-center h-screen font-roboto-mono lowercase">
       <div>
-        <p>Hellos. Sumit Sute here. </p>
+        <div className='flex'>
+          <p>Hellos. Sumit Sute here.</p><SeedingPlant/>
+        </div>
         <br/>
         <p>I&apos;m a full-stack developer, self-taught and deeply influenced by my practice as an artist.</p>
         <br/>
