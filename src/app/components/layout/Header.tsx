@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import React from 'react'
-import { FaRegMoon } from "react-icons/fa";
+import { FaMoon } from "react-icons/fa";
+import { ImSun } from 'react-icons/im';
 
 const Header = () => {
   return (
@@ -13,8 +14,9 @@ const Header = () => {
           <li><Link href="/" className='opacity-50 hover:opacity-70'>Work</Link></li>
           <li><Link href="/" className='opacity-50 hover:opacity-70'>About</Link></li>
           <li className="toggleTheme opacity-50 hover:opacity-70 cursor-pointer text-xs">
-            <button>
-              <FaRegMoon/>
+            <button className='flex items-center gap-1'>
+              <FaMoon/>
+              <ImSun/>
             </button>
           </li>
         </ul>
