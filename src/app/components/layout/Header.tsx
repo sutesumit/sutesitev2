@@ -1,12 +1,9 @@
 'use client'
 import Link from 'next/link'
 import React from 'react'
-import { FaMoon } from "react-icons/fa";
-import { ImSun } from 'react-icons/im';
+import ToggleTheme from '../specific/ToggleTheme'
 
 const Header = () => {
-
-  const [darkMode, setDarkMode] = React.useState(false)
 
   return (
     <header className='header fixed w-full'>
@@ -18,11 +15,7 @@ const Header = () => {
           <li><Link href="/" className='opacity-50 hover:opacity-70'>Work</Link></li>
           <li><Link href="/" className='opacity-50 hover:opacity-70'>About</Link></li>
           <li className="toggleTheme opacity-50 hover:opacity-70 cursor-pointer text-xs">
-            <button className='flex items-center gap-1' 
-                    onClick={() => setDarkMode(!darkMode)}
-            >
-              {darkMode ? <ImSun/> : <FaMoon/>}
-            </button>
+            <ToggleTheme/>
           </li>
         </ul>
       </nav>
