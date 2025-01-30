@@ -12,7 +12,7 @@ const Footer = () => {
                {new Date().toLocaleString()}
           </div>
           <div className="last-visit text-xs">
-                Location
+                Bengaluru, IN
           </div>
       </div>
     </footer>
