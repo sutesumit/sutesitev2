@@ -1,5 +1,9 @@
 import Link from 'next/link'
-import SeedingPlant from './components/specific/SeedingPlant';
+import dynamic from 'next/dynamic'
+
+const SeedingPlant = dynamic(() => import('./components/specific/SeedingPlant'), {
+  ssr: false,
+})
 
 export default function Home() {
   return (
