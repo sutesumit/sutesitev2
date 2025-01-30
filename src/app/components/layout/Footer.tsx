@@ -14,11 +14,11 @@ const Footer = () => {
 
   return (
     <footer className="footer fixed w-full bottom-0">
-      <div className='container flex justify-between p-1 border-t-2 border-slate-100 lowercase opacity-50 hover:opacity-70 '>
-          <div className="current-time text-xs">
+      <div className='container flex justify-between p-2 border-t-2 border-slate-100 dark:border-slate-700 lowercase'>
+          <div className="current-time text-xs opacity-50 hover:opacity-70">
                {currentTime}
           </div>
-          <div className="last-visit text-xs">
+          <div className="last-visit text-xs opacity-50 hover:opacity-70">
                 Bengaluru, IN
           </div>
       </div>

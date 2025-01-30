@@ -54,8 +54,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${robotoMono.variable}`}>
-      <body className="font-roboto-mono">
-        <ThemeProvider>
+      <body className="font-roboto-mono dark:text-slate-300">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Header />
           <main>{children}</main>
           <Footer />

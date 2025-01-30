@@ -10,24 +10,24 @@
   }
   
   .project-list {
-    padding: 0.5rem 0;
-    color: blue;
+    padding-top: 0.2rem;
   }
 
   .project-list li {
     position: relative;
     padding-inline-start: 1rem;
+    padding-top: 0.3rem;
   }
 
 
   .project-list li::before {
-    content: '\\';
+    content: '-';
     position: absolute;
     left: 0rem;
   }
 
   .project-list li:hover::before {
-    content: '/';
+    content: '|';
 
   }
 }
