@@ -53,9 +53,9 @@ export default function RootLayout({
   children: React.ReactNode;  
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${robotoMono.variable}`}>
-      <body className="font-roboto-mono dark:text-slate-300">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${robotoMono.variable}`} suppressHydrationWarning>
+      <body className="font-roboto-mono dark:text-slate-300" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Header />
           <main>{children}</main>
           <Footer />
