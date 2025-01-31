@@ -17,6 +17,12 @@
     position: relative;
     padding-inline-start: 1rem;
     padding-top: 0.3rem;
+    transition-property: padding-inline-start;
+    transition-duration: 300ms;
+    
+    &:hover {
+      padding-inline-start: 2rem;
+    }
   }
 
 
