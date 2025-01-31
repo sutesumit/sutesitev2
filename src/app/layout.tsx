@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: 'Sumit Sute Portfolio',
     images: [
       {
-        url: 'https://sumitsute.com/public/679cb11a9c24893de86653ae.jpg',
+        url: '/screenshot-lightmode.jpg',
         width: 800,
         height: 600,
         alt: 'Screenshot of Sumit Sute\'s portfolio',
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     description: "Explore the portfolio of Sumit Sute, a passionate web developer specializing in modern web technologies.",
     images: [
       {
-        url: 'https://sumitsute.com/public/screenshot-lightmode.jpg',
+        url: '/screenshot-lightmode.jpg',
         alt: 'Screenshot of Sumit Sute\'s website in light mode',
       },
     ],
