@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'Sumit Sute', url: 'https://sumitsute.com/about' }],
   metadataBase: new URL('https://sumitsute.com'),
   openGraph: {
-    title: "<sumitsute />",
+    title: "sumit sute",
     description: "Explore the portfolio of Sumit Sute, a passionate web developer specializing in modern web technologies.",
     url: 'https://sumitsute.com',
     siteName: 'Sumit Sute Portfolio',
