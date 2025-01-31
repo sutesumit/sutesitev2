@@ -33,13 +33,24 @@ export const metadata: Metadata = {
     siteName: 'Sumit Sute Portfolio',
     images: [
       {
-        url: '',
+        url: 'https://sumitsute.com/public/679cb11a9c24893de86653ae.jpg',
         width: 800,
         height: 600,
         alt: 'Screenshot of Sumit Sute\'s portfolio',
       },
     ],
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "sumit sute",
+    description: "Explore the portfolio of Sumit Sute, a passionate web developer specializing in modern web technologies.",
+    images: [
+      {
+        url: 'https://sumitsute.com/public/screenshot-lightmode.jpg',
+        alt: 'Screenshot of Sumit Sute\'s website in light mode',
+      },
+    ],
   },
   robots: {
     index: true,
