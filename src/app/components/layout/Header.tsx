@@ -11,7 +11,7 @@ const Header = () => {
         <ul className='nav__list-left flex gap-1 items-baseline'>
           <li className='nav-title'><Link href="/">Sumit Sute</Link></li>
         </ul>
-        <ul className="nav__list-right flex gap-4 items-baseline">
+        <ul className="nav__list-right flex gap-3 items-center">
           <li><Link href="/" className='opacity-50 hover:opacity-70'>Work</Link></li>
           <li><Link href="/" className='opacity-50 hover:opacity-70'>About</Link></li>
           <li className="toggleTheme opacity-50 hover:opacity-70 cursor-pointer text-xs">

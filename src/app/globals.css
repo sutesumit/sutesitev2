@@ -48,6 +48,6 @@
   }
 
   .checkbox {
-    @apply border-[1px] border-black
+    @apply border-[1px] border-red-500
   }
 }
