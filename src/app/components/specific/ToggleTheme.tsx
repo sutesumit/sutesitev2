@@ -25,10 +25,12 @@ const ToggleTheme = () => {
         >
             <button className=''>
                 <m.svg className='relative overflow-visible' width="16" height="16" viewBox="0 0 22 22" fill="currentColor" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"
-                    initial={{ scale: 0, opacity: 0 }}
+                    initial={{ scale: 0, opacity: 0, rotate: 0 }}
                     animate={{ 
                         scale: theme === 'dark' ? 1.1 : 1.5, 
-                        opacity: 1 }}
+                        opacity: 1,
+                        rotate: theme === 'dark' ? 0 : 360,
+                    }}
                     transition={{ duration: 0.3 }}
                 >
                     <m.path className='absolute inset-0' stroke="currentColor" strokeWidth="1"
