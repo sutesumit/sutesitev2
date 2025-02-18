@@ -5,7 +5,7 @@ import FallingLeaves from "../components/specific/FallingLeaves";
 
 export default function Home() {
   return (
-    <article className="p-10 md:p-20 container h-auto items-center font-roboto-mono lowercase">
+    <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
       <div className="h-[calc(100vh-10rem)]">
         <div className=''>
           <p className="font-bold">About</p>
@@ -18,7 +18,7 @@ export default function Home() {
           <li>Reimagined my lens-based visual art (photo objects) as web experiences, bridging the personal and the political.</li>
           <li>Developed Dramas of Discrimination, a web application facilitating workshops for diverse communities, integrating systems thinking and Theatre of the Oppressed methodologies.</li>
           <li>Married Pallavi, the love of my life. We have four kids now.</li>
-          <li>Awarded the Mirror's Fellowship for creative expressions on the (de)construction of masculinity.</li>
+          <li>Awarded the Mirror&apos;s Fellowship for creative expressions on the (de)construction of masculinity.</li>
           <li>Represented Ambedkar Reading Circle (arc) at the Second Global Conference on Caste, Business, and Society at the University of Bath, UK.</li>
           <li>Took a sabbatical to care for my mother during a health relapse—began coding at her hospital bedside.</li>
           <li>Contributed to &apos;All That Blue&apos; magazine, curating anti-caste creative expressions from India.</li>
@@ -28,7 +28,7 @@ export default function Home() {
           <li>Took a sabbatical to care for my mother, deepening my relationship with my father.</li>
           <li>Relocated to New Delhi to work as a photo editor at Hindustan Times.</li>
           <li>Worked as a documentary photographer for governmental and non-governmental organizations, including the Maharashtra Government, Paani Foundation, Indian Institute of Human Settlements, and The Wire, covering rural and urban stories across Maharashtra, Gujarat, and Karnataka.</li>
-          <li>Completed my Dual Degree Thesis, &apos;Robot Motion Planning using Derivatives of Rapidly Exploring Random Trees&apos;, at IIT Madras, earning both Bachelor's and Master's degrees in Mechanical Engineering.</li>
+          <li>Completed my Dual Degree Thesis, &apos;Robot Motion Planning using Derivatives of Rapidly Exploring Random Trees&apos;, at IIT Madras, earning both Bachelor&apos;s and Master&apos;s degrees in Mechanical Engineering.</li>
        </ul>
       </div>
     </article>
