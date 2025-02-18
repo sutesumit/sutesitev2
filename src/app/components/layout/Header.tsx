@@ -13,7 +13,7 @@ const Header = () => {
         </ul>
         <ul className="nav__list-right flex gap-3 items-center">
           <li><Link href="/" className='opacity-50 hover:opacity-70'>Work</Link></li>
-          <li><Link href="/" className='opacity-50 hover:opacity-70'>About</Link></li>
+          <li><Link href="/about" className='opacity-50 hover:opacity-70'>About</Link></li>
           <li className="toggleTheme opacity-50 hover:opacity-70 cursor-pointer text-xs">
             <ToggleTheme/>
           </li>
