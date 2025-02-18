@@ -6,7 +6,7 @@ import FallingLeaves from "../components/specific/FallingLeaves";
 export default function Home() {
   return (
     <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
-      <div className="h-[calc(100vh-10rem)]">
+      <div className="h-[calc(100vh-10rem)] pt-5">
         <div className=''>
           <p className="font-bold">About</p>
         </div>
