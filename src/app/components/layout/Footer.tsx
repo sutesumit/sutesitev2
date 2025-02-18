@@ -16,8 +16,8 @@ const Footer = () => {
   }, [])
 
   return (
-    <footer className="footer fixed w-full bottom-0">
-      <div className='container flex justify-between p-2 border-t-2 border-slate-100 dark:border-slate-700 lowercase'>
+    <footer className="footer fixed w-full bottom-0 z-10">
+      <div className='container flex justify-between p-2 border-t-2 border-slate-300 dark:border-slate-700 backdrop-blur-3xl lowercase'>
           <div className="current-time text-xs opacity-50 hover:opacity-70">
                {currentTime}
           </div>
