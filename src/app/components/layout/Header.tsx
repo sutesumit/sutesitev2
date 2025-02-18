@@ -6,8 +6,8 @@ import ToggleTheme from '../specific/ToggleTheme'
 const Header = () => {
 
   return (
-    <header className='header fixed w-full'>
-      <nav className='navbar container flex justify-between items-baseline p-2 border-b-2 border-slate-100 dark:border-slate-700  lowercase'>
+    <header className='header fixed w-full z-10'>
+      <nav className='navbar container flex justify-between items-baseline p-2 border-b-2 bg-white border-slate-300 dark:border-slate-700 dark:bg-[#1c1b22] lowercase'>
         <ul className='nav__list-left flex gap-1 items-baseline'>
           <li className='nav-title'><Link href="/">Sumit Sute</Link></li>
         </ul>
