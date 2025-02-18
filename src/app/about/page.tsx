@@ -1,7 +1,9 @@
 'use client'
 
-import FallingLeaves from "../components/specific/FallingLeaves";
-
+import dynamic from 'next/dynamic'
+const FallingLeaves = dynamic(() => import('../components/specific/FallingLeaves'), {
+  ssr: false,
+})
 
 export default function Home() {
   return (
