@@ -1,5 +1,8 @@
-import { Code2 } from "lucide-react";
-import React from "react";
+interface Bullet {
+    body: string;
+    icons: string[];
+    time: string;
+}
 
 
     const bullets: Bullet[] = [
