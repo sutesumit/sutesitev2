@@ -3,7 +3,6 @@ import React, { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import bullets from './bullets'
 import { motion as m } from 'motion/react'
-import { Code2 } from 'lucide-react'
 
 const FallingLeaves = dynamic(() => import('../components/specific/FallingLeaves'), {
   ssr: false,
@@ -76,7 +75,7 @@ export default function Home() {
             </li>
           ))}
         </ul>
-        <p>My diverse background, spanning the rigor of mechanical engineering and the nuanced storytelling of journalism, art, and photography, has ultimately led me to a passion for building web applications.  My focus is on developing interactive web experiences, such as my reimagining of lens-based art as personal and political online narratives, and applications like "Dramas of Discrimination," which empowers communities through collaborative storytelling and systems thinking.</p>
+        <p>My diverse background, spanning the rigor of mechanical engineering and the nuanced storytelling of journalism, art, and photography, has ultimately led me to a passion for building web applications.  My focus is on developing interactive web experiences, such as my reimagining of lens-based art as personal and political online narratives, and applications like Dramas of Discrimination, which empowers communities through collaborative storytelling and systems thinking.</p>
         <br/>
         <p>I believe web development offers a ideal platform to synthesize my past experiences and make meaningful contributions to the digital landscape.</p>
       </div>

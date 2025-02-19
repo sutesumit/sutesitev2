@@ -1,11 +1,11 @@
 'use client'
 import React from 'react'
-import Lottie from 'lottie-react'
+import Lottie, { LottieRefCurrentProps } from 'lottie-react'
 import fallingLeavesLottie from '../../../../public/fallingLeaves'
 
 const FallingLeaves: React.FC = () => {
 
-  const lottieRef = React.useRef<any>(null);
+  const lottieRef = React.useRef<LottieRefCurrentProps | null>(null);
 
   const handleMouseEnter = () => {
     if (lottieRef.current) {
