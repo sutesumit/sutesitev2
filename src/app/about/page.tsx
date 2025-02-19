@@ -3,6 +3,7 @@ import React, { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import bullets from './bullets'
 import { motion as m } from 'motion/react'
+import { Code2 } from 'lucide-react'
 
 const FallingLeaves = dynamic(() => import('../components/specific/FallingLeaves'), {
   ssr: false,
@@ -20,9 +21,10 @@ export default function Home() {
 
   return (
     <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
-      <div className="h-[calc(100vh-10rem)] pt-5">
+      <div className="pt-5">
         <div className=''>
           <p className="font-bold">About</p>
+          
         </div>
         <br/>
         <p onMouseEnter={() => setShowHeart(true)} onMouseLeave={() => setShowHeart(false)}>Before finding my rightful place in web development
@@ -46,7 +48,7 @@ export default function Home() {
         </p>
         <br/> 
         <p className="inline">Building backwards and retracing every step that led me here.</p><div className="inline"><FallingLeaves /></div>
-        <ul className="life-line project-list p-2 pb-10">
+        <ul className="life-line project-list p-2 pb-5">
           {bullets.map((bullet, index) => (
             <li 
               key={index}
@@ -56,7 +58,7 @@ export default function Home() {
                 className={`absolute h-full w-full left-2 opacity-0 hover:opacity-100 transition-all duration-300`}
               >
                 {
-                (bullet.icons).map((icon, index) => (
+                (bullet.icons).map((icon: string, index: number) => (
                   <m.span 
                     key={index}
                     className=""
@@ -64,7 +66,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: index * 0.5 }}
                   >
-                    <m.span>{icon}</m.span>
+                    <span>{icon}</span>
                   </m.span>
                 ))
                 }
@@ -74,6 +76,9 @@ export default function Home() {
             </li>
           ))}
         </ul>
+        <p>My diverse background, spanning the rigor of mechanical engineering and the nuanced storytelling of journalism, art, and photography, has ultimately led me to a passion for building web applications.  My focus is on developing interactive web experiences, such as my reimagining of lens-based art as personal and political online narratives, and applications like "Dramas of Discrimination," which empowers communities through collaborative storytelling and systems thinking.</p>
+        <br/>
+        <p>I believe web development offers a ideal platform to synthesize my past experiences and make meaningful contributions to the digital landscape.</p>
       </div>
     </article>
   );

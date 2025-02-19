@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "lottie-react": "^2.4.1",
+    "lucide": "^0.475.0",
+    "lucide-react": "^0.475.0",
     "motion": "^12.4.2",
     "next": "15.1.6",
     "next-themes": "^0.4.4",
