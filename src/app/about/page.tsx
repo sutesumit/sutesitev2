@@ -78,7 +78,7 @@ export default function Home() {
         </ul>
         <p>I did expect my love for engineering, storytelling, and photography to lead me to web development, and here I am—happily coding away and hoping my past adventures make me a better builder!</p>
         <br/>
-        <p>Somehow, I&apos;ve found myself crafting web experiences that mix art, storytelling, and systems thinking—whether it&apos;s transforming lens-based work into <Link className="text-blue-900 dark:text-blue-400" href="https://www.art.sumitsute.com/" target="_blank">artistic narratives</Link> or designing <Link className='text-blue-900 dark:text-blue-400' href="https://www.dod.sumitsute.com/" target="_blank">Dramas of Discrimination</Link> to get people collaborating in new ways.</p>
+        <p>Predictably, I&apos;ve found myself crafting web experiences that mix art, storytelling, and systems thinking—whether it&apos;s transforming lens-based work into <Link className="text-blue-900 dark:text-blue-400" href="https://www.art.sumitsute.com/" target="_blank">artistic narratives</Link> or designing <Link className='text-blue-900 dark:text-blue-400' href="https://www.dod.sumitsute.com/" target="_blank">Dramas of Discrimination</Link> to get people collaborating in new ways.</p>
         <br/>
         <p>For me, web development is an ideal avenue to channel my past experiences into building meaningful and innovative digital experiences.</p>
       </div>
