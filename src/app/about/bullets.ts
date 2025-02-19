@@ -2,8 +2,8 @@
 
 const bullets = [
     {
-        body: "Reimagined my lens-based visual art (photo objects) as web experiences, bridging the personal and the political.",
-        icons: ["🌐"],
+        body: "My lens-based art, previously photo-objects, has been transformed into interactive web experiences, exploring the intersection of personal and political.",
+        icons: ["🌐", "⚙️"],
         time: "2025"
     },
     {
