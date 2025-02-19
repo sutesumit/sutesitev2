@@ -3,6 +3,7 @@ import React, { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import bullets from './bullets'
 import { motion as m } from 'motion/react'
+import Link from 'next/link'
 
 const FallingLeaves = dynamic(() => import('../components/specific/FallingLeaves'), {
   ssr: false,
@@ -20,7 +21,7 @@ export default function Home() {
 
   return (
     <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
-      <div className="pt-5">
+      <div className="py-5">
         <div className=''>
           <p className="font-bold">About</p>
           
@@ -75,9 +76,11 @@ export default function Home() {
             </li>
           ))}
         </ul>
-        <p>My diverse background, spanning the rigor of mechanical engineering and the nuanced storytelling of journalism, art, and photography, has ultimately led me to a passion for building web applications.  My focus is on developing interactive web experiences, such as my reimagining of lens-based art as personal and political online narratives, and applications like Dramas of Discrimination, which empowers communities through collaborative storytelling and systems thinking.</p>
+        <p>I did expect my love for engineering, storytelling, and photography to lead me to web development, and here I am—happily coding away and hoping my past adventures make me a better builder!</p>
         <br/>
-        <p>I believe web development offers a ideal platform to synthesize my past experiences and make meaningful contributions to the digital landscape.</p>
+        <p>Somehow, I&apos;ve found myself crafting web experiences that mix art, storytelling, and systems thinking—whether it&apos;s transforming lens-based work into <Link className="text-blue-900 dark:text-blue-400" href="https://www.art.sumitsute.com/" target="_blank">artistic narratives</Link> or designing <Link className='text-blue-900 dark:text-blue-400' href="https://www.dod.sumitsute.com/" target="_blank">Dramas of Discrimination</Link> to get people collaborating in new ways.</p>
+        <br/>
+        <p>For me, web development is an ideal avenue to channel my past experiences into building meaningful and innovative digital experiences.</p>
       </div>
     </article>
   );
