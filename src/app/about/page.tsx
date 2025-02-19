@@ -43,7 +43,7 @@ export default function Home() {
             )))
           }
           </span>, 
-          my path has taken me through mechanical engineering, editorial journalism, documentary photography, communication strategy, and community organizing. A common thread runs through all these experiences: the drive to create things that enhance and complement life.
+          my journey has taken me through mechanical engineering at iit madras, editorial journalism at hindustan times, documentary photography for maharashtra government and indian institute of human settlements, communication strategy for various organizations, and community organizing at Ambedkar Reading Circle. A common thread runs through all these experiences: the drive to create things that enhance and complement life.
         </p>
         <br/> 
         <p className="inline">Building backwards and retracing every step that led me here.</p><div className="inline"><FallingLeaves /></div>
