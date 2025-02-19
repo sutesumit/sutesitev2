@@ -1,7 +1,8 @@
 'use client'
-import React from 'react'
+import React, { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import bullets from './bullets'
+import { motion as m } from 'motion/react'
 
 const FallingLeaves = dynamic(() => import('../components/specific/FallingLeaves'), {
   ssr: false,
@@ -9,7 +10,13 @@ const FallingLeaves = dynamic(() => import('../components/specific/FallingLeaves
 
 export default function Home() {
 
-  const [ showIcon, setShowIcon ] = React.useState(false)
+  const [ showHeart, setShowHeart ] = React.useState<boolean>(false)
+  const [ mountHeart, setMountHeart ] = React.useState<boolean>(false)
+  const heartText = " (and in my wife's heart 💕)"
+
+  useEffect(() => {
+    setMountHeart(true)
+  }, [])
 
   return (
     <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
@@ -18,7 +25,25 @@ export default function Home() {
           <p className="font-bold">About</p>
         </div>
         <br/>
-        <p>Before finding my rightful place in web development, my path has taken me through mechanical engineering, documentary photography, editorial journalism, communication strategy, and community organizing. A common thread runs through all these experiences: the drive to create things that enhance and complement life.</p>
+        <p onMouseEnter={() => setShowHeart(true)} onMouseLeave={() => setShowHeart(false)}>Before finding my rightful place in web development
+          <span 
+            className={` ${showHeart ? 'inline' : 'hidden'}`}
+          >{
+            mountHeart && (
+            heartText.split("").map((letter, index) => (
+            <m.span
+              key={index}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: showHeart ? 1 : 0, x: showHeart ? 0 : -20 }}
+              transition={{ duration: 0.2, delay: index * 0.02 }}
+            >
+              {letter}
+            </m.span>
+            )))
+          }
+          </span>, 
+          my path has taken me through mechanical engineering, documentary photography, editorial journalism, communication strategy, and community organizing. A common thread runs through all these experiences: the drive to create things that enhance and complement life.
+        </p>
         <br/> 
         <p className="inline">Building backwards and retracing every step that led me here.</p><div className="inline"><FallingLeaves /></div>
         <ul className="life-line project-list p-2 pb-10">
