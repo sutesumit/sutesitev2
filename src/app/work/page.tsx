@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { projects, skillList } from './info'
-import { TvMinimalPlay, CodeXml } from 'lucide-react'
+import { MdOutlineLiveTv } from 'react-icons/md'
+import { FaCode } from "react-icons/fa6";
+import { FaGithubAlt } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 
 export default function Home() {
 
@@ -12,17 +15,17 @@ export default function Home() {
             {skillList.languages.map((skill, index) => (
               <span className='tab opacity-50 hover:opacity-100' key={index}>{skill}</span>
             ))}
-            {skillList.frameworks.map((skill, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{skill}</span>
+            {skillList.frameworks.map((framework, index) => (
+              <span className='tab opacity-50 hover:opacity-100' key={index}>{framework}</span>
             ))}
-            {skillList.databases.map((skill, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{skill}</span>
+            {skillList.databases.map((database, index) => (
+              <span className='tab opacity-50 hover:opacity-100' key={index}>{database}</span>
             ))}
-            {skillList.tools.map((skill, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{skill}</span>
+            {skillList.tools.map((tool, index) => (
+              <span className='tab opacity-50 hover:opacity-100' key={index}>{tool}</span>
             ))}
-            {skillList.stacks.map((skill, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{skill}</span>
+            {skillList.stacks.map((stack, index) => (
+              <span className='tab opacity-50 hover:opacity-100' key={index}>{stack}</span>
             ))}
           </div>
         </div>
@@ -43,19 +46,19 @@ export default function Home() {
                 </div>
                 <div className="project-links flex gap-2">
                   <a 
-                    className='tab flex items-center gap-1 text-blue-900 dark:text-blue-400 shadow-[3px_3px_0px_0px_rgba(0,_0,_0,_0.1)] dark:shadow-[3px_3px_0px_0px_rgba(255,_255,_255,_0.1)]' 
+                    className='tab flex items-center gap-1 shadow-[3px_3px_0px_0px_rgba(0,_0,_0,_0.1)] dark:shadow-[3px_3px_0px_0px_rgba(255,_255,_255,_0.1)]' 
                     href={project.livelink}
                     target="_blank"
                   >
-                    <TvMinimalPlay height={15} width={15} />
+                    <MdOutlineLiveTv />
                     Live
                   </a>
                   <a 
-                    className='tab flex items-center gap-1 text-blue-900 dark:text-blue-400 shadow-[3px_3px_0px_0px_rgba(0,_0,_0,_0.1)] dark:shadow-[3px_3px_0px_0px_rgba(255,_255,_255,_0.1)]'
+                    className='tab flex items-center gap-1 shadow-[3px_3px_0px_0px_rgba(0,_0,_0,_0.1)] dark:shadow-[3px_3px_0px_0px_rgba(255,_255,_255,_0.1)]'
                     href={project.githublink} 
                     target="_blank"
-                  >
-                    <CodeXml height={15} width={15} />
+                  >                    
+                    <FaGithub />
                     Repo
                   </a>
                 </div>
