@@ -69,7 +69,7 @@ export default function Home() {
                 </div>
                 <div className="project-roles flex gap-2">
                   {project.roles.map((role, index) => (
-                    <span className='tab role-keyword' key={index}>{role}</span>
+                    <span className='tab text-xs flex items-center gap-1 role-keyword' key={index}>{role.icon}{role.name}</span>
                   ))}
                 </div>
               </div>

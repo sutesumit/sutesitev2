@@ -1,7 +1,13 @@
 import React from 'react';
-import { FaJs, FaHtml5, FaCss3, FaGit } from 'react-icons/fa';
-import { SiTypescript, SiPython, SiPostgresql, SiReact, SiNextdotjs, SiNodedotjs, SiExpress, SiTailwindcss, SiFramer, SiMongodb, SiDocker } from 'react-icons/si';
-
+import { FaCss3 } from 'react-icons/fa';
+import { SiFigma, SiJavascript, SiHtml5, SiTypescript, SiPython, SiReact, SiNextdotjs, SiNodedotjs, SiExpress, SiTailwindcss, SiFramer, SiMongodb, SiDocker } from 'react-icons/si';
+import { BiLogoPostgresql } from 'react-icons/bi';
+import { FaGitAlt } from 'react-icons/fa6';
+import { VscVscode } from 'react-icons/vsc';
+import { TfiWrite } from 'react-icons/tfi';
+import { LiaBezierCurveSolid } from 'react-icons/lia';
+import { AiFillCode } from 'react-icons/ai';
+import { GiSwissArmyKnife } from 'react-icons/gi';
 
 export const contactInfo = {
     email: 'sumitsute@alumni.iitm.ac.in',
@@ -16,11 +22,10 @@ export const contactInfo = {
 
 export const skillList = {
     languages: [
-        { name: 'JavaScript', icon: <FaJs /> },
+        { name: 'JavaScript', icon: <SiJavascript /> },
         { name: 'TypeScript', icon: <SiTypescript /> },
         { name: 'Python', icon: <SiPython /> },
-        { name: 'PostgreSQL', icon: <SiPostgresql /> },
-        { name: 'HTML', icon: <FaHtml5 /> },
+        { name: 'HTML', icon: <SiHtml5 /> },
         { name: 'CSS', icon: <FaCss3 /> },
     ],
     frameworks: [
@@ -33,11 +38,13 @@ export const skillList = {
     ],
     databases: [
         { name: 'MongoDB', icon: <SiMongodb /> },
-        { name: 'PostgreSQL', icon: <SiPostgresql /> },
+        { name: 'PostgreSQL', icon: <BiLogoPostgresql /> },
     ],
     tools: [
-        { name: 'Git', icon: <FaGit /> },
+        { name: 'Git', icon: <FaGitAlt /> },
         { name: 'Docker', icon: <SiDocker /> },
+        { name: 'VSCode', icon: <VscVscode /> },
+        { name: 'Figma', icon: <SiFigma /> },
     ],
     stacks: [
         { name: 'MERN', icon: null }, // No standard icon available
@@ -47,6 +54,13 @@ export const skillList = {
     ],
 };
 
+const roles = [
+    { name: 'End-to-end', icon: <GiSwissArmyKnife /> },
+    { name: 'Developer', icon: <AiFillCode /> },
+    { name: 'UI Designer', icon: <LiaBezierCurveSolid /> },
+    { name: 'Writer', icon: <TfiWrite /> },
+];
+
 const getTechDetails = (techNames: string[]) => {
     return techNames.map((tech) => {
         const found = Object.values(skillList).flat().find((item) => item.name === tech);
@@ -54,11 +68,18 @@ const getTechDetails = (techNames: string[]) => {
     });
 }
 
+const getRoleDetails = (roleNames: string[]) => {
+    return roleNames.map((role) => {
+        const found = roles.find((item) => item.name === role);
+        return found || { name: role, icon: null };
+    });
+}
+
 
 export const projects = [
     {
         title: 'art.sumitsute.com',
-        roles: ['End-to-end','Developer', 'Designer'],
+        roles: getRoleDetails(['End-to-end','Developer', 'UI Designer']),
         description: 'A static website for my art portfolio.',
         livelink: 'https://www.art.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/jaybhim_affirma',
@@ -66,7 +87,7 @@ export const projects = [
     },
     {
         title: 'Dramas of Discrimination',
-        roles: ['End-to-end','Developer', 'Designer'],
+        roles: getRoleDetails(['End-to-end','Developer', 'UI Designer']),
         description: 'A web application for exploring the intersection of personal archives, inherited emotions, and the political.',
         livelink: 'https://www.dod.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/dodpage',
