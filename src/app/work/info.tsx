@@ -46,7 +46,7 @@ export const skillList = {
         { name: 'Figma', icon: <SiFigma /> },
     ],
     stacks: [
-        { name: 'MERN', icon: null }, // No standard icon available
+        { name: 'MERN', icon: null },
         { name: 'Frontend', icon: null },
         { name: 'Backend', icon: null },
         { name: 'Fullstack', icon: null },
