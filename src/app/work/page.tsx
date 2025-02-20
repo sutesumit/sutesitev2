@@ -1,8 +1,5 @@
-import Link from 'next/link'
 import { projects, skillList } from './info'
 import { MdOutlineLiveTv } from 'react-icons/md'
-import { FaCode } from "react-icons/fa6";
-import { FaGithubAlt } from "react-icons/fa";
 import { FaGithub } from "react-icons/fa";
 
 export default function Home() {
