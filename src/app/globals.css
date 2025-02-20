@@ -6,7 +6,11 @@
 
 @layer base {
   body {
-    @apply font-roboto-mono text-sm
+    @apply font-roboto-mono text-sm box-border
+  }
+
+  .nav-tab {
+    @apply hover:opacity-100 cursor-pointer opacity-50 transition-all duration-300 hover:border-t-2 border-slate-500 dark:border-slate-500
   }
   
   .project-list {

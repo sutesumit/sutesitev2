@@ -65,7 +65,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${robotoMono.variable}`} suppressHydrationWarning>
-      <body className="font-roboto-mono dark:text-slate-300" suppressHydrationWarning>
+      <body className="font-roboto-mono dark:text-slate-300 overflow-y-scroll" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Header />
           <main>{children}</main>
