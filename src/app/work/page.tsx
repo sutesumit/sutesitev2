@@ -9,9 +9,12 @@ export default function Home() {
 
   return (
     <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
-      <div className="pt-5">
-        <div className='skilll-list'>
-          <div className="flex flex-wrap items-center gap-1 cursor-pointer">
+      <div className="">
+        <div className='skilll-list text-xs'>
+          <div className='page-title py-5'>
+            <p className="font-bold">Skills</p>
+          </div>
+          <div className="pl-8 flex flex-wrap items-center gap-1 cursor-pointer">
             {skillList.languages.map((skill, index) => (
               <span className='tab opacity-50 hover:opacity-100' key={index}>{skill}</span>
             ))}
