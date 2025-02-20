@@ -1,23 +1,59 @@
+import React from 'react';
+import { FaJs, FaHtml5, FaCss3, FaGit } from 'react-icons/fa';
+import { SiTypescript, SiPython, SiPostgresql, SiReact, SiNextdotjs, SiNodedotjs, SiExpress, SiTailwindcss, SiFramer, SiMongodb, SiDocker } from 'react-icons/si';
 
 
 export const contactInfo = {
     email: 'sumitsute@alumni.iitm.ac.in',
     phone: '+91 7204617420',
-    Location: 'Bengaluru, IN | Reading, UK',
+    location: 'Bengaluru, IN | Reading, UK',
     socialMedia: {
         personal: 'https://sumitsute.com',
         github: 'https://github.com/sutesumit',
         linkedin: 'https://www.linkedin.com/in/sumitsute/',
-      },
-  };
+    },
+};
 
 export const skillList = {
-    languages: ['JavaScript', 'TypeScript', 'Python', 'PostgreSQL', 'HTML', 'CSS'],
-    frameworks: ['React', 'Next.js', 'Node.js', 'Express.js', 'Tailwind', 'Motion', 'Aceternity UI', 'Shadcn UI'],
-    databases: ['MongoDB', 'PostgreSQL'],
-    tools: ['Git', 'Docker'],
-    stacks: ['MERN', 'Frontend', 'Backend'],
+    languages: [
+        { name: 'JavaScript', icon: <FaJs /> },
+        { name: 'TypeScript', icon: <SiTypescript /> },
+        { name: 'Python', icon: <SiPython /> },
+        { name: 'PostgreSQL', icon: <SiPostgresql /> },
+        { name: 'HTML', icon: <FaHtml5 /> },
+        { name: 'CSS', icon: <FaCss3 /> },
+    ],
+    frameworks: [
+        { name: 'React', icon: <SiReact /> },
+        { name: 'Next.js', icon: <SiNextdotjs /> },
+        { name: 'Node.js', icon: <SiNodedotjs /> },
+        { name: 'Express.js', icon: <SiExpress /> },
+        { name: 'Tailwind', icon: <SiTailwindcss /> },
+        { name: 'Motion', icon: <SiFramer /> },
+    ],
+    databases: [
+        { name: 'MongoDB', icon: <SiMongodb /> },
+        { name: 'PostgreSQL', icon: <SiPostgresql /> },
+    ],
+    tools: [
+        { name: 'Git', icon: <FaGit /> },
+        { name: 'Docker', icon: <SiDocker /> },
+    ],
+    stacks: [
+        { name: 'MERN', icon: null }, // No standard icon available
+        { name: 'Frontend', icon: null },
+        { name: 'Backend', icon: null },
+        { name: 'Fullstack', icon: null },
+    ],
+};
+
+const getTechDetails = (techNames: string[]) => {
+    return techNames.map((tech) => {
+        const found = Object.values(skillList).flat().find((item) => item.name === tech);
+        return found || { name: tech, icon: null };
+    });
 }
+
 
 export const projects = [
     {
@@ -26,7 +62,7 @@ export const projects = [
         description: 'A static website for my art portfolio.',
         livelink: 'https://www.art.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/jaybhim_affirma',
-        technologies: ['Next.js', 'Tailwind', 'Motion', 'Aceternity UI']
+        technologies: getTechDetails(['Next.js', 'Tailwind', 'Motion', 'Aceternity UI'])
     },
     {
         title: 'Dramas of Discrimination',
@@ -34,7 +70,7 @@ export const projects = [
         description: 'A web application for exploring the intersection of personal archives, inherited emotions, and the political.',
         livelink: 'https://www.dod.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/dodpage',
-        technologies: ['Next.js', 'Tailwind', 'Motion', 'Aceternity UI']
+        technologies: getTechDetails(['Next.js', 'Tailwind', 'Motion', 'Aceternity UI'])
     }
 ]
 
