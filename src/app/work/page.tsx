@@ -1,6 +1,6 @@
 import { projects, skillList } from './info'
-import { MdOutlineLiveTv } from 'react-icons/md'
 import { FaGithub } from "react-icons/fa";
+import { IoGameControllerOutline } from 'react-icons/io5';
 
 export default function Home() {
 
@@ -50,7 +50,7 @@ export default function Home() {
                     href={project.livelink}
                     target="_blank"
                   >
-                    <MdOutlineLiveTv />
+                    <IoGameControllerOutline />
                     Live
                   </a>
                   <a 
