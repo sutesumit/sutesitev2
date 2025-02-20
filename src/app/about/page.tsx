@@ -52,7 +52,7 @@ export default function Home() {
           {bullets.map((bullet, index) => (
             <li 
               key={index}
-              className='relative'
+              className='relative project-item'
             >
               <span 
                 className={`absolute h-full w-full left-2 opacity-0 hover:opacity-100 transition-all duration-300`}
