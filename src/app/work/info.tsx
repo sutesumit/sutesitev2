@@ -2,11 +2,10 @@ import React from 'react';
 import { FaCss3 } from 'react-icons/fa';
 import { SiFigma, SiJavascript, SiHtml5, SiTypescript, SiPython, SiReact, SiNextdotjs, SiNodedotjs, SiExpress, SiTailwindcss, SiFramer, SiMongodb, SiDocker } from 'react-icons/si';
 import { BiLogoPostgresql } from 'react-icons/bi';
-import { FaGitAlt } from 'react-icons/fa6';
+import { FaGitAlt, FaLaptopCode } from 'react-icons/fa6';
 import { VscVscode } from 'react-icons/vsc';
-import { TfiWrite } from 'react-icons/tfi';
+import { LuTextCursorInput } from 'react-icons/lu';
 import { LiaBezierCurveSolid } from 'react-icons/lia';
-import { AiFillCode } from 'react-icons/ai';
 import { GiSwissArmyKnife } from 'react-icons/gi';
 
 export const contactInfo = {
@@ -56,9 +55,9 @@ export const skillList = {
 
 const roles = [
     { name: 'End-to-end', icon: <GiSwissArmyKnife /> },
-    { name: 'Developer', icon: <AiFillCode /> },
+    { name: 'Developer', icon: <FaLaptopCode /> },
     { name: 'UI Designer', icon: <LiaBezierCurveSolid /> },
-    { name: 'Writer', icon: <TfiWrite /> },
+    { name: 'Writer', icon: <LuTextCursorInput /> },
 ];
 
 const getTechDetails = (techNames: string[]) => {
@@ -79,7 +78,7 @@ const getRoleDetails = (roleNames: string[]) => {
 export const projects = [
     {
         title: 'art.sumitsute.com',
-        roles: getRoleDetails(['End-to-end','Developer', 'UI Designer']),
+        roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
         description: 'A static website for my art portfolio.',
         livelink: 'https://www.art.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/jaybhim_affirma',
@@ -87,7 +86,7 @@ export const projects = [
     },
     {
         title: 'Dramas of Discrimination',
-        roles: getRoleDetails(['End-to-end','Developer', 'UI Designer']),
+        roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
         description: 'A web application for exploring the intersection of personal archives, inherited emotions, and the political.',
         livelink: 'https://www.dod.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/dodpage',

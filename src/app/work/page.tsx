@@ -11,7 +11,7 @@ export default function Home() {
           <div className='page-title py-3'>
             <p className="font-bold">Skills</p>
           </div>
-          <div className="pl-8 flex flex-wrap items-center text-xs gap-1 cursor-pointer">
+          <div className="pl-8 flex flex-wrap items-center text-xs gap-1">
             {skillList.languages.map((skill, index) => (
               <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{skill.icon}{skill.name}</span>
             ))} 
