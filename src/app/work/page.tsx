@@ -1,6 +1,6 @@
 import { projects, skillList } from './info'
-import { MdOutlineLiveTv } from 'react-icons/md'
 import { FaGithub } from "react-icons/fa";
+import { IoGameControllerOutline } from 'react-icons/io5';
 
 export default function Home() {
 
@@ -11,21 +11,21 @@ export default function Home() {
           <div className='page-title py-3'>
             <p className="font-bold">Skills</p>
           </div>
-          <div className="pl-8 flex flex-wrap items-center text-xs gap-1 cursor-pointer">
+          <div className="pl-8 flex flex-wrap items-center text-xs gap-1">
             {skillList.languages.map((skill, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{skill}</span>
-            ))}
+              <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{skill.icon}{skill.name}</span>
+            ))} 
             {skillList.frameworks.map((framework, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{framework}</span>
+              <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{framework.icon}{framework.name}</span>
             ))}
             {skillList.databases.map((database, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{database}</span>
+              <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{database.icon}{database.name}</span>
             ))}
             {skillList.tools.map((tool, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{tool}</span>
+              <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{tool.icon}{tool.name}</span>
             ))}
             {skillList.stacks.map((stack, index) => (
-              <span className='tab opacity-50 hover:opacity-100' key={index}>{stack}</span>
+              <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{stack.icon}{stack.name}</span>
             ))}
           </div>
         </div>
@@ -50,7 +50,7 @@ export default function Home() {
                     href={project.livelink}
                     target="_blank"
                   >
-                    <MdOutlineLiveTv />
+                    <IoGameControllerOutline />
                     Live
                   </a>
                   <a 
@@ -64,12 +64,12 @@ export default function Home() {
                 </div>
                 <div className="project-technologies flex gap-2">
                   {project.technologies.map((tech, index) => (
-                    <span className='tab tech-keyword' key={index}>{tech}</span>
+                    <span className='tab text-xs flex items-center gap-1 tech-keyword' key={index}>{tech.icon}{tech.name}</span>
                   ))}
                 </div>
                 <div className="project-roles flex gap-2">
                   {project.roles.map((role, index) => (
-                    <span className='tab role-keyword' key={index}>{role}</span>
+                    <span className='tab text-xs flex items-center gap-1 role-keyword' key={index}>{role.icon}{role.name}</span>
                   ))}
                 </div>
               </div>
