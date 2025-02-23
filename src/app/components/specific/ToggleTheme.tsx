@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { useTheme } from 'next-themes'
 import { motion as m } from 'motion/react'
 
-    const ThemeIcon = ({ theme }) => {
+    const ThemeIcon = ({ theme }: { theme: 'light' | 'dark' }) => {
 
         const sunPath =  "M11 15C13.2091 15 15 13.2091 15 11C15 8.79086 13.2091 7 11 7C8.79086 7 7 8.79086 7 11C7 13.2091 8.79086 15 11 15Z"
         const moonPath = "M11 15C13.2091 15 15 13.2091 15 11C10.3643 13.1535 9.59148 10.4046 11 7C8.79086 7 7 8.79086 7 11C7 13.2091 8.79086 15 11 15Z" 
