@@ -1,8 +1,8 @@
 import React from 'react';
 import { FaCss3 } from 'react-icons/fa';
 import { SiFigma, SiJavascript, SiHtml5, SiTypescript, SiPython, SiReact, SiNextdotjs, SiNodedotjs, SiExpress, SiTailwindcss, SiFramer, SiMongodb, SiDocker } from 'react-icons/si';
-import { BiLogoPostgresql } from 'react-icons/bi';
-import { FaGitAlt, FaTerminal } from 'react-icons/fa6';
+import { BiLogoPostgresql, BiTerminal } from 'react-icons/bi';
+import { FaGitAlt } from 'react-icons/fa6';
 import { VscVscode } from 'react-icons/vsc';
 import { LuTextCursorInput } from 'react-icons/lu';
 import { LiaBezierCurveSolid } from 'react-icons/lia';
@@ -55,7 +55,7 @@ export const skillList = {
 
 const roles = [
     { name: 'End-to-end', icon: <GiSwissArmyKnife /> },
-    { name: 'Developer', icon: <FaTerminal /> },
+    { name: 'Developer', icon: <BiTerminal /> },
     { name: 'UI Designer', icon: <LiaBezierCurveSolid /> },
     { name: 'Writer', icon: <LuTextCursorInput /> },
 ];
