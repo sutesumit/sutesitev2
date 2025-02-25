@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfolio Website - Sumit Sute
 
-## Getting Started
 
-First, run the development server:
+[![Static Badge](https://img.shields.io/badge/🔗-Live-blue?style=flat-square&)](https://www.sumitsute.com/) [![Static Badge](https://img.shields.io/badge/</>-Repo-blue?style=flat-square)](https://github.com/sutesumit/sutesitev2)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## About the Repository
+
+This is the repository for my portfolio website, showcasing my work as a self-taught web developer. The website serves as a digital space where I present my interactive digital art, projects, and personal journey.
+
+## 🛠️ Built With
+- **Framework:** Next.js
+- **Styling:** Tailwind CSS, Motion
+- **UI Components:** Aceternity UI, Lucide Icons
+- **Theming:** next-themes
+- **Animations:** Lottie React
+
+## 📂 Project Structure
+```
+├── components/         # Reusable UI components
+├── pages/              # Next.js page routes
+├── public/             # Static assets
+├── styles/             # Global styles and Tailwind setup
+├── package.json        # Project dependencies and scripts
+└── README.md           # Project documentation
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔗 Other Projects
+### [Dramas of Discrimination](https://github.com/YOUR_GITHUB_USERNAME/dramas-of-discrimination)
+A web application exploring the intersection of personal archives, inherited emotions, and the political.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📖 About Me
+Before finding my space in web development, I explored various fields—mechanical engineering, journalism, documentary photography, communication strategy, and community organizing. Through all these experiences, my core drive has remained the same: creating things that enhance and complement life.
 
-## Learn More
+## 📬 Contact
+If you're interested in collaborating or just want to say hi, feel free to reach out!
+- Portfolio: [art.sumitsute.com](https://art.sumitsute.com)
+- GitHub: [github.com/YOUR_GITHUB_USERNAME](https://github.com/YOUR_GITHUB_USERNAME)
+- Email: your.email@example.com
 
-To learn more about Next.js, take a look at the following resources:
+---
+**© 2025 Sumit Sute. All rights reserved.**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
