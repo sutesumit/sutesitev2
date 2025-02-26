@@ -1,6 +1,7 @@
 import { projects, skillList } from './info'
 import { FaGithub } from "react-icons/fa";
 import { IoGameControllerOutline } from 'react-icons/io5';
+import Link from 'next/link';
 
 export default function Home() {
 
@@ -38,7 +39,7 @@ export default function Home() {
           {projects.map((project, index) => (
             <div key={index} className="project">
               <div className="project-title project-list">
-                <p className="project-item text-blue-900 dark:text-blue-400">{project.title}</p>
+                <Link href={project.locallink} className="project-item text-blue-900 dark:text-blue-400">{project.title}</Link>
               </div>
               <div className="project-info pl-8">
                 <div className="project-description py-1">

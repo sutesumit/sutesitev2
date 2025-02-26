@@ -10,8 +10,7 @@ const page = () => {
   const pathname = usePathname();
   return (
     <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
-        <div className="projects flex flex-col gap-3">
-            
+        <div className="projects flex flex-col gap-3"> 
             {projects.map((project, index) => (
                 (pathname === project.locallink) && (
                 <div key={index} className="project">

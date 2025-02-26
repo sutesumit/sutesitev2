@@ -78,6 +78,7 @@ const getRoleDetails = (roleNames: string[]) => {
 export const projects = [
     {
         title: 'art.sumitsute.com',
+        locallink: '/work/art',
         roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
         description: 'An interactive Next.js portfolio of Sumit Sute’s photographic art.',
         livelink: 'https://www.art.sumitsute.com/',
@@ -86,6 +87,7 @@ export const projects = [
     },
     {
         title: 'Dramas of Discrimination',
+        locallink: '/work/dramas-of-discrimination',
         roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
         description: 'An open-source Next.js tool for Dramas of Discrimination workshops, enabling communities and students to foster inclusive academic and professional spaces.',
         livelink: 'https://www.dod.sumitsute.com/',
