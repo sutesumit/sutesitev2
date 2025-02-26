@@ -12,6 +12,11 @@
   .nav-tab {
     @apply hover:opacity-100 cursor-pointer opacity-50 transition-all duration-300 hover:border-t-2 border-slate-500 dark:border-slate-500
   }
+
+  .social-tab {
+    @apply hover:opacity-100 cursor-pointer opacity-50 transition-all duration-300
+  }
+
   
   .project-list {
     padding-top: 0.2rem;
