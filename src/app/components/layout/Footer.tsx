@@ -13,7 +13,7 @@ const Footer = () => {
             <Link className='social-tab' target='_blank' href='https://x.com/sutenet'><FaTwitter /></Link> 
             <Link className='social-tab' target='_blank' href='mailto:sumitsute@alumni.iitm.ac.in'><IoIosMail /></Link>
           </div>
-          <div className="last-visit flex items-center gap-1 text-xs opacity-50 hover:opacity-70 transition-all duration-300">
+          <div className="last-visit flex items-center gap-1 text-xs opacity-50 hover:opacity-100 transition-all duration-300">
                 Bengaluru, IN
           </div>
       </div>
