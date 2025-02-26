@@ -17,11 +17,11 @@ const Header = () => {
       <nav className='navbar px-2 container flex justify-between items-baseline border-b-2 border-slate-300 dark:border-slate-700 backdrop-blur-3xl lowercase'>
         
         <ul className='nav__list-left flex gap-1 items-baseline'>
-          <li className={`nav-title box-content nav-tab py-1.5 ${pathname === '/' ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`}><Link href="/">Sumit Sute</Link></li>
+          <Link className={`nav-title box-content nav-tab py-1.5 ${pathname === '/' ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`} href="/">Sumit Sute</Link>
         </ul>
         <ul className="nav__list-right flex gap-3 items-baseline">
           {navtabs.map(tab => (
-            <li key={tab.href} className={`nav-tab py-1.5 ${pathname === tab.href ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`}><Link href={tab.href}>{tab.title}</Link></li>
+            <Link key={tab.href} className={`nav-tab py-1.5 ${pathname === tab.href ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`} href={tab.href}>{tab.title}</Link>
           ))}
           <li className="toggleTheme self-center pt-[2px] opacity-50 hover:opacity-100 cursor-pointer text-xs transition-all duration-300">
             <ToggleTheme/>
