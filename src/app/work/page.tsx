@@ -38,9 +38,9 @@ export default function Home() {
         <div className="projects flex flex-col gap-3">
           {projects.map((project, index) => (
             <div key={index} className="project">
-              <div className="project-title project-list">
-                <Link href={project.locallink} className="project-item text-blue-900 dark:text-blue-400">{project.title}</Link>
-              </div>
+              <ul className="project-title project-list list-style-none">
+                <li className='project-item  text-blue-900 dark:text-blue-400'><Link href={project.locallink}>{project.title}</Link></li>                
+              </ul>
               <div className="project-info pl-8">
                 <div className="project-description py-1">
                   <p>{project.description}</p>
