@@ -1,22 +1,9 @@
-'use client'
 import React from 'react'
 import Link from 'next/link'
 import { FaGithub, FaTwitter } from 'react-icons/fa'
 import { IoIosMail } from 'react-icons/io'
 
 const Footer = () => {
-  const [currentTime, setCurrentTime] = React.useState('--:--:--')
-
-  React.useEffect(() => {
-  
-    setCurrentTime(new Date().toLocaleTimeString())
-    
-    const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString())
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [])
 
   return (
     <footer className="footer fixed w-full bottom-0 z-10">
