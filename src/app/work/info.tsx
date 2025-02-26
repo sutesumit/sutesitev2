@@ -87,7 +87,7 @@ export const projects = [
     {
         title: 'Dramas of Discrimination',
         roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
-        description: 'A web application for exploring the intersection of personal archives, inherited emotions, and the political.',
+        description: 'An open-source Next.js web facilitator for Dramas of Discrimination workshops, designed to help communities and student groups independently engage in dialogue, reflection, and action for more inclusive academic and professional spaces.',
         livelink: 'https://www.dod.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/dodpage',
         technologies: getTechDetails(['Next.js', 'Tailwind', 'Motion', 'Aceternity UI'])
