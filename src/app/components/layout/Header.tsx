@@ -23,7 +23,7 @@ const Header = () => {
           {navtabs.map(tab => (
             <li key={tab.href} className={`nav-tab py-1.5 ${pathname === tab.href ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`}><Link href={tab.href}>{tab.title}</Link></li>
           ))}
-          <li className="toggleTheme self-center pt-[2px] opacity-50 hover:opacity-70 cursor-pointer text-xs">
+          <li className="toggleTheme self-center pt-[2px] opacity-50 hover:opacity-100 cursor-pointer text-xs transition-all duration-300">
             <ToggleTheme/>
           </li>
         </ul>
