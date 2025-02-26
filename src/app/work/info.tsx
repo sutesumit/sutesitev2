@@ -79,7 +79,7 @@ export const projects = [
     {
         title: 'art.sumitsute.com',
         roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
-        description: 'A static website for my art portfolio.',
+        description: 'An interactive Next.js portfolio of Sumit Sute’s photographic art.',
         livelink: 'https://www.art.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/jaybhim_affirma',
         technologies: getTechDetails(['Next.js', 'Tailwind', 'Motion', 'Aceternity UI'])
@@ -87,7 +87,7 @@ export const projects = [
     {
         title: 'Dramas of Discrimination',
         roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
-        description: 'An open-source Next.js web facilitator for Dramas of Discrimination workshops, designed to help communities and student groups independently engage in dialogue, reflection, and action for more inclusive academic and professional spaces.',
+        description: 'An open-source Next.js tool for Dramas of Discrimination workshops, enabling communities and students to foster inclusive academic and professional spaces.',
         livelink: 'https://www.dod.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/dodpage',
         technologies: getTechDetails(['Next.js', 'Tailwind', 'Motion', 'Aceternity UI'])
