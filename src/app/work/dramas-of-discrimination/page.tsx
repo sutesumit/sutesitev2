@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import { usePathname } from 'next/navigation'
-import { projects } from '../info'
+import { projects } from '../projectlist'
 import ProjectPage from '../ProjectPage';
 
 const page = () => {

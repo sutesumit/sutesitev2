@@ -1,7 +1,6 @@
 import { projects, skillList } from './info'
-import { FaGithub } from "react-icons/fa";
-import { IoGameControllerOutline } from 'react-icons/io5';
 import Link from 'next/link';
+import LiveRepoLinks from '../components/shared/LiveRepoLinks';
 
 export default function Home() {
 
@@ -45,24 +44,7 @@ export default function Home() {
                 <div className="project-description py-1">
                   <p>{project.description}</p>
                 </div>
-                <div className="project-links flex gap-2">
-                  <a 
-                    className='tab flex items-center gap-1 shadow-[3px_3px_0px_0px_rgba(0,_0,_0,_0.1)] dark:shadow-[3px_3px_0px_0px_rgba(255,_255,_255,_0.1)]' 
-                    href={project.livelink}
-                    target="_blank"
-                  >
-                    <IoGameControllerOutline />
-                    Live
-                  </a>
-                  <a 
-                    className='tab flex items-center gap-1 shadow-[3px_3px_0px_0px_rgba(0,_0,_0,_0.1)] dark:shadow-[3px_3px_0px_0px_rgba(255,_255,_255,_0.1)]'
-                    href={project.githublink} 
-                    target="_blank"
-                  >                    
-                    <FaGithub />
-                    Repo
-                  </a>
-                </div>
+                <LiveRepoLinks livelink={project.livelink} repolink={project.githublink} />
                 <div className="project-technologies flex gap-2">
                   {project.technologies.map((tech, index) => (
                     <span className='tab text-xs flex items-center gap-1 tech-keyword' key={index}>{tech.icon}{tech.name}</span>

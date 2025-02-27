@@ -1,59 +1,48 @@
 import React from 'react'
 import Link from 'next/link'
-import { projects } from './info'
-import { FaGithub } from "react-icons/fa";
-import { IoGameControllerOutline } from 'react-icons/io5';
+import LiveRepoLinks from '../components/shared/LiveRepoLinks';
+import Accordian from '../components/shared/Accordian';
+import { projects, ProjectProps } from './projectlist';
 
-interface RoleDetails {
-    name: string;
-    description?: string; // Add any additional properties relevant to roles
-  }
-  
-  interface TechDetails {
-    name: string;
-    category?: string; // Add any additional properties relevant to technologies
-  }
 
-  interface ProjectProps {
-    title: string;
-    locallink: string;
-    roles: RoleDetails[]; // Assuming getRoleDetails returns an array of RoleDetails
-    description: string;
-    about: string;
-    livelink: string;
-    githublink: string;
-    technologies: TechDetails[]; // Assuming getTechDetails returns an array of TechDetails
-  }
-  
+const ProjectPage = ({project}: { project: ProjectProps}) => {
 
-const ProjectPage = ({project}: {project: ProjectProps}) => {
   return (
-    <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
-        <ul className="project-title project-list list-style-none">
-            <li className='project-item  text-blue-900 dark:text-blue-400'><Link href={project.locallink}>{project.title}</Link></li>
-            <div className='p-2'>{project.about}</div>                
+    <article className="container p-10 h-auto items-center font-roboto-mono lowercase">
+
+        <ul className="project-container project-list">
+            <li className='project-item text-blue-900 dark:text-blue-400'><Link href={project.locallink}>{project.title}</Link></li>
+        
+            <div className='about-section my-2 md:pl-8'>
+              <div className='project-description py-1'>{project.description}</div>
+              <LiveRepoLinks livelink={project.livelink} repolink={project.githublink} />              
+              <Accordian title='About'>{project.about}</Accordian>
+              {/* <Accordian title="Features">
+                {project.features.map((feature, index) => (
+                  <div key={index}>{feature}</div>
+                ))}
+              </Accordian> */}
+              <Accordian title='Tech Stack'>
+                <div className='project-technologies flex gap-2'>
+                  {project.technologies.map((tech, index) => (
+                    <span className='tab text-xs flex items-center gap-1 tech-keyword' key={index}>{tech}</span>
+                  ))}
+                </div>
+              </Accordian>
+              <Accordian title='Roles'>
+                <div className='project-roles flex gap-2'>
+                  {project.roles.map((role, index) => (
+                    <span className='tab text-xs flex items-center gap-1 role-keyword' key={index}>{role}</span>
+                  ))}
+                </div>
+              </Accordian>
+            </div>       
+
         </ul>
 
-        <div className="project-links flex gap-2">
-          <a 
-            className='tab flex items-center gap-1 shadow-[3px_3px_0px_0px_rgba(0,_0,_0,_0.1)] dark:shadow-[3px_3px_0px_0px_rgba(255,_255,_255,_0.1)]' 
-            href={project.livelink}
-            target="_blank"
-          >
-            <IoGameControllerOutline />
-            Live
-          </a>
-          <a 
-            className='tab flex items-center gap-1 shadow-[3px_3px_0px_0px_rgba(0,_0,_0,_0.1)] dark:shadow-[3px_3px_0px_0px_rgba(255,_255,_255,_0.1)]'
-            href={project.githublink} 
-            target="_blank"
-          >                    
-            <FaGithub />
-            Repo
-          </a>
-        </div>
+        
 
-        <div className="project-list p-1 my-5 grid grid-cols-1 md:grid-cols-2 items-center border-t-[1px] rounded-sm border-slate-300 dark:border-slate-700">
+        <div className="project-list p-1 my-5 grid grid-cols-1 md:grid-cols-2 items-center border-t-[1px] border-dashed rounded-sm border-slate-300 dark:border-slate-700">
             <div className="col-span-2 md:text-center text-sm pb-2"><Link href='/work' className='nav-tab pt-1'>work</Link></div>
           {projects.map((project, index) => (
             <div key={index} className='project-item col-span-2 md:col-span-1 text-blue-900 dark:text-blue-400'><Link href={project.locallink}>{project.title}</Link></div>                
