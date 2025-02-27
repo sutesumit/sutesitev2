@@ -1,8 +1,8 @@
 import React from 'react'
 import Link from 'next/link'
-import LiveRepoLinks from '../components/shared/LiveRepoLinks';
-import Accordion from '../components/shared/Accordion';
-import { projects, ProjectProps } from './projectlist';
+import LiveRepoLinks from './LiveRepoLinks';
+import Accordion from './Accordion';
+import { projects, ProjectProps } from '../../../data/projectlist';
 
 
 const ProjectPage = ({project}: { project: ProjectProps}) => {

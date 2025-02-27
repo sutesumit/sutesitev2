@@ -1,4 +1,4 @@
-import { projects, skillList } from './info'
+import { projects, skillList } from '../../data/info'
 import Link from 'next/link';
 import LiveRepoLinks from '../components/shared/LiveRepoLinks';
 
