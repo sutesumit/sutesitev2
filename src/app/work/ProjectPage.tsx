@@ -53,10 +53,10 @@ const ProjectPage = ({project}: {project: ProjectProps}) => {
           </a>
         </div>
 
-        <div className="project-list p-1 my-2 grid grid-cols-1 md:grid-cols-2 items-center border-[1px] rounded-sm border-slate-300 dark:border-slate-700">
-            <div className="col-span-2 text-center text-sm pb-2"><Link href='/work' className='nav-tab pt-1'>work</Link></div>
+        <div className="project-list p-1 my-5 grid grid-cols-1 md:grid-cols-2 items-center border-t-[1px] rounded-sm border-slate-300 dark:border-slate-700">
+            <div className="col-span-2 md:text-center text-sm pb-2"><Link href='/work' className='nav-tab pt-1'>work</Link></div>
           {projects.map((project, index) => (
-            <div key={index} className='project-item text-blue-900 dark:text-blue-400'><Link href={project.locallink}>{project.title}</Link></div>                
+            <div key={index} className='project-item col-span-2 md:col-span-1 text-blue-900 dark:text-blue-400'><Link href={project.locallink}>{project.title}</Link></div>                
           ))}
         </div>
     </article>
