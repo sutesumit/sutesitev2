@@ -21,7 +21,7 @@ const Header = () => {
         </ul>
         <ul className="nav__list-right flex gap-3 items-baseline">
           {navtabs.map(tab => (
-            <Link key={tab.href} className={`nav-tab py-1.5 ${pathname === tab.href ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`} href={tab.href}>{tab.title}</Link>
+            <Link key={tab.href} className={`nav-tab py-1.5 ${pathname.split('/')[1] === tab.href.split('/')[1] ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`} href={tab.href}>{tab.title}</Link>
           ))}
           <li className="toggleTheme self-center pt-[2px] opacity-50 hover:opacity-100 cursor-pointer text-xs transition-all duration-300">
             <ToggleTheme/>
