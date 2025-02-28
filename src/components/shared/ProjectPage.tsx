@@ -25,14 +25,14 @@ const ProjectPage = ({project}: { project: ProjectProps}) => {
               <Accordion title='Tech Stack'>
                 <div className='project-technologies flex gap-2'>
                   {project.technologies.map((tech, index) => (
-                    <span className='tab text-xs flex items-center gap-1 tech-keyword' key={index}>{tech}</span>
+                    <span className='tab text-xs flex items-center gap-1 tech-keyword' key={index}>{tech.icon}{tech.name}</span>
                   ))}
                 </div>
               </Accordion>
               <Accordion title='Roles'>
                 <div className='project-roles flex gap-2'>
                   {project.roles.map((role, index) => (
-                    <span className='tab text-xs flex items-center gap-1 role-keyword' key={index}>{role}</span>
+                    <span className='tab text-xs flex items-center gap-1 role-keyword' key={index}>{role.icon}{role.name}</span>
                   ))}
                 </div>
               </Accordion>
