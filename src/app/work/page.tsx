@@ -16,7 +16,10 @@ export default function Home() {
             {skillList.languages.map((skill, index) => (
               <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{skill.icon}{skill.name}</span>
             ))} 
-            {skillList.frameworks.map((framework, index) => (
+            {skillList.frontend.map((framework, index) => (
+              <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{framework.icon}{framework.name}</span>
+            ))}
+            {skillList.backend.map((framework, index) => (
               <span className='tab flex items-center gap-1 opacity-50 hover:opacity-100' key={index}>{framework.icon}{framework.name}</span>
             ))}
             {skillList.databases.map((database, index) => (
