@@ -38,6 +38,7 @@ export interface TechDetails {
 
 export interface ProjectProps {
     title: string;
+    screenshot?: string;
     locallink: string;
     roles: RoleDetails[]; 
     description: string;
@@ -52,6 +53,7 @@ export interface ProjectProps {
 export const projects: ProjectProps[] = [
     {
         title: 'art.sumitsute.com',
+        screenshot: '/project1screenshot.gif',
         locallink: '/work/art',
         roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
         description: 'An interactive Next.js portfolio of Sumit Sute’s photographic art.',
@@ -63,6 +65,7 @@ export const projects: ProjectProps[] = [
     },
     {
         title: 'Dramas of Discrimination',
+        screenshot: '/project2screenshot.gif',
         locallink: '/work/dramas-of-discrimination',
         roles: getRoleDetails(['End-to-end','Developer', 'UI Designer', 'Writer']),
         description: 'An open-source Next.js tool for Dramas of Discrimination workshops, enabling communities and students to foster inclusive academic and professional spaces.',

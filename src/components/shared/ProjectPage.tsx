@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import LiveRepoLinks from './LiveRepoLinks';
 import Accordion from './Accordion';
 import { projects, ProjectProps } from '../../data/projectlist';
@@ -14,6 +15,7 @@ const ProjectPage = ({project}: { project: ProjectProps}) => {
             <li className='project-item text-blue-900 dark:text-blue-400'><Link href={project.locallink}>{project.title}</Link></li>
         
             <div className='about-section my-2 md:pl-8'>
+              {project.screenshot && <Image src={project.screenshot} alt={project.title} width={500} height={200} className='rounded-sm' />}
               <div className='project-description py-1'>{project.description}</div>
               <LiveRepoLinks livelink={project.livelink} repolink={project.githublink} />              
               <Accordion title='About'>{project.about}</Accordion>
