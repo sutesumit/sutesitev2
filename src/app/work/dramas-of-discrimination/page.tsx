@@ -1,6 +1,6 @@
 import React from 'react'
-import { projects } from '../projectlist'
-import ProjectPage from '../ProjectPage';
+import { projects } from '../../../data/projectlist'
+import ProjectPage from '../../../components/shared/ProjectPage';
 
 const page = () => {
   const project = projects[1];
