@@ -1,6 +1,6 @@
 import { projects, skillList } from '../../data/info'
 import Link from 'next/link';
-import LiveRepoLinks from '../components/shared/LiveRepoLinks';
+import LiveRepoLinks from '../../components/shared/LiveRepoLinks';
 
 export default function Home() {
 

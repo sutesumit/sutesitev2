@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
-const SeedingPlant = dynamic(() => import('./components/specific/SeedingPlant'), {
+const SeedingPlant = dynamic(() => import('../components/specific/SeedingPlant'), {
   ssr: false,
 })
 

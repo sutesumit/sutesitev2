@@ -5,7 +5,7 @@ import bullets from './bullets'
 import { motion as m } from 'motion/react'
 import Link from 'next/link'
 
-const FallingLeaves = dynamic(() => import('../components/specific/FallingLeaves'), {
+const FallingLeaves = dynamic(() => import('../../components/specific/FallingLeaves'), {
   ssr: false,
 })
 

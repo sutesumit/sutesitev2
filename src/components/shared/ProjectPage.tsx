@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import LiveRepoLinks from './LiveRepoLinks';
 import Accordion from './Accordion';
-import { projects, ProjectProps } from '../../../data/projectlist';
+import { projects, ProjectProps } from '../../data/projectlist';
 
 
 const ProjectPage = ({project}: { project: ProjectProps}) => {
