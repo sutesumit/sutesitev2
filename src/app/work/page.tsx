@@ -10,7 +10,7 @@ export default function Home() {
       {/* Skill List Section of the work page */}
         <div className='skill-list'>
           <div className='page-title py-3'>
-            <p className="font-bold">Skills</p>
+            <p className="font-bold">Technologies</p>
           </div>
           <div className="pl-8 flex flex-wrap items-center text-xs gap-1">
             {skillList.languages.map((skill, index) => (
