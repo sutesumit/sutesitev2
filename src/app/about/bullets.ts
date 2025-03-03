@@ -17,8 +17,8 @@ interface Bullet {
         time: "2025"
     },
     {
-        body: "Married Pallavi, the love of my life. We have four kids now.",
-        icons: ["💍", "💑", "🏠"],
+        body: "Married Pallavi, the love of my life.",
+        icons: ["💍", "🧑🏾‍❤️‍🧑🏾", "🏠"],
         time: "2024"
     },
     {
@@ -58,7 +58,7 @@ interface Bullet {
     },
     {
         body: "Took a sabbatical to care for my mother during her health crisis, deepened my bond with my father.",
-        icons: ["💊", "👨‍👩‍👦", "️⏳" ],
+        icons: ["💊", "👨🏽‍👩🏽‍👦🏽", "️⏳" ],
         time: "2022"
     },
     {
