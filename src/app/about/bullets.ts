@@ -12,6 +12,11 @@ interface Bullet {
         time: "2025",
     },
     {
+        body: "At BeneathATree, engineered end-to-end modules for a senior-living hospitality platform with React + Redux, AWS Lambda, MongoDB, and Alexa for Hospitality (A4H), reducing caregiver task turnaround time.",
+        icons: ["🏥", "⚛️", "☁️"],
+        time: "2025",
+    },
+    {
         body: "Developed 'Dramas of Discrimination', a web application that facilitates workshops for diverse communities to foster inclusivity, blending systems thinking with Theatre of the Oppressed methodologies.",
         icons: ["🎭", "⚙️", "👨🏽‍🏫" ],
         time: "2025"

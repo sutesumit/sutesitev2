@@ -1,59 +1,73 @@
-import { AnimatePresence, motion } from "framer-motion"
-import React from "react"
-import { BookOpen, Book } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion";
+import React from "react";
+import { BookOpen, Book } from "lucide-react";
 
 type HoverTextTyperProps = {
-  triggerText: React.ReactNode
-  typingText: string
-}
+  triggerText: React.ReactNode;
+  openIcon?: React.ReactNode;
+  closedIcon?: React.ReactNode;
+  typingText: string;
+};
 
 const HoverTextTyper: React.FC<HoverTextTyperProps> = ({
   triggerText,
-  typingText,
+  openIcon,
+  closedIcon,
+  typingText
 }) => {
   // split into characters but preserve spaces
-  const letters = typingText.split(/(?<= )|(?= )|(?=\n)/)
+  const [textOpen, setTextOpen] = React.useState(false);
+  const letters = typingText.split(/(?<= )|(?= )|(?=\n)/);
 
-  const [isHovered, setIsHovered] = React.useState(false)
 
   return (
-    <div 
-      className="group inline-flex flex-col items-start"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+    <span
+      className="group inline-flex flex-wrap"
     >
-      <div className="flex items-center">
-        {triggerText} 
-        {isHovered ? (
-          <BookOpen className="w-4 h-4" />
-        ) : <Book className="w-4 h-4" />}
-      </div>
-      
+      <span 
+        className="items-center cursor-pointer group-hover:text-blue-900 dark:group-hover:text-blue-400 transition-all duration-500 ease-in-out"
+        onClick={() => setTextOpen(!textOpen)}
+      >
+        {triggerText}
+        <span 
+          className={`icon inline-flex align-middle items-center w-4 h-4 ml-1 ${textOpen ? "-rotate-12 scale-100" : "rotate-12 -scale-100"} text-blue-900 dark:text-blue-400 cursor-pointer transition-all duration-500 ease-in-out`}
+          onMouseEnter={() => setTextOpen(!textOpen)}
+        >
+          {textOpen
+            ? openIcon || <BookOpen />
+            : closedIcon || <Book />}
+        </span>
+      </span>
 
       {/* Container for typing text */}
       <AnimatePresence>
-      {isHovered && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-        >
-          
-          {letters.map((letter, index) => (
-            <motion.span
-              key={index}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: index * 0.005 }}
-            >
-              {letter}
-            </motion.span>
-          ))}
-        </motion.div>
-      )}
+        {textOpen ? (
+          <motion.span
+            initial={{ opacity: 0, height: 0 }}
+            animate={{
+              opacity: 1,
+              height: "auto",
+              transition: {
+                ease: [0.16, 1, 0.3, 1]
+              },
+            }}
+            exit={{ opacity: 0, height: 0, transition: { duration: 0.3 } }}
+          >
+            {letters.map((letter, index) => (
+              <motion.span
+                key={index}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ ease: [0.16, 1, 0.3, 1], delay: index * 0.01 }}
+              >
+                {letter}
+              </motion.span>
+            ))}
+          </motion.span>
+        ) : null}
       </AnimatePresence>
-    </div>
+    </span>
   );
-}
+};
 
-export default HoverTextTyper
+export default HoverTextTyper;
