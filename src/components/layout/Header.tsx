@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 
 const navtabs = [
   { title: 'Work', href: '/work' },
+  { title: 'Bloq', href: '/bloq' },
   { title: 'About', href: '/about' }
 ]
 

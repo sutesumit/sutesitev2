@@ -40,7 +40,7 @@ export default function Home() {
               <span>Today, as a fullstack developer at</span>
               <Link
                 target="_blank"
-                className="ml-1 border-[1px] border-opacity-25 dark:border-opacity-25 bg-blue-100 dark:bg-blue-950 border-blue-900 dark:border-blue-400 rounded-sm px-1"
+                className="ml-1 highlight"
                 href="https://beneathatree.com/"
               >
                 beneathAtree

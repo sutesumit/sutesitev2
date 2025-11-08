@@ -60,6 +60,14 @@
     @apply max-w-[70ch] m-auto
   }
 
+  .highlight {
+    @apply border-[1px] border-opacity-25 dark:border-opacity-25 bg-blue-100 dark:bg-blue-950 border-blue-900 dark:border-blue-400 rounded-sm px-1
+  }
+
+  .blue-border {
+    @apply border-[1px] border-dotted rounded-md border-slate-500 dark:border-slate-500
+  }
+
   .checkbox {
     @apply border-[1px] border-red-500
   }
