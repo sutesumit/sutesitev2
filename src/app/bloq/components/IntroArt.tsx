@@ -1,3 +1,4 @@
+// 'use client'
 import React from "react";
 
 const IntroArt = () => {
@@ -14,7 +15,7 @@ const IntroArt = () => {
 `;
 
   return (
-    <div className="m-auto flex flex-col justify-center items-center">
+    <div className="m-auto flex flex-col justify-center items-center overflow-x-hidden">
       <pre className="ascii-art text-sm leading-tight whitespace-pre">
         {art}
       </pre>

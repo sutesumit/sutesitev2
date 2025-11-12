@@ -44,19 +44,19 @@ export default function Home() {
               <ul className="project-title project-list list-style-none">
                 <li className='project-item  text-blue-900 dark:text-blue-400'><Link href={project.locallink}>{project.title}</Link></li>                
               </ul>
-              <div className="project-info pl-8">
+              <div className="project-info pl-8 space-y-2">
                 <div className="project-description py-1">
                   <p>{project.description}</p>
                 </div>
                 <LiveRepoLinks livelink={project.livelink} repolink={project.githublink} />
-                <div className="project-technologies flex gap-2">
+                <div className="project-technologies flex flex-wrap gap-1">
                   {project.technologies.map((tech, index) => (
-                    <span className='tab text-xs flex items-center gap-1 tech-keyword' key={index}>{tech.icon}{tech.name}</span>
+                    <span className='tab text-xs flex items-center gap-1 m-0 tech-keyword' key={index}>{tech.icon}{tech.name}</span>
                   ))}
                 </div>
-                <div className="project-roles flex gap-2">
+                <div className="project-roles flex flex-wrap gap-1">
                   {project.roles.map((role, index) => (
-                    <span className='tab text-xs flex items-center gap-1 role-keyword' key={index}>{role.icon}{role.name}</span>
+                    <span className='tab text-xs flex items-center gap-1 m-0 role-keyword' key={index}>{role.icon}{role.name}</span>
                   ))}
                 </div>
               </div>
