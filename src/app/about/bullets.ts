@@ -13,7 +13,7 @@ interface Bullet {
     },
     {
         body: "At BeneathATree, engineered end-to-end modules for a senior-living hospitality platform with React + Redux, AWS Lambda, MongoDB, and Alexa for Hospitality (A4H), reducing caregiver task turnaround time.",
-        icons: ["🏥", "⚛️", "☁️"],
+        icons: ["🌳", "⚛️", "☁️"],
         time: "2025",
     },
     {
