@@ -1,6 +1,4 @@
-// 'use client'
 import React from "react";
-import BloqTile from "./BloqTile";
 
 const IntroArt = () => {
   const art = String.raw`
