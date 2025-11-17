@@ -1,6 +1,8 @@
-import React from "react";
+'use client'
+import React, { useState } from "react";
 
 const IntroArt = () => {
+  const [answer] = useState(`[ don't repeat yourself ]`)
   const art = String.raw`
 .---------------------------------------------------------------------.
 | [Esc] [F1][F2][F3][F4][F5][F6][F7][F8][F9][F0][F10][F11][F12] o o o |
@@ -14,23 +16,24 @@ const IntroArt = () => {
 `;
 
 
-
 const formattedKeys = art.replace(/\[.*?\]/g, (match) => {
 
-  const onClickAttr = `onclick="this.classList.add('scale-0', 'opacity-0', 'rotate-45')"`
-  const formattedKeysAttr = `class="key inline-block cursor-pointer hover:scale-95 transition-all duration-1000 ease-out"`
+  const onClickAttr = `onclick="this.classList.add('scale-0', 'opacity-0', 'rotate-45', 'translate-y-5')"`
+  const formattedKeysAttr = `class="key inline-block cursor-pointer hover:scale-90 transition-all duration-1000 ease-out"`
   const hoverAttr = `onmouseenter="this.style.color='rgb('+Math.floor(Math.random()*256)+','+Math.floor(Math.random()*256)+','+Math.floor(Math.random()*256)+')'" onmouseleave="this.style.color=''"`;
+
+
 
   return `<div ${formattedKeysAttr} ${hoverAttr} ${onClickAttr}>${match}</div>`
 })
 
   return (
     <div className="m-auto flex flex-col justify-center items-center overflow-x-hidden">
-      <pre 
+      <pre
         className="ascii-art text-sm leading-tight whitespace-pre rota"
-        dangerouslySetInnerHTML={{ __html: formattedKeys}}
-      >
-      </pre>
+        dangerouslySetInnerHTML={{ __html: formattedKeys }}
+      ></pre>
+      <div className="mt-4">{answer}</div>
     </div>
   );
 };

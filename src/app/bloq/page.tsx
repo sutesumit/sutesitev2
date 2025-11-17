@@ -5,11 +5,11 @@ import BloqTile from './components/BloqTile'
 
 const page = () => {
   return (
-    <article className="container blue-border mt-10 pb-10 h-auto items-center font-roboto-mono lowercase">
+    <article className="container blue-border my-10 pb-10 h-auto items-center font-roboto-mono lowercase">
       <IntroArt />
       <IntroText />
       <div
-        className='all-tiles grid grid-cols-2 px-10 gap-5'
+        className='all-tiles grid sm:grid-cols-2 grid-cols-1 px-10 gap-3'
       >
         {Array.from({ length: 3 }).map((_, i) => (
           <BloqTile key={i}/>
