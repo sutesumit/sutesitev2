@@ -16,7 +16,7 @@ export const AsciiBoard = ({ clickedKeys, handleKeyClick, isWon, answerKeysSet, 
   const parts = ART.split(/(\[.*?\]|o o o)/g);
 
   return (
-    <pre className="ascii-art text-sm leading-tight whitespace-pre rota">
+    <pre className="ascii-art text-sm leading-tight whitespace-pre relative z-0">
       {parts.map((part, index) => {
         if (part === 'o o o') {
           return <WinLights key={index} isWon={isWon} text={part} />;
