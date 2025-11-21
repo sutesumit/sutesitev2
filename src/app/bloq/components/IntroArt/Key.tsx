@@ -8,13 +8,13 @@ const dropVariants = {
     scale: 1,
     opacity: 1
   },
-  clicked: (custom: { randomRotate: number }) => ({
-    y: 50, // Reduced distance to keep it visible longer
-    rotate: custom.randomRotate,
-    scale: 0, // Don't shrink to 0, keep some size
+  clicked: (custom: { randomRotate: number, isCorrect: boolean }) => ({
+    y: custom.isCorrect ? -50 : 50, // Move UP if correct, DOWN if wrong
+    rotate: custom.isCorrect ? 0 : custom.randomRotate,
+    scale: custom.isCorrect ? 1.5 : 0, 
     opacity: 0,
     transition: {
-      duration: 1.5,
+      duration: custom.isCorrect ? 0.1 : 1.5,
       ease: "easeOut"
     }
   }),
@@ -29,14 +29,18 @@ interface KeyProps {
   label: string;
   handleKeyClick: () => void;
   isClicked: boolean;
+  isCorrect: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export const Key = ({ label, handleKeyClick, isClicked }: KeyProps) => {
+export const Key = ({ label, handleKeyClick, isClicked, isCorrect, onMouseEnter, onMouseLeave }: KeyProps) => {
     const [hoverColor, setHoverColor] = useState('');
     // Generate random rotation once on mount for consistent animation
     const [randomRotate] = useState(() => Math.random() * 180 - 90); 
     
     const handleMouseEnter = () => {
+        if (onMouseEnter) onMouseEnter();
         const r = Math.floor(Math.random() * 256);
         const g = Math.floor(Math.random() * 256);
         const b = Math.floor(Math.random() * 256);
@@ -44,6 +48,7 @@ export const Key = ({ label, handleKeyClick, isClicked }: KeyProps) => {
     };
 
     const handleMouseLeave = () => {
+        if (onMouseLeave) onMouseLeave();
         setHoverColor('');
     };
 
@@ -56,7 +61,7 @@ export const Key = ({ label, handleKeyClick, isClicked }: KeyProps) => {
             initial="initial"
             animate={isClicked ? "clicked" : "initial"}
             whileHover={!isClicked ? "hover" : undefined}
-            custom={{ randomRotate }}
+            custom={{ randomRotate, isCorrect }}
             style={{ color: isClicked ? '' : hoverColor }}
             className={`inline-block cursor-pointer relative z-10 ${isClicked ? 'font-bold' : ''}`}
         >

@@ -7,9 +7,11 @@ interface AsciiBoardProps {
   clickedKeys: Set<string>;
   handleKeyClick: (key: string) => void;
   isWon: boolean;
+  answerKeysSet: Set<string>;
+  setIsPeeking: (isPeeking: boolean) => void;
 }
 
-export const AsciiBoard = ({ clickedKeys, handleKeyClick, isWon }: AsciiBoardProps) => {
+export const AsciiBoard = ({ clickedKeys, handleKeyClick, isWon, answerKeysSet, setIsPeeking }: AsciiBoardProps) => {
   // Split by keys but keep delimiters
   const parts = ART.split(/(\[.*?\]|o o o)/g);
 
@@ -21,12 +23,18 @@ export const AsciiBoard = ({ clickedKeys, handleKeyClick, isWon }: AsciiBoardPro
         }
         if (part.match(/^\[.*?\]$/)) {
           const isClicked = clickedKeys.has(part);
+          const isCorrect = answerKeysSet.has(part.toLowerCase());
+          const isSpacebar = part === '[________________________]';
+          
           return (
             <Key 
               key={index} 
               label={part} 
               isClicked={isClicked} 
-              handleKeyClick={() => handleKeyClick(part)} 
+              isCorrect={isCorrect}
+              handleKeyClick={() => handleKeyClick(part)}
+              onMouseEnter={isSpacebar ? () => setIsPeeking(true) : undefined}
+              onMouseLeave={isSpacebar ? () => setIsPeeking(false) : undefined}
             />
           );
         }

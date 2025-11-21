@@ -61,10 +61,14 @@ export const useIntroGame = () => {
     }
   };
 
+  const [isPeeking, setIsPeeking] = useState(false);
+
   return {
-    guess,
+    guess: isPeeking ? answer : guess,
     clickedKeys,
     isWon,
-    handleKeyClick
+    handleKeyClick,
+    answerKeysSet,
+    setIsPeeking
   };
 };

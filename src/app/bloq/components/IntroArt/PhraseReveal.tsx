@@ -11,9 +11,9 @@ export const PhraseReveal = ({ guess }: PhraseRevealProps) => {
       {guess.split('').map((char, index) => (
         <m.span
           key={index + char}
-          initial={{ rotateX: 90, opacity: 0 }}
-          animate={{ rotateX: 0, opacity: 1 }}
-          transition={{ duration: 0.3 }}
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
           className="inline-block origin-bottom"
         >
           {char === ' ' ? '\u00A0' : char}
