@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import typography from "@tailwindcss/typography";
 
 export default {
   content: [
@@ -18,5 +19,7 @@ export default {
       'roboto-mono': ["var(--font-roboto-mono)", "monospace"],
     }
   },
-  plugins: [],
+  plugins: [
+    typography,
+  ],
 } satisfies Config;

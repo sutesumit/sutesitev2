@@ -1,0 +1,24 @@
+import { notFound } from 'next/navigation';
+import { MDXRemote } from 'next-mdx-remote/rsc';
+import { getBloqPostBySlug } from '@/lib/bloq';
+import IntroArt from '@/app/bloq/components/IntroArt';
+import BloqCard from '@/app/bloq/components/BloqCard';
+import MDXComponents from '@/app/bloq/components/MDXComponents';
+
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = getBloqPostBySlug(slug);
+
+  if (!post) {
+    notFound();
+  }
+
+  return (
+    <article className="container py-10">
+      <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
+      <div className="px-4">
+        <MDXRemote source={post.content} components={{ ...MDXComponents, IntroArt }} />
+      </div>
+    </article>
+  );
+}

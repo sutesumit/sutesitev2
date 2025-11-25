@@ -1,0 +1,45 @@
+---
+
+title: "Setting up my blog series"
+publishedAt: "2025-11-23"
+summary: "A technical dive into how I built this blog using Next.js 15, MDX, and a custom file-based CMS."
+slug: "Setting up my blog series in next project and technical implementation"
+---
+
+# Setting Up My Blog Series
+
+In the beginning, there was the Array. And the Array was of length 3, and it was void.
+
+I looked upon my `page.tsx`, and I saw the `BloqTile` components, hardcoded and repetitive, like echoes in a hollow chamber. They were simulacra of content—placeholders waiting for a soul. I realized that to build a true blog, I had to separate the body from the spirit, the presentation from the prose.
+
+## The Separation of Soul and Body
+
+The first step was to acknowledge that content is not code. Code is the machinery; content is the ghost in the machine. I introduced `gray-matter` to parse the metadata—the consciousness of each post—separating the frontmatter from the raw markdown body.
+
+```typescript
+// The ritual of extraction
+const fileContent = fs.readFileSync(filePath, "utf8");
+const { data, content } = matter(fileContent);
+```
+
+This was the moment of decoupling. My thoughts were no longer trapped in the rigid lattice of TypeScript components. They were free, existing as pure data in `.mdx` files, waiting to be summoned.
+
+## The Remote Connection
+
+But raw data is cold. It needs a medium to manifest in the browser. I brought in `next-mdx-remote`. It acts as the medium, the channeler that takes the raw spirit of Markdown and gives it a React body.
+
+It wasn't just about rendering text; it was about bridging two worlds. The server-side file system, where the posts sleep, and the client-side DOM, where they awaken.
+
+## The Aesthetic of Text
+
+A soul needs a beautiful vessel. Raw HTML is functional but stark. I adorned the blog with `@tailwindcss/typography`. With a single class—`prose`—the chaotic elements of the web fell into harmony. Headings found their hierarchy, paragraphs found their rhythm, and code blocks found their contrast.
+
+## The Dynamic Awakening
+
+Finally, I returned to `page.tsx`. I banished the `Array.from({ length: 3 })`. No longer would I iterate over emptiness.
+
+```typescript
+const posts = getBloqPosts();
+```
+
+Now, the page breathes. It reaches into the file system, discovers what exists, and manifests it. The blog is no longer a static monument; it is a living entity, growing with every new file I create. The roadblocks have become building blocks.

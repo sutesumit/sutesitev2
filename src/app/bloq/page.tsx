@@ -1,21 +1,26 @@
 import React from 'react'
 import IntroText from './components/IntroText'
 import IntroArt from './components/IntroArt'
-import BloqTile from './components/BloqTile'
+import BloqCard from './components/BloqCard'
+import { getBloqPosts } from '@/lib/bloq'
 
 const page = () => {
+  const posts = getBloqPosts();
+
   return (
-    <article className="container blue-border my-10 pb-10 h-auto items-center font-roboto-mono lowercase">
-      <IntroArt />
-      <IntroText />
+    <div className="container flex flex-col pb-10">
+      <div className="blue-border mt-10 h-auto items-center font-roboto-mono lowercase">
+        <IntroArt />
+        <IntroText />
+      </div>
       <div
-        className='all-tiles grid sm:grid-cols-2 grid-cols-1 px-10 gap-3'
+        className='all-tiles grid sm:grid-cols-2 grid-cols-1 mt-4 gap-3'
       >
-        {Array.from({ length: 3 }).map((_, i) => (
-          <BloqTile key={i}/>
+        {posts.map((post) => (
+          <BloqCard key={post.slug} post={post} />
         ))}
       </div>
-    </article>
+    </div>
   )
 }
 
