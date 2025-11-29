@@ -3,8 +3,9 @@ import { motion as m, AnimatePresence } from 'framer-motion'
 import { Undo2 } from 'lucide-react'
 import { BloqPost } from '@/lib/bloq'
 import { cn } from '@/lib/utils'
-import { useScrollCollapse } from '../../hooks/useScrollCollapse'
+import { useCardCollapse } from '../../hooks/useCardCollapse'
 import { BloqDate, BloqTitle, BloqSummary, BloqBackground } from './parts'
+import TagList from '../TagList'
 
 interface BloqCardDetailProps {
   post: BloqPost;
@@ -12,23 +13,28 @@ interface BloqCardDetailProps {
 }
 
 export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
-  const isCollapsed = useScrollCollapse();
+  const { isCollapsed, mouseHandlers } = useCardCollapse();
 
   return (
     <m.div
-      layout
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      {...mouseHandlers}
       initial="rest"
-      whileHover="hover"
       animate="rest"
+      whileHover="hover"
+      transition={{ duration: 0.3, ease: "easeInOut" }}
       role="article"
       aria-label={post.title}
-      className={cn(`relative ${isCollapsed ? '' : 'p-4'} overflow-hidden blue-border col-span-1 flex flex-col cursor-pointer`, className)}
+      className={cn("relative p-2 overflow-hidden blue-border col-span-1 flex flex-col cursor-pointer", className)}
     >
       <BloqBackground />
       
       <m.div 
-        className={`flex h-full flex-col ${isCollapsed ? 'px-6 items-center justify-center' : 'px-2'}`}
+        animate={{
+          paddingLeft: isCollapsed ? '1.5rem' : '0.5rem',
+          paddingRight: isCollapsed ? '1.5rem' : '0.5rem',
+        }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className={`flex h-full flex-col ${isCollapsed ? 'items-center justify-center' : ''}`}
       >
         {/* Back button & collapsed title */}
         <div className="flex flex-row w-full items-center justify-between overflow-hidden">
@@ -37,19 +43,40 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
               { isCollapsed ? '' : 'All Bloqs'} <Undo2 className="opacity-75 p-1" />
             </div>
           </Link>
-          {isCollapsed && 
-          <div className="flex-grow inline-block truncate font-medium text-blue-900 dark:text-blue-400 ml-2 text-right">
-            {post.title}
-          </div>}
+          <AnimatePresence>
+            {isCollapsed && (
+              <m.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                className="flex-grow inline-block truncate font-medium text-blue-900 dark:text-blue-400 ml-2 text-right"
+              >
+                {post.title}
+              </m.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <AnimatePresence>
           {!isCollapsed && (
-            <>
+            <m.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
               <BloqDate post={post} />
               <BloqTitle post={post} isDetail={true} />
-              <BloqSummary post={post} />
-            </>
+              <BloqSummary post={post} isDetail={true} />
+              
+              {/* Tags section */}
+              {post.tags && post.tags.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <TagList tags={post.tags} asLinks={true} />
+                </div>
+              )}
+            </m.div>
           )}
         </AnimatePresence>
       </m.div>

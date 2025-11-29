@@ -57,9 +57,10 @@ export const BloqTitle = ({ post, shouldHide = false, isDetail = false }: BloqTi
 
 interface BloqSummaryProps extends BloqPartProps {
   shouldHide?: boolean;
+  isDetail?: boolean;
 }
 
-export const BloqSummary = ({ post, shouldHide = false }: BloqSummaryProps) => {
+export const BloqSummary = ({ post, shouldHide = false, isDetail = false }: BloqSummaryProps) => {
   return (
     <m.div 
       layout
@@ -69,7 +70,7 @@ export const BloqSummary = ({ post, shouldHide = false }: BloqSummaryProps) => {
         width: shouldHide ? 0 : "auto",
         height: shouldHide ? 0 : "auto" 
       }}
-      className="text-xs line-clamp-2 overflow-hidden"
+      className={`text-xs ${isDetail ? 'line-clamp-none' : 'line-clamp-2'} overflow-hidden`}
     >
       {post.summary}
     </m.div>

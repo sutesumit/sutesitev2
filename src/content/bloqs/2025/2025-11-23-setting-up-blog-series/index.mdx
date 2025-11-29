@@ -1,0 +1,132 @@
+---
+authors:
+- Sumit Sute
+category: Development
+draft: false
+featured: true
+publishedAt: 2025-11-23
+slug: setting-up-blog-series
+summary: A reflective, slightly chaotic, and very humane account of
+  building my MDX-based blog system with an AI agent --- from foggy task
+  management to file-based CMS choices, SOLID refactors, and the
+  emotional texture of working in agentic mode.
+tags:
+- nextjs
+- mdx
+- blogging
+- typescript
+- agentic-mode
+- cms
+title: Booting the Bloq Engine
+---
+
+# Architecture and Allergies
+
+> “An interrupted agent is a mirror; it shows me how much of my sense of progress I outsource to a system.”
+
+While working with code in the agentic mode, the agent got stuck in the middle, and it made me feel a little anxious about the track and progress so far. Luckily, starting a new conversation could still refer to the plan in the older one. But even there, I wasn't fully or actively referring to a system like a taskmaster. In the iterations, I would really love to depend on an elaborate and step-by-step task list, if not a full PRD, and check off the tasks one by one.
+
+```plaintext
+  [ ] Did the agent freeze?;
+  [ ] Did I freeze too?;
+  [ ] Is there a fallback plan?;
+```
+------------------------------------------------------------------------
+
+## The Problem: Scaling My Mess, One Article at a Time
+
+But having said that, creating a system that can scale from three articles to hopefully and potentially a hundred articles (not just for the machine, but for me to maintain them humanistically) was truly a collaborative and learning experience. It was quite smooth. I didn’t have to dig around and fail at least twice trying to find libraries or tools to render markdown to HTML — I had written it with the agent, and even created my own list of MDX standard converters.
+
+```plaintext
+3 posts
+   ↓
+manual edits
+   ↓
+10 posts
+   ↓
+patterns emerge
+   ↓
+50 posts
+   ↓
+need automation
+   ↓
+100 posts
+   ↓
+system, not effort
+```
+------------------------------------------------------------------------
+
+## Identity Crisis
+
+Still, I am trying to figure out my role here, beyond just the director or the vibey architect. Knowing better tools will definitely help. In some places, maybe I could have preferred ShadCN components over writing them natively. Maybe the ShadCN MCP integration would solve this better. But ShadCN use cases feel better suited for a complex CRUD tool. When I'm mostly trying to be creative with my own components, I wouldn’t want my MCP to be limited by ShadCN, maybe. I want to go beyond and easily access UI libraries I would otherwise go and search for.
+
+```plaintext
+Who am I in this system right now?
+( ) director
+( ) implementer
+( ) student
+( ) architect
+( ) all of the above, inconsistently
+```
+------------------------------------------------------------------------
+
+## Architecture Overview
+
+> “Maybe I’m allergic to pre-designed comfort.”
+
+We eventually settled on a **file-based CMS** powered by:
+
+Still, I am trying to figure out my role here, beyond just the director or the vibey architect. Knowing better tools will definitely help. In some places, maybe I could have preferred Shadcn components over writing them natively. Maybe the ShadCN MCP integration would solve this better. But ShadCN use cases feel better suited for a complex CRUD tool. When I'm mostly trying to be creative with my own components, I wouldn’t want my MCP to be limited by Shadcn, maybe. I want to go beyond and easily access UI libraries I would otherwise go and search for. So, yes: open exploration still matters. (<del>I keep thinking about</del> those Aceternity UI code blocks I <del>haven't</del> integrated <del>yet.</del>)
+
+Yet, now that many options can be made from scratch, I am more motivated to stay inside the chats with the agent and not roam around internet looking for libraries I might need. Even agents hardly prescribe libraries unless asked. But being exposed to such options does make your application more robust, if not a bit bloated. Like, I’ve heard of and used fuzzy search before and wanted that kind of searchability for the search parameters of my blog library. But I have to confess — I didn’t retain the memory of how the search actually works. Yet, I was fascinated by the logic of “related blog posts,” where you fetch the first n number of blogs that share the most number of tags with a particular article. It felt elegantly simple.
+
+``` typescript
+import Fuse from "fuse.js";
+
+const fuse = new Fuse(posts, { keys: ["title", "tags"] });
+const results = fuse.search("agentic writing");
+```
+Still, I want to know as many open library options as I can, and not be locked inside the chat window with the agent. Mainly because open explorations give references to datasets of my own imagination. One of them is the code block component from Aceternity UI <del> — something I’ve been meaning to add for these bloq posts but haven’t, at the time of writing this.</del>
+
+------------------------------------------------------------------------
+
+## <del>A</del>I: Learning Through Friction
+
+Currently, the AI is guiding me — or maybe I am using it to guide me. I want to eventually be smooth enough, and widely enough, to pick the tech stacks and approaches I wish. But before that, I want to wrestle enough with the agents and grow from that wrestling.
+
+> “Reveal what I didn’t need, but help me reach that insight with conviction, not ignorance.”
+
+For example, I’ve already given instructions to the agent to help me use MDX over React components for my bloqs. It did a smooth job. But did it push me to create a database instead? No. Never. It took a visit to the vegetable shop, and a cauliflower in my hand, to realize that I had completely forgotten to even ruminate over the choice of DB vs file system for the bloqs. I’m yet to have that comparative learning and informed conviction. Maybe I’ll add it as an appended footnote one day, when I finally have a learned opinion about it — through my own experience and through a dialogic exchange with an agent.
+
+``` ts
+if (posts.length < 50) {
+  useFileSystem();
+} else {
+  considerDatabase();
+}
+```
+------------------------------------------------------------------------
+## Refactoring as Therapy
+
+The best part of creating the bloq-series system (after the tagnames system with searchability and filters) is actually the refactoring of my code through SOLID principles. It really helps me zero in on the LLM glitch I’ve been struggling to articulate and communicate to the agent. Even if I do explain it, I could still be limited by the inertial weight of the already-written code — and the opinions that came inherited with it from the agent.
+
+``` txt
+LLM glitch → articulation struggle → refactor → clarity ↑
+```
+Like, I was struggling with the useScrollCollapse hook, and I wasn’t fully able to get it to do what I wanted it to do. Arriving surgically at the exact piece of code that could actually solve this issue the way I want becomes a lot more probable after such automated agentic refactoring. It also makes the code, of course, more readable and inviting.
+
+I hope to learn how to quick-read code and codebases with the reinforcement of the agent — and not outsource that reading entirely to it though.
+
+``` txt
+Can I understand a file in under 60 seconds?
+[ ] yes
+[ ] maybe
+[ ] with the agent open
+```
+------------------------------------------------------------------------
+## Final Thoughts
+- Rather than chasing structure, observe what keeps repeating—because repetition is a quiet teacher, not a bug.
+- Refactoring is revelation — SOLID principles expose what the LLM can’t quite articulate.
+- Exploration matters — libraries, UI kits, patterns, rough code — because they form your aesthetic + technical vocabulary.
+- Allow the medium (filesystem, database, or something else) to choose itself through your constraints, not your excitement.
+- Creativity prefers friction, not comfort. Remember that scalability is not an achievement but a response—something your work demands from you, not something you impose on it.

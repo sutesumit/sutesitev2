@@ -1,24 +1,29 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import IntroText from './components/IntroText'
 import IntroArt from './components/IntroArt'
-import BloqCard from './components/BloqCard'
-import { getBloqPosts } from '@/lib/bloq'
+import BloqFeed from './components/BloqFeed'
+import { getBloqPosts, getAllCategories, getAllTags } from '@/lib/bloq'
 
 const page = () => {
   const posts = getBloqPosts();
+  const categories = getAllCategories();
+  const tags = getAllTags();
 
   return (
-    <div className="container flex flex-col pb-10">
-      <div className="blue-border mt-10 h-auto items-center font-roboto-mono lowercase">
+    <div className="container flex flex-col pb-12">
+      <div className="blue-border mt-10 h-auto items-center font-roboto-mono">
         <IntroArt />
         <IntroText />
       </div>
-      <div
-        className='all-tiles grid sm:grid-cols-2 grid-cols-1 mt-4 gap-3'
-      >
-        {posts.map((post) => (
-          <BloqCard key={post.slug} post={post} />
-        ))}
+      
+      <div className="mt-2">
+        <Suspense fallback={<div className="text-center py-10">Loading...</div>}>
+          <BloqFeed 
+            initialPosts={posts} 
+            allCategories={categories} 
+            allTags={tags} 
+          />
+        </Suspense>
       </div>
     </div>
   )

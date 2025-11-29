@@ -11,10 +11,10 @@ const dropVariants = {
   clicked: (custom: { randomRotate: number, isCorrect: boolean }) => ({
     y: custom.isCorrect ? -50 : 50, // Move UP if correct, DOWN if wrong
     rotate: custom.isCorrect ? 0 : custom.randomRotate,
-    scale: custom.isCorrect ? 1.5 : 0, 
+    scale: custom.isCorrect ? 1.5 : 0,
     opacity: 0,
     transition: {
-      duration: custom.isCorrect ? 0.1 : 1.5,
+      duration: custom.isCorrect ? 0.5 : 2,
       ease: "easeOut"
     }
   }),

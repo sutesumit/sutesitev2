@@ -3,6 +3,7 @@ import { motion as m } from 'framer-motion'
 import { BloqPost } from '@/lib/bloq'
 import { cn } from '@/lib/utils'
 import { BloqDate, BloqTitle, BloqSummary, BloqBackground } from './parts'
+import TagList from '../TagList'
 
 interface BloqCardListProps {
   post: BloqPost;
@@ -27,10 +28,19 @@ export const BloqCardList = ({ post, className }: BloqCardListProps) => {
       >
         <BloqBackground />
         
-        <m.div layout className="flex h-full flex-col px-2">
-          <BloqDate post={post} />
-          <BloqTitle post={post} />
-          <BloqSummary post={post} />
+        <m.div layout className="flex h-full flex-col px-2 justify-between">
+          <div className="flex-1">
+            <BloqDate post={post} />
+            <BloqTitle post={post} />
+            <BloqSummary post={post} />
+          </div>
+          
+          {/* Tags section */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <TagList tags={post.tags} maxTags={5} asLinks={false} />
+            </div>
+          )}
         </m.div>
       </m.div>
     </Link>
