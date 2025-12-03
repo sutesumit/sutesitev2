@@ -1,9 +1,22 @@
+"use client";
 import React from 'react'
 import Link from 'next/link'
 import { FaGithub, FaLinkedin } from 'react-icons/fa'
 import { IoIosMail } from 'react-icons/io'
+import { CheckCheck } from 'lucide-react'
+import { usePreviousVisitorLocation } from '@/hooks/usePreviousVisitorLocation'
+import { useCurrentVisitorLocation } from '@/hooks/useCurrentVisitorLocation'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const Footer = () => {
+
+  const { locationData } = useCurrentVisitorLocation();
+  const { previousVisit } = usePreviousVisitorLocation(locationData);
 
   return (
     <footer className="footer fixed w-full bottom-0 z-10">
@@ -13,9 +26,18 @@ const Footer = () => {
             <Link className='social-tab' target='_blank' href='https://www.linkedin.com/in/sumitsute/'><FaLinkedin /></Link> 
             <Link className='social-tab' target='_blank' href='mailto:sumitsute@alumni.iitm.ac.in'><IoIosMail /></Link>
           </div>
-          <div className="last-visit flex items-center gap-1 text-xs opacity-50 hover:opacity-100 transition-all duration-300">
-                Bengaluru, IN
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="last-visit group flex items-center gap-1 text-xs opacity-50 cursor-pointer hover:opacity-100 transition-all duration-300">
+                      <CheckCheck className='h-4 w-4 group-hover:text-blue-500 dark:group-hover:text-blue-400' /> {previousVisit ? previousVisit : 'null'}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>last seen:</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
       </div>
     </footer>
   )
