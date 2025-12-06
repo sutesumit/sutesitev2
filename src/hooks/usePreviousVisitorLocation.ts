@@ -6,22 +6,31 @@ export const usePreviousVisitorLocation = (currentVisitorData: LocationData | nu
   const [previousLocation, setPreviousLocation] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!currentVisitorData) return;
+    const fetchPreviousVisitor = async () => {
+      try {
+        const response = await fetch('/api/visit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(currentVisitorData || {}),
+        });
 
-    fetch('/api/visit', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(currentVisitorData),
-    })
-      .then(res => res.json())
-      .then(data => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
         if (data.lastVisitorLocation) {
           setPreviousLocation(data.lastVisitorLocation);
         }
-      })
-      .catch(err => console.error('Error fetching previous visitor:', err));
+      } catch (error) {
+        console.warn('Unable to fetch previous visitor:', error instanceof Error ? error.message : 'Unknown error');
+      }
+    };
+
+    fetchPreviousVisitor();
   }, [currentVisitorData]);
 
   return { previousVisit: previousLocation };
