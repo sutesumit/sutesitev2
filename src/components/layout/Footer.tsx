@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import ScrambleText from '../shared/ScrambleText';
 
 const Footer = () => {
 
@@ -30,7 +31,7 @@ const Footer = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="last-visit group flex items-center gap-1 text-xs opacity-50 cursor-pointer hover:opacity-100 transition-all duration-300">
-                      <CheckCheck className='h-4 w-4 group-hover:text-blue-500 dark:group-hover:text-blue-400' /> {previousVisit ? previousVisit : 'Bengaluru, In'}
+                      <CheckCheck className='h-4 w-4 group-hover:text-blue-500 dark:group-hover:text-blue-400' /> <ScrambleText text={previousVisit ? previousVisit : 'Bengaluru, In'} />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
