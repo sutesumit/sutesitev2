@@ -27,13 +27,27 @@ export async function POST(request: Request) {
             // Silently continue even if insert fails - still fetch previous visitor
         }
         
-        // Always fetch previous visitor, regardless of whether we inserted new data
-        const { data: prevVisits, error: fetchError } = await supabase
+
+        // Fetch previous visitor, ensuring we don't get the current user's latest visit
+        // We filter out the current IP so we see the actual *previous* person from a different location/device
+        let query = supabase
             .from('visits')
             .select('city, country')
             .order('created_at', { ascending: false })
-            .limit(1)
-            .range(1, 1);
+            .limit(1);
+
+        if (body.ip) {
+            query = query.neq('ip', body.ip);
+        } else {
+            // Fallback for when we don't have an IP to filter by
+            // In this specific edge case, we might interpret "previous" as "2nd most recent" 
+            // if we assume the most recent is the current one we just (potentially) inserted.
+            // However, without an IP, we can't reliably assume identity. 
+            // Using range(1, 1) mimics the old behavior as a fallback.
+            query = query.range(1, 1);
+        }
+
+        const { data: prevVisits, error: fetchError } = await query;
         
         if (fetchError) {
             return NextResponse.json({ 
