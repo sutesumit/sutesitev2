@@ -28,16 +28,26 @@ export async function POST(request: Request) {
         }
         
 
-        // Fetch previous visitor, ensuring we don't get the current user's latest visit
-        // We filter out the current IP so we see the actual *previous* person from a different location/device
-        let query = supabase
+        // Always fetch previous visitor using Service Role key if available to bypass RLS
+        // This is crucial because "anonymous" users usually can't see *other* users' data
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        
+        let queryClient = supabase;
+        if (supabaseUrl && serviceKey) {
+            const { createClient } = await import('@supabase/supabase-js');
+            queryClient = createClient(supabaseUrl, serviceKey);
+        }
+
+        let query = queryClient
             .from('visits')
             .select('city, country')
             .order('created_at', { ascending: false })
             .limit(1);
 
-        if (body.ip) {
-            query = query.neq('ip', body.ip);
+        if (body.ip && typeof body.ip === 'string') {
+            const cleanIp = body.ip.trim();
+            query = query.neq('ip', cleanIp);
         } else {
             // Fallback for when we don't have an IP to filter by
             // In this specific edge case, we might interpret "previous" as "2nd most recent" 
@@ -49,6 +59,8 @@ export async function POST(request: Request) {
 
         const { data: prevVisits, error: fetchError } = await query;
         
+
+
         if (fetchError) {
             return NextResponse.json({ 
                 error: fetchError.message
