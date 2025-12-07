@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
         // Only insert if we have valid location data
         if (body.city || body.country_code) {
-            const { error: insertError } = await supabase
+            await supabase
                 .from('visits')
                 .insert([
                     {
