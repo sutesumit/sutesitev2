@@ -4,6 +4,7 @@ import { LocationData } from '@/types/location';
 
 export const usePreviousVisitorLocation = (currentVisitorData: LocationData | null) => {
   const [previousLocation, setPreviousLocation] = useState<string | null>(null);
+  const [visitorCount, setVisitorCount] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchPreviousVisitor = async () => {
@@ -25,6 +26,9 @@ export const usePreviousVisitorLocation = (currentVisitorData: LocationData | nu
         if (data.lastVisitorLocation) {
           setPreviousLocation(data.lastVisitorLocation);
         }
+        if (typeof data.visitorCount === 'number') {
+            setVisitorCount(data.visitorCount);
+        }
       } catch (error) {
         console.warn('Unable to fetch previous visitor:', error instanceof Error ? error.message : 'Unknown error');
       }
@@ -33,5 +37,5 @@ export const usePreviousVisitorLocation = (currentVisitorData: LocationData | nu
     fetchPreviousVisitor();
   }, [currentVisitorData]);
 
-  return { previousVisit: previousLocation };
+  return { previousVisit: previousLocation, visitorCount };
 };

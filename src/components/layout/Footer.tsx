@@ -17,7 +17,7 @@ import ScrambleText from '../shared/ScrambleText';
 const Footer = () => {
 
   const { locationData } = useCurrentVisitorLocation();
-  const { previousVisit } = usePreviousVisitorLocation(locationData);
+  const { previousVisit, visitorCount } = usePreviousVisitorLocation(locationData);
 
   return (
     <footer className="footer fixed w-full bottom-0 z-10">
@@ -35,7 +35,7 @@ const Footer = () => {
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>last seen:</p>
+                <p>last visitor/{visitorCount}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
