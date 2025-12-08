@@ -33,45 +33,47 @@ export async function POST(request: Request) {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         
-        let queryClient = supabase;
-        if (supabaseUrl && serviceKey) {
-            const { createClient } = await import('@supabase/supabase-js');
-            queryClient = createClient(supabaseUrl, serviceKey);
-        }
+        const getQueryClient = async () => {
+            if (supabaseUrl && serviceKey) {
+                const { createClient } = await import('@supabase/supabase-js');
+                return createClient(supabaseUrl, serviceKey);
+            }
+            return supabase;
+        };
 
-        let query = queryClient
+        const queryClient = await getQueryClient();
+
+        const query = queryClient
             .from('visits')
             .select('city, country')
             .order('created_at', { ascending: false })
             .limit(1);
 
-        if (body.ip && typeof body.ip === 'string') {
-            const cleanIp = body.ip.trim();
-            query = query.neq('ip', cleanIp);
-        } else {
-            // Fallback for when we don't have an IP to filter by
-            // In this specific edge case, we might interpret "previous" as "2nd most recent" 
-            // if we assume the most recent is the current one we just (potentially) inserted.
-            // However, without an IP, we can't reliably assume identity. 
-            // Using range(1, 1) mimics the old behavior as a fallback.
-            query = query.range(1, 1);
-        }
-
         const { data: prevVisits, error: fetchError } = await query;
         
-
+        // Fetch unique visitor count using RPC
+        const { data: uniqueCount, error: countError } = await queryClient.rpc('get_unique_visitor_count');
 
         if (fetchError) {
-            return NextResponse.json({ 
-                error: fetchError.message
-            }, { status: 500 });
+             // ... error handling
+             console.error('Error fetching previous visitor:', fetchError);
+             return NextResponse.json({ 
+                 error: fetchError.message
+             }, { status: 500 });
+        }
+        
+        if (countError) {
+             console.error('Error fetching visitor count:', countError);
+             // We don't fail the whole request if count fails, just return null
         }
 
         const lastVisitor = prevVisits?.[0];
 
         return NextResponse.json({ 
-            lastVisitorLocation: lastVisitor ? `${lastVisitor.city}, ${lastVisitor.country}` : null 
+            lastVisitorLocation: lastVisitor ? `${lastVisitor.city}, ${lastVisitor.country}` : null,
+            visitorCount: uniqueCount
         });
+
     } catch (error) {
         return NextResponse.json({ 
             error: error instanceof Error ? error.message : 'Unknown error'
