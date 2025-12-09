@@ -43,37 +43,30 @@ export async function POST(request: Request) {
 
         const queryClient = await getQueryClient();
 
-        const query = queryClient
+        const { data: prevVisits, error: fetchError } = await queryClient
             .from('visits')
             .select('city, country')
+            .neq('ip', body.ip)
             .order('created_at', { ascending: false })
             .limit(1);
 
-        const { data: prevVisits, error: fetchError } = await query;
-        
-        // Fetch unique visitor count using RPC
-        const { data: uniqueCount, error: countError } = await queryClient.rpc('get_unique_visitor_count');
-
         if (fetchError) {
-             // ... error handling
-             console.error('Error fetching previous visitor:', fetchError);
-             return NextResponse.json({ 
-                 error: fetchError.message
-             }, { status: 500 });
-        }
-        
-        if (countError) {
-             console.error('Error fetching visitor count:', countError);
-             // We don't fail the whole request if count fails, just return null
+            console.error(fetchError);
+            return NextResponse.json({
+                error: fetchError.message
+            }, { status: 500 });
         }
 
-        const lastVisitor = prevVisits?.[0];
+        const { data: uniqueCount } = await queryClient.rpc('get_unique_visitor_count');
+
+        const lastVisitor = prevVisits?.[0] ?? null;
 
         return NextResponse.json({ 
-            lastVisitorLocation: lastVisitor ? `${lastVisitor.city}, ${lastVisitor.country}` : null,
-            visitorCount: uniqueCount
+            lastVisitorLocation: lastVisitor 
+                ? `${lastVisitor.city}, ${lastVisitor.country}` 
+                : null,
+            visitorCount: uniqueCount ?? null
         });
-
     } catch (error) {
         return NextResponse.json({ 
             error: error instanceof Error ? error.message : 'Unknown error'
