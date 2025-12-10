@@ -68,7 +68,22 @@ export function getBloqPosts(): BloqPost[] {
     }
   }
 
-  return allPostsData.sort((a, b) => {
+  // Filter out archived/trashed posts and drafts (in production)
+  const filteredPosts = allPostsData.filter(post => {
+    // 1. Remove if status is archived or trashed
+    if (post.status === 'archived' || post.status === 'trashed') {
+      return false;
+    }
+
+    // 2. Remove if draft in production
+    if (process.env.NODE_ENV === 'production' && post.draft) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return filteredPosts.sort((a, b) => {
     if (a.publishedAt < b.publishedAt) {
       return 1;
     } else {

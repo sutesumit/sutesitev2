@@ -1,5 +1,5 @@
 'use client'
-'use client'
+
 import React from "react";
 import { useIntroGame } from "./useIntroGame";
 import { AsciiBoard } from "./AsciiBoard";

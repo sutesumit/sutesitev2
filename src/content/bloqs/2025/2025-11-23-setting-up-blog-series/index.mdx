@@ -20,7 +20,7 @@ tags:
 title: Booting the Bloq Engine
 ---
 
-# Architecture and Allergies
+## Architecture and Allergies
 
 > “An interrupted agent is a mirror; it shows me how much of my sense of progress I outsource to a system.”
 
@@ -74,11 +74,29 @@ Who am I in this system right now?
 
 > “Maybe I’m allergic to pre-designed comfort.”
 
-We eventually settled on a **file-based CMS** powered by:
+After realizing my need for flexibility and creative control, I settled on a file-based CMS for my bloq system.
 
-Still, I am trying to figure out my role here, beyond just the director or the vibey architect. Knowing better tools will definitely help. In some places, maybe I could have preferred Shadcn components over writing them natively. Maybe the ShadCN MCP integration would solve this better. But ShadCN use cases feel better suited for a complex CRUD tool. When I'm mostly trying to be creative with my own components, I wouldn’t want my MCP to be limited by Shadcn, maybe. I want to go beyond and easily access UI libraries I would otherwise go and search for. So, yes: open exploration still matters. (<del>I keep thinking about</del> those Aceternity UI code blocks I <del>haven't</del> integrated <del>yet.</del>)
+- **Source** – `.mdx` files stored in `src/content/bloqs/[year]-[month]-[day]-[slug].mdx`
+- **Parser** – `gray-matter` reads metadata (`title`, `tags`, `summary`)
+- **Renderer** – `next-mdx-remote` converts MDX into hydrated React components
+- **UI Layer** – Custom Bloq components (`BloqCard`, `BloqFeed`, `FilterPanel`) with hand-crafted ShadCN-style styling
 
-Yet, now that many options can be made from scratch, I am more motivated to stay inside the chats with the agent and not roam around internet looking for libraries I might need. Even agents hardly prescribe libraries unless asked. But being exposed to such options does make your application more robust, if not a bit bloated. Like, I’ve heard of and used fuzzy search before and wanted that kind of searchability for the search parameters of my blog library. But I have to confess — I didn’t retain the memory of how the search actually works. Yet, I was fascinated by the logic of “related blog posts,” where you fetch the first n number of blogs that share the most number of tags with a particular article. It felt elegantly simple.
+## Data Flow:
+
+```mermaid
+graph LR
+A[MDX File System] --> B[gray-matter Parser]
+B --> C[next-mdx-remote Renderer]
+C --> D[BloqCard / BloqFeed UI Components]
+D --> E[Client Browser]
+```
+This approach allowed me to scale naturally from 3 articles to 100+ without introducing a full database too early. The system is human-readable, flexible, and easy to extend, which aligns with my desire for creative freedom.
+
+---
+
+# Search & Exploration: Playing with Options
+
+Once the architecture was in place, I started thinking about how to make content discoverable. I wanted flexible search and related-post suggestions, but I didn’t want to be locked into any single library. Exploration still matters—because every library, UI kit, or pattern is a reference point for my imagination and my own creative code.
 
 ``` typescript
 import Fuse from "fuse.js";
@@ -86,9 +104,10 @@ import Fuse from "fuse.js";
 const fuse = new Fuse(posts, { keys: ["title", "tags"] });
 const results = fuse.search("agentic writing");
 ```
-Still, I want to know as many open library options as I can, and not be locked inside the chat window with the agent. Mainly because open explorations give references to datasets of my own imagination. One of them is the code block component from Aceternity UI <del> — something I’ve been meaning to add for these bloq posts but haven’t, at the time of writing this.</del>
 
-------------------------------------------------------------------------
+Even though the agent didn’t prescribe this library outright, trying it out made me realize how exposure to options strengthens the system without necessarily bloating it. (<del>I keep thinking about</del> those Aceternity UI code blocks I <del>haven't</del> integrated <del>yet.</del>)
+
+---
 
 ## <del>A</del>I: Learning Through Friction
 

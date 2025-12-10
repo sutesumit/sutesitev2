@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useTheme } from 'next-themes'
-import { motion as m } from 'motion/react'
+import { motion as m } from 'framer-motion'
 
     const ThemeIcon = ({ theme }: { theme: string | undefined }) => {
 
