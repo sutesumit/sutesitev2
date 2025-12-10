@@ -1,0 +1,77 @@
+---
+title: "The Day Bun Pretended To Be Node"
+publishedAt: "2025-12-10"
+summary: "A personal debugging story about Bun overriding Node.js commands, what actually caused the issue, and the steps I took to resolve it."
+slug: "bun-took-over-node"
+featured: false
+draft: true
+category: "Engineering"
+tags:
+  - Node.js
+  - Bun
+authors:
+  - Sumit Sute
+---
+
+## The Day Bun Staged a Coup
+
+Sometimes, software doesn’t just fail—it conspires. This week, my Next.js dev server refused to run. The culprit? Bun, the shiny new JS runtime I had casually installed.
+
+---
+
+## Initial Failure
+
+Running the development server with:
+
+```bash
+npm run dev
+```
+
+resulted in:
+
+```bash
+Bun failed to remap this bin…
+```
+That began a long spiral of troubleshooting. I deleted node_modules, reinstalled them, removed Bun globally, tried running Node by its full path—nothing helped. Even npx had turned against me.
+
+At this point, I wasn’t debugging. I was bargaining.
+
+---
+
+## The Plot Twist
+
+Hours later, just when I was out of ideas and free LLM tokens were running low, I uncovered Bun’s secret hideout:
+
+```bash
+C:\Users\Sute\node_modules\.bin\node.bunx
+C:\Users\Sute\node_modules\.bin\node.cmd
+C:\Users\Sute\node_modules\.bin\node.exe
+C:\Users\Sute\node_modules\.bin\node.ps1
+C:\Users\Sute\bun.lock
+```
+There it was: Bun’s fingerprints on everything. These shims were quietly intercepting node and replacing it with themselves. My entire environment was being rerouted through Bun without my knowledge.
+
+---
+
+## The Cleanup
+
+Turns out the fix was nothing fancy. Just wipe the hideout:
+
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\node_modules"
+Remove-Item -Force "$env:USERPROFILE\bun.lock"
+```
+
+Then I tried again:
+
+```bash
+npm run dev
+```
+
+Finally brought my server back to life. Imagine that.
+
+---
+
+## Moral of the Story
+
+Bun tried to take over. I fought back. And I learned: curiosity is wonderful… but sometimes it comes with a hidden army in your home directory.
