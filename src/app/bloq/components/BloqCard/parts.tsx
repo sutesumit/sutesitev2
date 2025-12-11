@@ -11,9 +11,9 @@ interface BloqDateProps extends BloqPartProps {
 }
 
 export const BloqDate = ({ post, shouldHide = false }: BloqDateProps) => {
-  const formattedDate = new Date(post.publishedAt).toLocaleDateString('en-IN', {
+  const formattedDate = new Date(post.publishedAt).toLocaleDateString('en-US', {
     year: 'numeric',
-    month: 'long',
+    month: 'short',
     day: 'numeric'
   });
 

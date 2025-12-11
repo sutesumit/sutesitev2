@@ -36,11 +36,11 @@ export const BloqCardList = ({ post, className }: BloqCardListProps) => {
           </div>
           
           {/* Tags section */}
-          {post.tags && post.tags.length > 0 && (
+          {/* {post.tags && post.tags.length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
               <TagList tags={post.tags} maxTags={5} asLinks={false} />
             </div>
-          )}
+          )} */}
         </m.div>
       </m.div>
     </Link>
