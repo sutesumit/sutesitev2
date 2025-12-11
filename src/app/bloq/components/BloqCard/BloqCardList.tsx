@@ -3,7 +3,7 @@ import { motion as m } from 'framer-motion'
 import { BloqPost } from '@/lib/bloq'
 import { cn } from '@/lib/utils'
 import { BloqDate, BloqTitle, BloqSummary, BloqBackground } from './parts'
-import TagList from '../TagList'
+// import TagList from '../TagList'
 
 interface BloqCardListProps {
   post: BloqPost;
