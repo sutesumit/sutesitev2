@@ -15,7 +15,7 @@ export default function RelatedPosts({ posts }: RelatedPostsProps) {
       {/* <h2 className="text-2xl font-bold mb-6">Related Posts</h2> */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {posts.map((post) => (
-          <BloqCard key={post.slug} post={post} variant="list" />
+          <BloqCard key={post.summary} post={post} variant="list" />
         ))}
       </div>
     </section>

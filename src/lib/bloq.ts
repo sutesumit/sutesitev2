@@ -285,7 +285,7 @@ export function getTagStats(): Map<string, number> {
 /**
  * Get related posts based on tag similarity
  */
-export function getRelatedPosts(post: BloqPost, limit: number = 3): BloqPost[] {
+export function getRelatedPosts(post: BloqPost, limit: number = 2): BloqPost[] {
   const allPosts = getBloqPosts().filter(p => p.url !== post.url);
   
   // Score posts based on number of common tags

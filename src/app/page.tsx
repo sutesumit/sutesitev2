@@ -1,17 +1,11 @@
 "use client";
 import React from "react";
-import dynamic from "next/dynamic";
+
 import ScrambleText from "@/components/shared/ScrambleText";
 import { useCurrentVisitorLocation } from "@/hooks/useCurrentVisitorLocation";
 import { BioSection } from "@/components/home/BioSection";
 import { ProjectList } from "@/components/home/ProjectList";
-
-const SeedingPlant = dynamic(
-  () => import("../components/specific/SeedingPlant"),
-  {
-    ssr: false,
-  }
-);
+import SeedingPlant from "../components/specific/SeedingPlant";
 
 export default function Home() {
   const { locationString } = useCurrentVisitorLocation();

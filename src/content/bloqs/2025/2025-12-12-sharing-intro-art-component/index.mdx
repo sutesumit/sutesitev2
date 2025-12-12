@@ -1,0 +1,428 @@
+---
+title: "The ASCII UX Toy (for React)"
+publishedAt: "2025-12-12"
+summary: "Breaking keyboards, one ASCII character at a time. Here’s my reusable interactive keyboard component for React"
+tags: 
+- react
+- typescript
+- motion
+- ascii
+- animation
+- frontend
+- games
+- ui-engineering
+- web
+- experiments
+authors:
+  - Sumit Sute
+category: Engineering
+draft: true
+featured: false
+---
+
+import IntroArt from '@/app/bloq/components/IntroArt'
+import SeedingPlant from "@/components/specific/SeedingPlant";
+
+<div className="pb-4 mb-4">
+  <IntroArt />
+</div>
+
+---
+
+# The Keyboard No One Asked For
+
+I built this silly ASCII keyboard for my <a href="/bloq/" className="highlight">bloq homepage</a> and people seemed to really enjoy clicking around on it. I originally wanted to leverage AI to build cool ASCII visuals, but I wasn't fully satisfied with the outputs just yet. So, I built this one the old-fashioned way.
+
+It’s not just a static image—it’s actually a little guessing game. If you look closely, there's a phrase hidden in the brackets. You can click the keys on the ASCII board to guess letters, like Hangman or Wordle, but for hackers.
+
+<div>A colleague at work, <a href="https://thoran.art/" className="highlight">Bijoy</a>, asked if he could reuse this `<SeedingPlant />`<SeedingPlant /> component for his own personal site. That got me thinking—why not start publishing my handwoven components here? I’ve also baked in some distinct interaction design feedback from <a href="/" className="highlight">Adil</a> to make it feel tactile and responsive.</div>
+
+> [!NOTE]
+> It only listens to mouse clicks. I’ve seen how tools like Perplexity occasionally override your Cursor shortcuts or steal focus, and I didn’t want my tiny ASCII keyboard to become that kind of annoyance.
+
+## Hidden Mechanics (Easter Eggs)
+
+I love little details that reward curiosity. There are two hidden interactions in this component:
+
+1.  **[Esc] to Reset**: Clicking the `[Esc]` key wipes the board clean and resets the game state.
+2.  **Spacebar Peek**: Hovering over the `[________________________]` (spacebar) momentarily reveals the correct answer, letting you "peek" if you're stuck.
+
+## Use Cases
+
+Why would you want an ASCII keyboard component?
+-   **Interactive Intros**: A unique way to present a "Hello World" or personal slogan.
+-   **Portfolio Easter Eggs**: Something for developers to find and play with.
+-   **Terminal-Style Pages**: Fits perfectly in a brutalist or retro-terminal design aesthetic.
+-   **Minimalist Games**: A foundation for text-based adventures without needing Canvas or WebGL.
+
+## How It Works
+
+The logic is surprisingly simple. It flows like this:
+
+`Click` → `Key.tsx` (Animation) → `useIntroGame.ts` (Logic) → `Guess State Update` → `Win Animation`
+
+### The Logic
+-   **Mapping**: The game converts every letter in the answer string (e.g., `[a]`) to a standardized format.
+-   **The Answer**: Stored as a string like `[ dont repeat yourself ]`.
+-   **Win Condition**: A strict equality check: `guess === answer`.
+
+### Performance & Accessibility
+*   **Performance**: This component involves heavy string splitting and frequent re-renders during animations. It is intentionally playful and ornamental, not optimized for massive high-frequency render loops.
+*   **Accessibility**: ASCII art is inherently difficult for screen readers. Treat this component as **ornamental UI**, not core navigation.
+
+## Prerequisites
+
+You'll need a couple of dependencies to make this work:
+
+1.  **React**
+2.  **Motion** (formerly Framer Motion) for the animations.
+3.  **Tailwind CSS** for styling (optional, but used here).
+
+```bash
+npm install motion
+```
+
+## The Code
+
+I’ve separated the code like a responsible adult. Squash it all together if you’re feeling rebellious.
+
+```text
+src/
+└── components/
+    └── IntroArt/
+        ├── index.tsx          # Main export
+        ├── useIntroGame.ts    # Game logic hook
+        ├── AsciiBoard.tsx     # The rendered board
+        ├── Key.tsx            # Individual key component
+        ├── WinLights.tsx      # Win animation component
+        ├── PhraseReveal.tsx   # The guessed phrase display
+        └── constants.ts       # The raw ASCII string
+```
+
+### 1. Constants (`constants.ts`)
+
+First, we need the actual ASCII art string.
+
+```typescript
+export const ART = String.raw`
+.----------------------------------------------------------------------.
+| [Esc] [F1][F2][F3][F4][F5][F6][F7][F8][F9][F0][F10][F11][F12] o o o  |
+|                                                                      |
+| [\`][1][2][3][4][5][6][7][8][9][0][-][=][ <]  [I][H][U] [N][/][*][-] |
+| [|-][Q][W][E][R][T][Y][U][I][O][P][{][}] [ ]  [D][E][D] [7][8][9][+] |
+| [CAP][A][S][D][F][G][H][J][K][L][;]['][#][_]            [4][5][6][_] |
+| [^][\\][Z][X][C][V][B][N][M][,][.][/][  ^  ]     [^]    [1][2][3][ ] |
+| [c]   [a][________________________][a]   [c]  [<][V][>] [ 0  ][.][_] |
+'----------------------------------------------------------------------'
+`;
+```
+
+### 2. Sub-components
+
+**`Key.tsx`** - Handles the individual key animations.
+
+```typescript
+'use client'
+import React, { useState } from "react";
+import { motion as m } from "motion/react";
+
+const dropVariants = {
+  initial: {
+    y: 0,
+    rotate: 0,
+    scale: 1,
+    opacity: 1
+  },
+  clicked: (custom: { randomRotate: number, isCorrect: boolean }) => ({
+    y: custom.isCorrect ? -50 : 50, // Move UP if correct, DOWN if wrong
+    rotate: custom.isCorrect ? 0 : custom.randomRotate,
+    scale: custom.isCorrect ? 1.5 : 0,
+    opacity: 0,
+    transition: {
+      duration: custom.isCorrect ? 0.5 : 2,
+      ease: "easeOut"
+    }
+  }),
+  hover: {
+    scale: 0.9,
+    fontWeight: "bold",
+    transition: { duration: 0.3 }
+  }
+};
+
+interface KeyProps {
+  label: string;
+  handleKeyClick: () => void;
+  isClicked: boolean;
+  isCorrect: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}
+
+export const Key = ({ label, handleKeyClick, isClicked, isCorrect, onMouseEnter, onMouseLeave }: KeyProps) => {
+    const [hoverColor, setHoverColor] = useState('');
+    // Generate random rotation once on mount for consistent animation
+    const [randomRotate] = useState(() => Math.random() * 180 - 90); 
+    
+    const handleMouseEnter = () => {
+        if (onMouseEnter) onMouseEnter();
+        const r = Math.floor(Math.random() * 256);
+        const g = Math.floor(Math.random() * 256);
+        const b = Math.floor(Math.random() * 256);
+        setHoverColor(`rgb(${r},${g},${b})`);
+    };
+
+    const handleMouseLeave = () => {
+        if (onMouseLeave) onMouseLeave();
+        setHoverColor('');
+    };
+
+    return (
+        <m.div
+            onClick={handleKeyClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            variants={dropVariants}
+            initial="initial"
+            animate={isClicked ? "clicked" : "initial"}
+            whileHover={!isClicked ? "hover" : undefined}
+            custom={{ randomRotate, isCorrect }}
+            style={{ color: isClicked ? '' : hoverColor }}
+            className={`inline-block cursor-pointer relative z-10 ${isClicked ? 'font-bold' : ''}`}
+        >
+            {label}
+        </m.div>
+    );
+};
+```
+
+**`WinLights.tsx`** - Flashing lights when you win.
+
+```typescript
+'use client'
+import React, { useMemo } from "react";
+import { motion as m } from "motion/react";
+
+const getRandomColor = () => {
+  const r = Math.floor(Math.random() * 256);
+  const g = Math.floor(Math.random() * 256);
+  const b = Math.floor(Math.random() * 256);
+  return `rgb(${r},${g},${b})`;
+};
+
+interface WinLightsProps {
+  isWon: boolean;
+  text: string;
+}
+
+export const WinLights = ({ isWon, text }: WinLightsProps) => {
+  const randomColors = useMemo(() => {
+    if (!isWon) return [];
+    return Array.from({ length: 10 }, getRandomColor);
+  }, [isWon]);
+
+  return (
+    <m.span
+      animate={isWon ? { color: randomColors } : {}}
+      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+    >
+      {text}
+    </m.span>
+  );
+};
+```
+
+**`PhraseReveal.tsx`** - Shows the guessed phrase.
+
+```typescript
+import React from "react";
+import { motion as m } from "motion/react";
+
+interface PhraseRevealProps {
+  guess: string;
+}
+
+export const PhraseReveal = ({ guess }: PhraseRevealProps) => {
+  return (
+    <div className='mt-5 flex'>
+      {guess.split('').map((char, index) => (
+        <m.span
+          key={index + char}
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="inline-block origin-bottom"
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </m.span>
+      ))}
+    </div>
+  );
+};
+```
+
+### 3. The Logic (`useIntroGame.ts`)
+
+This hook manages the state of the game: keys clicked, the current guess, and the win condition.
+
+```typescript
+import { useState, useEffect, useMemo } from "react";
+import { ART } from "./constants";
+
+export const useIntroGame = () => {
+  const [answer] = useState("[ dont repeat yourself ]");
+  const [guess, setGuess] = useState<string>("[ ---- ------ -------- ]");
+  const [clickedKeys, setClickedKeys] = useState<Set<string>>(new Set());
+  const [isWon, setIsWon] = useState(false);
+
+  const answerKeysSet = useMemo(() => new Set(
+    answer
+      .slice(1, -1) // Remove outer brackets
+      .trim() // Remove leading/trailing spaces
+      .split("") // Split into individual characters
+      .filter(char => char !== ' ') // Filter out spaces
+      .map(char => `[${char.toLowerCase()}]`) // Format each character
+  ), [answer]);
+
+  useEffect(() => {
+    if (guess === answer && !isWon) {
+      setIsWon(true);
+      const allKeys = ART.match(/\[.*?\]/g);
+      if (allKeys) {
+        // Exclude [Esc] so it remains visible for resetting
+        const keysToExplode = allKeys.filter(k => k !== '[Esc]');
+        setClickedKeys(new Set(keysToExplode));
+      }
+    }
+  }, [guess, answer, isWon]);
+
+  const handleKeyClick = (key: string) => {
+    if (key === '[Esc]') {
+      setGuess("[ ---- ------ -------- ]");
+      setClickedKeys(new Set()); // Reset all
+      setIsWon(false);
+      return;
+    }
+    
+    // Update clicked keys state to trigger animation
+    const newClickedKeys = new Set(clickedKeys);
+    newClickedKeys.add(key);
+    setClickedKeys(newClickedKeys);
+
+    if (answerKeysSet.has(key.toLowerCase())) {
+      const charToReveal = key.slice(1, -1).toLowerCase();
+      setGuess((prevGuess) => {
+        const newGuessChars = prevGuess.split('');
+        const answerChars = answer.split('');
+
+        for (let i = 0; i < answerChars.length; i++) {
+          if (answerChars[i].toLowerCase() === charToReveal) {
+            newGuessChars[i] = answerChars[i];
+          }
+        }
+        return newGuessChars.join('');
+      });
+    }
+  };
+
+  const [isPeeking, setIsPeeking] = useState(false);
+
+  return {
+    guess: isPeeking ? answer : guess,
+    clickedKeys,
+    isWon,
+    handleKeyClick,
+    answerKeysSet,
+    setIsPeeking
+  };
+};
+```
+
+### 4. The Board (`AsciiBoard.tsx`)
+
+This parses the ASCII art string and renders the keys.
+
+```typescript
+'use client'
+import React from "react";
+import { ART } from "./constants";
+import { Key } from "./Key";
+import { WinLights } from "./WinLights";
+
+interface AsciiBoardProps {
+  clickedKeys: Set<string>;
+  handleKeyClick: (key: string) => void;
+  isWon: boolean;
+  answerKeysSet: Set<string>;
+  setIsPeeking: (isPeeking: boolean) => void;
+}
+
+export const AsciiBoard = ({ clickedKeys, handleKeyClick, isWon, answerKeysSet, setIsPeeking }: AsciiBoardProps) => {
+  // Split by keys but keep delimiters
+  const parts = ART.split(/(\[.*?\]|o o o)/g);
+
+  return (
+    <pre className="ascii-art text-sm leading-tight whitespace-pre relative z-0">
+      {parts.map((part, index) => {
+        if (part === 'o o o') {
+          return <WinLights key={index} isWon={isWon} text={part} />;
+        }
+        if (part.match(/^\[.*?\]$/)) {
+          const isClicked = clickedKeys.has(part);
+          const isCorrect = answerKeysSet.has(part.toLowerCase());
+          const isSpacebar = part === '[________________________]';
+          
+          return (
+            <Key 
+              key={index} 
+              label={part} 
+              isClicked={isClicked} 
+              isCorrect={isCorrect}
+              handleKeyClick={() => handleKeyClick(part)}
+              onMouseEnter={isSpacebar ? () => setIsPeeking(true) : undefined}
+              onMouseLeave={isSpacebar ? () => setIsPeeking(false) : undefined}
+            />
+          );
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </pre>
+  );
+};
+```
+
+### 5. Putting it all together (`index.tsx`)
+
+Finally, the main component exports it all.
+
+```typescript
+'use client'
+
+import React from "react";
+import { useIntroGame } from "./useIntroGame";
+import { AsciiBoard } from "./AsciiBoard";
+import { PhraseReveal } from "./PhraseReveal";
+
+const IntroArt = () => {
+  const { guess, clickedKeys, isWon, handleKeyClick, answerKeysSet, setIsPeeking } = useIntroGame();
+
+  return (
+    <div className="m-auto flex flex-col justify-center items-center overflow-hidden relative lowercase">
+      <PhraseReveal guess={guess} />
+      <AsciiBoard 
+        clickedKeys={clickedKeys} 
+        handleKeyClick={handleKeyClick} 
+        isWon={isWon} 
+        answerKeysSet={answerKeysSet}
+        setIsPeeking={setIsPeeking}
+      />
+    </div>
+  );
+};
+
+export default IntroArt;
+```
+
+## Your Turn
+
+If you dare to put this on your site, send me a link! I’m curious (and a little nervous) to see how my tiny ASCII keyboard fares in the wild.
