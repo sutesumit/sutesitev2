@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 
 export async function POST(request: Request) {
     try {
@@ -29,19 +30,9 @@ export async function POST(request: Request) {
         
 
         // Always fetch previous visitor using Service Role key if available to bypass RLS
-        // This is crucial because "anonymous" users usually can't see *other* users' data
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        
-        const getQueryClient = async () => {
-            if (supabaseUrl && serviceKey) {
-                const { createClient } = await import('@supabase/supabase-js');
-                return createClient(supabaseUrl, serviceKey);
-            }
-            return supabase;
-        };
+        // // This is crucial because "anonymous" users usually can't see *other* users' data
 
-        const queryClient = await getQueryClient();
+        const queryClient = await getSupabaseServerClient();
 
         const { data: prevVisits, error: fetchError } = await queryClient
             .from('visits')

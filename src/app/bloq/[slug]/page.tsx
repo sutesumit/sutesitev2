@@ -7,6 +7,7 @@ import MDXComponents from '@/app/bloq/components/MDXComponents';
 import RelatedPosts from '@/app/bloq/components/RelatedPosts';
 
 import SeedingPlant from "@/components/specific/SeedingPlant";
+import TrackView from '../components/TrackView';
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -20,6 +21,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <article className="container py-10">
+      <TrackView slug={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
       <div className="px-4">
         <MDXRemote source={post.content} components={{ ...MDXComponents, IntroArt, SeedingPlant }} />

@@ -41,6 +41,17 @@ export function toUrlSafeString(text: string): string {
     .replace(/(^-|-$)+/g, "");
 }
 
+/**
+ * Extracts the slug from a directory name by removing the date prefix (YYYY-MM-DD-)
+ * If the name doesn't match the date pattern, returns the original name
+ */
+function extractSlugFromDirectoryName(dirName: string): string {
+  // Pattern: YYYY-MM-DD-slug-name
+  const datePattern = /^\d{4}-\d{2}-\d{2}-(.+)$/;
+  const match = dirName.match(datePattern);
+  return match ? match[1] : dirName;
+}
+
 export function getBloqPosts(): BloqPost[] {
   const entries = fs.readdirSync(postsDirectory, { withFileTypes: true });
   const allPostsData: BloqPost[] = [];
@@ -107,7 +118,15 @@ function processPostEntry(entry: fs.Dirent, basePath: string): BloqPost | null {
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content } = matter(fileContents);
 
-  const sluggedURL = toUrlSafeString(data.slug || fileName.replace(/\.mdx$/, ""));
+  if (!data.uuid) {
+    throw new Error(`Missing uuid in ${fullPath}`);
+  }
+
+  // Extract slug: use frontmatter slug, or extract from directory name (removing date prefix), or use filename
+  const fallbackSlug = entry.isDirectory() 
+    ? extractSlugFromDirectoryName(fileName)
+    : fileName.replace(/\.mdx$/, "");
+  const sluggedURL = toUrlSafeString(data.slug || fallbackSlug);
 
   // Parse authors - support both string and array
   let authors: string[] = [];
@@ -127,6 +146,7 @@ function processPostEntry(entry: fs.Dirent, basePath: string): BloqPost | null {
 
   return {
     // Core fields
+    // uuid: data.uuid,
     url: sluggedURL || fileName.replace(/\.mdx$/, ""),
     slug: data.slug,
     title: data.title,
