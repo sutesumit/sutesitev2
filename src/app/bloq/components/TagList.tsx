@@ -22,7 +22,7 @@ export default function TagList({ tags, className, maxTags, asLinks = true }: Ta
         <TagBadge key={tag} tag={tag} asLink={asLinks} />
       ))}
       {remainingCount > 0 && (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-extralight text-gray-600 dark:text-gray-400">
           +{remainingCount} more
         </span>
       )}

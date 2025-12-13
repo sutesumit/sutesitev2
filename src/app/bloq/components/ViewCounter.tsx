@@ -1,5 +1,5 @@
 import ScrambleText from "@/components/shared/ScrambleText";
-import { EyeIcon } from "lucide-react";
+import { Eye, EyeClosed } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface ViewCounterProps {
@@ -39,9 +39,33 @@ export default function ViewCounter({ slug, className }: ViewCounterProps) {
 
     const formattedViewsCount = views === null ? 'xxx' : views.toString().padStart(3, '0')
 
+// The original component is the most concise way to do this
+const BlinkingEye = () => {
+    return (
+      <div className="relative w-4 h-4 mr-1">
+        <Eye
+          className="
+            absolute inset-0
+            w-4 h-4 inline-block
+            animate-[blink-open_4s_infinite] 
+          "
+        />
+        <EyeClosed
+          className="
+            absolute inset-0
+            w-4 h-4 flex self-center
+            animate-[blink-closed_4s_infinite]
+          "
+        />
+      </div>
+    );
+  };
+      
+
     return (
         <span className={className} aria-label={views !== null ? `${views} views` : 'Loading view count...'}>
-            <EyeIcon className="w-4 h-4 inline-block mr-1" />
+            {/* <EyeIcon className="w-4 h-4 inline-block mr-1" /> */}
+            <BlinkingEye  />
             <ScrambleText text={formattedViewsCount} />
         </span>
     )

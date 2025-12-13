@@ -12,7 +12,7 @@ interface TagBadgeProps {
  */
 export default function TagBadge({ tag, className, asLink = true }: TagBadgeProps) {
   const badgeClasses = cn(
-    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-light",
     "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
     "hover:bg-blue-200 dark:hover:bg-blue-800",
     "transition-colors duration-200",

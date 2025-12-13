@@ -1,12 +1,28 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 export const useCardCollapse = () => {
-  const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false)
   const leaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Mouse handlers to expand/collapse on hover
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY
+
+      if (scrollY > 50 && !hasScrolled) {
+        setHasScrolled(true)
+        setIsCollapsed(true)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [hasScrolled])
+
   const handleMouseEnter = () => {
-    // Clear any pending collapse
     if (leaveTimeoutRef.current) {
       clearTimeout(leaveTimeoutRef.current);
     }
@@ -15,7 +31,6 @@ export const useCardCollapse = () => {
   };
 
   const handleMouseLeave = () => {
-    // Add delay to prevent accidental collapses
     leaveTimeoutRef.current = setTimeout(() => {
       setIsCollapsed(true);
     }, 200);

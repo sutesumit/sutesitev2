@@ -10,6 +10,16 @@ export default {
   darkMode: ["class"],
   theme: {
   	extend: {
+		keyframes: {
+			'blink-open': {
+				'0%, 85%': { opacity: '1' },
+				'85.01%, 100%': {opacity: '0'}
+			  },
+			  'blink-closed': {
+				'0%, 85%': { opacity: '0' },
+				'85.01%, 100%': {opacity: '1'}
+			  }
+		},
   		colors: {
 			background: "var(--background)",
 			foreground: "var(--foreground)",
