@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { CodeBlock } from '@/components/ui/code-block';
+import { cn } from '@/lib/utils';
 
 const MDXComponents = {
   h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
@@ -71,25 +72,27 @@ const MDXComponents = {
     // Just return children since CodeBlock handles the wrapper
     return <>{props.children}</>;
   },
-  table: (props: React.TableHTMLAttributes<HTMLTableElement>) => (
+  table: ({ children, className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) => (
     <div className="overflow-x-auto my-6">
-      <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700" {...props} />
+      <table className={cn("min-w-full border-collapse border border-gray-300 dark:border-gray-700", className)} {...props}>
+        {children}
+      </table>
     </div>
   ),
-  thead: (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
-    <thead className="bg-gray-50 dark:bg-gray-800" {...props} />
+  thead: ({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <thead className={cn("bg-gray-50 dark:bg-gray-800", className)} {...props} />
   ),
-  tbody: (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
-    <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900" {...props} />
+  tbody: ({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <tbody className={cn("bg-white dark:bg-gray-900", className)} {...props} />
   ),
-  tr: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
-    <tr {...props} />
+  tr: ({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) => (
+    <tr className={cn("border-b border-gray-200 dark:border-gray-700", className)} {...props} />
   ),
-  th: (props: React.ThHTMLAttributes<HTMLTableCellElement>) => (
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider" {...props} />
+  th: ({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
+    <th className={cn("px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700 last:border-r-0", className)} {...props} />
   ),
-  td: (props: React.TdHTMLAttributes<HTMLTableCellElement>) => (
-    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" {...props} />
+  td: ({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
+    <td className={cn("px-4 py-3 text-sm text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-700 last:border-r-0", className)} {...props} />
   ),
 };
 

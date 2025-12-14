@@ -118,10 +118,6 @@ function processPostEntry(entry: fs.Dirent, basePath: string): BloqPost | null {
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content } = matter(fileContents);
 
-  if (!data.uuid) {
-    throw new Error(`Missing uuid in ${fullPath}`);
-  }
-
   // Extract slug: use frontmatter slug, or extract from directory name (removing date prefix), or use filename
   const fallbackSlug = entry.isDirectory() 
     ? extractSlugFromDirectoryName(fileName)
@@ -145,8 +141,6 @@ function processPostEntry(entry: fs.Dirent, basePath: string): BloqPost | null {
   }
 
   return {
-    // Core fields
-    // uuid: data.uuid,
     url: sluggedURL || fileName.replace(/\.mdx$/, ""),
     slug: data.slug,
     title: data.title,

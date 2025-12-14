@@ -64,7 +64,6 @@ const BlinkingEye = () => {
 
     return (
         <span className={className} aria-label={views !== null ? `${views} views` : 'Loading view count...'}>
-            {/* <EyeIcon className="w-4 h-4 inline-block mr-1" /> */}
             <BlinkingEye  />
             <ScrambleText text={formattedViewsCount} />
         </span>

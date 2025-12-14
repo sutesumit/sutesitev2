@@ -1,0 +1,225 @@
+---
+title: "So I Built My Own View Counter"
+publishedAt: "2025-12-14"
+summary: "This is the simple, surgical system I built using Next.js and a robust Postgres function to ensure the numbers are always accurate."
+slug: "view-counter-nextjs-supabase-postgres"
+featured: false
+draft: true
+category: "Engineering"
+tags:
+  - Next.js
+  - React
+  - Supabase
+  - postgres
+  - sql
+  - typescript
+  - backend
+  - Engineering
+  - privacy
+authors:
+  - Sumit Sute
+---
+
+## The Big Problem With Simple Counting
+
+You just want to know if people are actually reading your stuff, but then you look at <a href="https://www.someguycalledralph.co.uk/reduce-unused-javascript-google-analytics/">Google Analytics</a> or Plausible, and it feels like too much. It's this huge, heavy script just to get a small number. For a personal project, that felt like trying to hit a nail with a sledgehammer.
+
+I wanted something simple, private, and fast. Above all, I wanted full ownership over how it was assembled and used.
+
+---
+
+## From Browser to Database and Back
+
+Here’s how the whole thing is wired up. The main goal was decoupling—I didn't want the counting logic to slow down the beautiful UI, so I split the job in half. The frontend's job is just to ask for the count, and the backend's job is to handle the count.
+
+It's actually super simple:
+
+`Page Visit` → `TrackView.tsx` (Hook) → POST `[api]/views/[post_slug]` → `Postgres RPC` → `Atomic +1`
+
+The page stays fast, the count is always accurate, and it all feels intentional thanks to that engaging animation. It’s all possible because we made the counting and the displaying two independent requests.
+
+---
+
+## Making the Numbers Feel Right
+
+I wanted the view counter to look like it belonged. That classic terminal vibe or maybe an old mechanical counter. So, I threw in a couple of small details:
+
+- Leading Zeros: I made it so the count always shows at least three digits (like `007` instead of just `7`). That simple change makes it feel way more like a mechanical odometer.
+
+- Scramble Effect: I already had the scramble component built for something else, so I just reused it here and decided to justify it in hindsight! It takes the brief moment the database needs to load the number and turns it into a digital readout.
+
+> Side note: One day, I really want to build a proper split-flap counter effect. That would be a true tribute to those brilliant old mechanical designs.
+
+---
+
+## Hey Future Me, Remember Why You Did This
+
+If you're wondering why you wasted a weekend on this, remember this list. These are the real reasons you built this thing:
+
+- No Bloat: Say goodbye to slow-down. Eliminate external analytics scripts and heavy SDKs that compromise your Time to First Byte and overall page speed (LCP).
+
+- Learn Something New: This was your excuse to finally dig into SQL: functions, triggers, RLS. All the stuff you skip otherwise.
+
+- Privacy FTW: Maintain absolute control over your metrics. You store only what is essential (in this case, just the slug and the counter integer). Only store a slug and a count. Zero cookies, zero external surveillance.
+
+---
+
+## Ditching the Race Condition
+
+If you try to fetch the view count, add one in your JavaScript, and then save it back, you're setting yourself up for a race condition. If two people load the page at the same millisecond, you'll lose a count.
+
+My solution? Upserts. I handed the full responsibility to the database. If the blog post slug is brand new, the database creates the row. If the row already exists, it uses a single, atomic command to increment the number. This guarantees integrity—no lost views, ever.
+
+```SQL
+CREATE OR REPLACE FUNCTION increment_view_count(item_ref TEXT)
+RETURNS VOID AS $$
+BEGIN
+  -- item_data is the table where the views are stored
+  INSERT INTO item_data (item_ref, view_counter)
+  VALUES (item_ref, 1)
+  ON CONFLICT (item_ref) DO UPDATE
+  SET view_counter = item_data.view_counter + 1;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+I know I'm not going to have crazy traffic, or probably even cross `999` views on a post. But the point here is to learn the idea, stay overprepared, and build that muscle for building robust architecture. Let the girl practice.
+
+---
+
+## Protecting the Count (and the Code)
+
+The flow is okay, but you always have to handle the details. I focused on two key areas for a solution:
+
+- Preventing Local Double-Dipping: During development, React's Strict Mode runs effects twice, which would instantly double-count my own views. I added a simple fix: a useRef flag to ensure the view tracking hook only fires once during local development.
+
+- Security Lockdown (RLS): The database is locked down with Row Level Security (RLS). Only the server-side API with the secret service role key is allowed to write or increment the count. Public or anonymous keys are strictly forbidden from performing any write action. No one can manually spam the counter.
+
+<table>
+  <thead>
+    <tr>
+      <th>Operation</th>
+      <th>Role Required</th>
+      <th>Condition / Policy</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>INSERT/UPDATE</b> (Writing)</td>
+      <td><code>Service Role</code></td>
+      <td>Only the authenticated server (using the secret key) is allowed to perform the atomic increment.</td>
+    </tr>
+    <tr>
+      <td><b>SELECT</b> (Reading)</td>
+      <td><code>anon</code> / Public</td>
+      <td>Any user or client can read the view count (public data).</td>
+    </tr>
+  </tbody>
+</table>
+
+###
+
+Ideally, I shouldn't count <i>any</i> views if they come from the dev mode environment. Now that this counter is tested and working, stopping local views entirely is a future task and issue to solve.
+
+---
+
+## The Code
+
+So, how did all these pieces—the fast UI, the secure database, and the scramble effect—actually come together? I followed the classic, boring-but-effective three-layer structure:
+
+- The Database Layer (Source of Truth): Postgres functions and RLS.
+
+- The API Layer (Gatekeeper): A single, protected endpoint.
+
+- The UI Layer (Presenter): The React components that do the reading and writing.
+
+Here’s what the source tree looks like for the new bits:
+
+```Plaintext
+src/
+└── app/
+    ├── api/bloq/views/[slug]/
+    │   └── route.ts          # The API Endpoint (Only allows POST)
+    └── bloq/components/
+        ├── TrackView.tsx     # The "Writer" (Fires the POST)
+        └── ViewCounter.tsx    # The "Reader" (Fires the GET)
+```
+We deliberately chose a dedicated `<TrackView />` component instead of a custom hook. Hooks are great when you want to reuse logics like state, handlers, shared behavior. This wasn’t that. This was a one-off side effect whose entire job is to quietly fire a POST request when the page loads and then disappear.
+
+Architecturally, the split is boring in the best way. `<ViewCounter />` reads (GET). `<TrackView />` writes (POST). They don’t talk, they don’t coordinate, and they don’t know each other exists. One reads, one writes, and both mind their own business.
+
+### The Data Layer
+
+> We don't just update a row; we use a stored function with SECURITY DEFINER. This means only our trusted, logged-in server can execute this update, making the database vault absolutely impenetrable to public requests.
+```SQL
+-- 1. Create the Table
+CREATE TABLE public.item_data (
+    item_ref TEXT PRIMARY KEY,
+    view_counter INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. The Atomic Increment Function (The Vault Key)
+CREATE OR REPLACE FUNCTION public.increment_view_count(p_item_ref TEXT)
+RETURNS INTEGER AS $$
+DECLARE
+    new_views INTEGER;
+BEGIN
+    INSERT INTO public.item_data (item_ref, view_counter)
+    VALUES (p_item_ref, 1)
+    ON CONFLICT (item_ref) DO UPDATE
+    SET view_counter = item_data.view_counter + 1,
+        updated_at = now()
+    RETURNING view_counter INTO new_views;
+    RETURN new_views;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+### The API Layer
+
+> We set Cache-Control: 'no-store' on the POST response to make sure we never accidentally cache the view count itself in the API layer. We always want the freshest count pulled straight from the database.
+
+```typescript
+import { NextResponse } from "next/server";
+import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
+
+// --- THE WRITE (POST): Triggers the Atomic Function ---
+export async function POST(req: Request, { params }: { params: { slug: string } }) {
+    const supabase = getSupabaseServerClient();
+    // Call the SQL function using rpc
+    const { data } = await supabase.rpc("increment_view_count", { p_item_ref: params.slug }); 
+    
+    return NextResponse.json(
+        { views: data }, 
+        { headers: { 'Cache-Control': 'no-store' } } // Always fresh data!
+    );
+}
+
+// --- THE READ (GET): Fetches the Current Count ---
+export async function GET(req: Request, { params }: { params: { slug: string } }) {
+    const supabase = getSupabaseServerClient();
+    const { data } = await supabase
+        .from("item_data") // Table name
+        .select("view_counter") // Column name
+        .eq("item_ref", params.slug)
+        .single();
+
+    return NextResponse.json({ views: data?.view_counter ?? 0 });
+}
+```
+
+### The UI Layer
+
+The front-end component displays the count. It handles two things: fetching the initial count and then formatting it with a "scramble" effect (xxx placeholder) while it loads.
+
+---
+
+## Beyond Views
+
+Looking back at this simple view counter, the real achievement wasn't the number on the screen, but the architectural pattern we established. Clean separation between the Read (GET) and Write (POST) operations and relying on the database's atomic function. Adding new features now becomes an exercise in pattern replication:
+
+- <b>If we wanted to track "Claps" or "Likes":</b> The approach is identical. We don't need a new architecture, just a new table and a new atomic function. We'd simply reuse the secure POST request logic to hit a slightly different API endpoint (`[api]/views/[post_slug]`) that calls the new database function.
+
+- <b>If we wanted a "Time-Spent-Reading" metric:</b> We can leverage the controlled lifecycle of a dedicated component. We would reuse the concept of our TrackView component, but instead of firing a request on mount, the component would run a cleanup function on unmount, sending the total reading time to the API.
+
+Now your turn! If you, the reader, build your own version of this system, please let me know. I'd genuinely love to see how you styled your metrics and which robust anti-race-condition tricks you implemented!

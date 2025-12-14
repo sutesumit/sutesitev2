@@ -12,12 +12,12 @@ export default {
   	extend: {
 		keyframes: {
 			'blink-open': {
-				'0%, 85%': { opacity: '1' },
-				'85.01%, 100%': {opacity: '0'}
+				'0%, 95%': { opacity: '1' },
+				'95.01%, 100%': {opacity: '0'}
 			  },
 			  'blink-closed': {
-				'0%, 85%': { opacity: '0' },
-				'85.01%, 100%': {opacity: '1'}
+				'0%, 95%': { opacity: '0' },
+				'95.01%, 100%': {opacity: '1'}
 			  }
 		},
   		colors: {
