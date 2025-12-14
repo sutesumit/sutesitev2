@@ -1,12 +1,6 @@
 "use client";
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 const SEEDINGPLANT_CODE = `// 🌱 Seeding Plant
 /**
