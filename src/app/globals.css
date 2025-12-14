@@ -125,6 +125,27 @@
   .checkbox {
     @apply border-[1px] border-red-500
   }
+
+  .scrollbar-ascii {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+  }
+  
+  .dark .scrollbar-ascii {
+    scrollbar-color: #475569 transparent;
+  }
+
+  .scrollbar-ascii::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .scrollbar-ascii::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-ascii::-webkit-scrollbar-thumb {
+    @apply bg-slate-400 dark:bg-slate-600;
+    border-radius: 0px;
+  }
 }
 
 

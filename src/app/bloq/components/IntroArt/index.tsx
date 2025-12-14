@@ -9,15 +9,17 @@ const IntroArt = () => {
   const { guess, clickedKeys, isWon, handleKeyClick, answerKeysSet, setIsPeeking } = useIntroGame();
 
   return (
-    <div className="m-auto flex flex-col justify-center items-center overflow-hidden relative lowercase">
-      <PhraseReveal guess={guess} />
-      <AsciiBoard 
-        clickedKeys={clickedKeys} 
-        handleKeyClick={handleKeyClick} 
-        isWon={isWon} 
-        answerKeysSet={answerKeysSet}
-        setIsPeeking={setIsPeeking}
-      />
+    <div className="m-auto checkbox w-full overflow-x-auto relative lowercase scrollbar-ascii">
+      <div className="flex flex-col justify-center items-center min-w-fit mx-auto">
+        <PhraseReveal guess={guess} />
+        <AsciiBoard 
+          clickedKeys={clickedKeys} 
+          handleKeyClick={handleKeyClick} 
+          isWon={isWon} 
+          answerKeysSet={answerKeysSet}
+          setIsPeeking={setIsPeeking}
+        />
+      </div>
     </div>
   );
 };
