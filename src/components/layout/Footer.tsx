@@ -1,10 +1,10 @@
 "use client";
-import React from 'react'
+import React, { useEffect } from 'react'
 import Link from 'next/link'
 import { FaGithub, FaLinkedin } from 'react-icons/fa'
 import { IoIosMail } from 'react-icons/io'
 import { CheckCheck } from 'lucide-react'
-import { usePreviousVisitorLocation } from '@/hooks/usePreviousVisitorLocation'
+import { useAnalytics } from '@/hooks/useAnalytics'
 import { useCurrentVisitorLocation } from '@/hooks/useCurrentVisitorLocation'
 import {
   Tooltip,
@@ -17,7 +17,15 @@ import ScrambleText from '../shared/ScrambleText';
 const Footer = () => {
 
   const { locationData } = useCurrentVisitorLocation();
-  const { previousVisit, visitorCount } = usePreviousVisitorLocation(locationData);
+  const { trackSiteVisit, visitorData } = useAnalytics();
+  
+  useEffect(() => {
+    if (locationData) {
+      trackSiteVisit(locationData);
+    }
+  }, [locationData]); // trackSiteVisit is stable enough via ref protection, or we should memoize it in hook.
+
+  const { lastVisitorLocation, visitorCount } = visitorData;
 
   return (
     <footer className="footer fixed w-full bottom-0 z-10">
@@ -31,7 +39,7 @@ const Footer = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="last-visit group flex items-center gap-1 text-xs opacity-50 cursor-pointer hover:opacity-100 transition-all duration-300">
-                      <CheckCheck className='h-4 w-4 group-hover:text-blue-500 dark:group-hover:text-blue-400' /> <ScrambleText text={previousVisit ? previousVisit : 'Bengaluru, In'} />
+                      <CheckCheck className='h-4 w-4 group-hover:text-blue-500 dark:group-hover:text-blue-400' /> <ScrambleText text={lastVisitorLocation ? lastVisitorLocation : 'Bengaluru, In'} />
                 </div>
               </TooltipTrigger>
               <TooltipContent>

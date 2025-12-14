@@ -1,18 +1,13 @@
 'use client'
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export function useTrackView(slug: string) {
-    const hasTracked = useRef(false)
-
+    const { trackBloqView } = useAnalytics();
+    
     useEffect(() => {
-        if (hasTracked.current) return
-        hasTracked.current = true
-        
-        fetch(`/api/bloq/views/${slug}`, {
-            method: 'POST',
-            cache: 'no-store',
-        }).catch(console.error)
-    }, [slug])
+        trackBloqView(slug);
+    }, [slug, trackBloqView])
 }
 
 export default function TrackView({ slug } : { slug: string}){
