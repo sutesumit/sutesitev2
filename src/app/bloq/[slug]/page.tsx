@@ -8,6 +8,7 @@ import RelatedPosts from '@/app/bloq/components/RelatedPosts';
 
 import SeedingPlant from "@/components/specific/SeedingPlant";
 import TrackView from '../components/TrackView';
+import { SeedingPlantWrapped } from '@/content/bloqs/2025/2025-12-12-sharing-intro-art-component/SeedingPlantWrapped';
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -24,7 +25,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <TrackView slug={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
       <div className="px-4">
-        <MDXRemote source={post.content} components={{ ...MDXComponents, IntroArt, SeedingPlant }} />
+        <MDXRemote source={post.content} components={{ ...MDXComponents, IntroArt, SeedingPlant, SeedingPlantWrapped }} />
       </div>
       <div className="px-4">
         <RelatedPosts posts={relatedPosts} />
