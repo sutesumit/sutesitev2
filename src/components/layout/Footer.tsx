@@ -23,7 +23,7 @@ const Footer = () => {
     if (locationData) {
       trackSiteVisit(locationData);
     }
-  }, [locationData]); // trackSiteVisit is stable enough via ref protection, or we should memoize it in hook.
+  }, [locationData, trackSiteVisit]); // trackSiteVisit is stable via useCallback
 
   const { lastVisitorLocation, visitorCount } = visitorData;
 

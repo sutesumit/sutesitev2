@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { LocationData } from '@/types/location';
 
 export const useAnalytics = () => {
@@ -16,7 +16,7 @@ export const useAnalytics = () => {
      * Tracks a generic site visit.
      * intended for use in the Footer or global layout.
      */
-    const trackSiteVisit = async (currentLocation: LocationData | null) => {
+    const trackSiteVisit = useCallback(async (currentLocation: LocationData | null) => {
         // 1. Development Mode Protection
         if (process.env.NODE_ENV === 'development') {
             console.log('[Analytics] Site visit tracking skipped (Development Mode)');
@@ -52,13 +52,13 @@ export const useAnalytics = () => {
         } catch (error) {
             console.warn('Unable to track site visit:', error instanceof Error ? error.message : 'Unknown error');
         }
-    };
+    }, []);
 
     /**
      * Tracks a specific blog post view.
      * Intended for use in individual blog post pages.
      */
-    const trackBloqView = async (slug: string) => {
+    const trackBloqView = useCallback(async (slug: string) => {
         // 1. Development Mode Protection
         if (process.env.NODE_ENV === 'development') {
             console.log(`[Analytics] Blog view tracking skipped for "${slug}" (Development Mode)`);
@@ -77,7 +77,7 @@ export const useAnalytics = () => {
         } catch (error) {
             console.warn(`Unable to track view for ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
         }
-    };
+    }, []);
 
     return {
         visitorData: { lastVisitorLocation, visitorCount },
