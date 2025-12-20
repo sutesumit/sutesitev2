@@ -6,7 +6,7 @@ const SEEDINGPLANT_CODE = `// 🌱 Seeding Plant
 /**
  * ────────────────────────────────────────────────────────────────────────
  *  SeedingPlant – Stand‑alone component
- *
+ *  By Sumit Sute (https://sumitsute.com)
  *  What this file includes:
  *  • The Lottie animation data (seedingPlantLottie) embedded as a constant.
  *  • The React component that renders the animation and restarts it on hover.
