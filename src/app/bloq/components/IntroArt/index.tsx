@@ -9,7 +9,7 @@ const IntroArt = () => {
   const { guess, clickedKeys, isWon, handleKeyClick, answerKeysSet, setIsPeeking } = useIntroGame();
 
   return (
-    <div className="m-auto w-full overflow-x-auto relative lowercase scrollbar-ascii">
+    <div className="m-auto w-full overflow-x-auto overflow-y-hidden relative lowercase scrollbar-ascii">
       <div className="flex flex-col justify-center items-center min-w-fit mx-auto">
         <PhraseReveal guess={guess} />
         <AsciiBoard 

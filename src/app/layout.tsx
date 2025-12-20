@@ -22,21 +22,40 @@ const robotoMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   title: "sumit sute",
-  description: "Sumit Sute – Full-Stack Developer specializing in React, Next.js & modern web technologies. Explore my projects and skills.",  
-  keywords: ['developer', 'portfolio', 'Sumit Sute', 'web development', 'JavaScript', 'TypeScript', 'React', 'Next.js'],
+  description: "Sumit Sute’s personal dev page, featuring projects and writing, grounded in an engineering approach that favors simplicity, clear boundaries, and long-term maintainability.",  
+  keywords: [
+    'developer',
+    'portfolio',
+    'Sumit Sute',
+    'web development',
+    'JavaScript',
+    'TypeScript',
+    'React',
+    'Next.js',
+    'software engineer',
+    'full stack developer',
+    'web systems',
+    'maintainable software',
+    'system design',
+    'engineering principles',
+    'personal dev page',
+    'developer projects',
+    'developer blog',
+    'engineering writing'
+  ],
   authors: [{ name: 'Sumit Sute', url: 'https://sumitsute.com/about' }],
   metadataBase: new URL('https://sumitsute.com'),
   openGraph: {
     title: "sumit sute",
-    description: "Explore the portfolio of Sumit Sute, a passionate web developer specializing in modern web technologies.",
+    description: "Projects and writing by Sumit Sute, shaped by simplicity, clear boundaries, and long-term maintainability.",
     url: 'https://sumitsute.com',
-    siteName: 'Sumit Sute Portfolio',
+    siteName: 'Sumit Sute Personal Dev Page',
     images: [
       {
-        url: '/screenshot-lightmode.jpg',
+        url: '/sumit-sute-homepage.jpg',
         width: 800,
         height: 600,
-        alt: 'Screenshot of Sumit Sute\'s portfolio',
+        alt: 'Screenshot of Sumit Sute\'s Dev Page',
       },
     ],
     type: 'website',
@@ -44,11 +63,11 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: "sumit sute",
-    description: "Explore the portfolio of Sumit Sute, a passionate web developer specializing in modern web technologies.",
+    description: "Projects and writing by Sumit Sute, shaped by simplicity, clear boundaries, and long-term maintainability.",
     images: [
       {
-        url: '/screenshot-lightmode.jpg',
-        alt: 'Screenshot of Sumit Sute\'s website in light mode',
+        url: '/sumit-sute-homepage.jpg',
+        alt: 'Screenshot of Sumit Sute\'s Dev Page in light mode',
       },
     ],
   },
