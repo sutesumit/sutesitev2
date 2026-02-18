@@ -170,7 +170,14 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, phase: string,
 
 export default function App() {
   const { theme, resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark' || theme === 'dark';
+  const [mounted, setMounted] = useState(false);
+  
+  // Only use theme after mount to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  const isDark = mounted && (resolvedTheme === 'dark' || theme === 'dark');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

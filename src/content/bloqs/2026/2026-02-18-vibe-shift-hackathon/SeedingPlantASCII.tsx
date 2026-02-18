@@ -183,7 +183,14 @@ const SeedingPlantASCII: React.FC<SeedingPlantASCIIProps> = ({
   style,
 }) => {
   const { theme, resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark" || theme === "dark";
+  const [mounted, setMounted] = useState(false);
+  
+  // Only use theme after mount to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  const isDark = mounted && (resolvedTheme === "dark" || theme === "dark");
 
   const containerRef = useRef<HTMLDivElement>(null);
   const nextId = useRef<number>(0);

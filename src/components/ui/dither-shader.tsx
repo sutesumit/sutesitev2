@@ -310,20 +310,44 @@ export const DitherShader: React.FC<DitherShaderProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
+    const updateDimensions = (width: number, height: number) => {
+      if (width > 0 && height > 0) {
+        dimensionsRef.current = { width, height };
+        setDimensions({ width, height });
+      }
+    };
+
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          dimensionsRef.current = { width, height };
-          setDimensions({ width, height });
-        }
+        updateDimensions(width, height);
       }
     });
 
     resizeObserver.observe(container);
 
+    // When ResizeObserver reports 0x0 (e.g. below-fold or before layout),
+    // re-measure when the element enters the viewport so the second instance loads.
+    const intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const el = entry.target as HTMLElement;
+          const { width, height } = dimensionsRef.current;
+          if (width > 0 && height > 0) continue;
+          const rect = el.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            updateDimensions(rect.width, rect.height);
+          }
+        }
+      },
+      { rootMargin: "50px", threshold: 0 }
+    );
+    intersectionObserver.observe(container);
+
     return () => {
       resizeObserver.disconnect();
+      intersectionObserver.disconnect();
     };
   }, []);
 
