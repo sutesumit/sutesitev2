@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "next-themes";
 
 const MARATHI_CHARS = [
@@ -25,21 +25,50 @@ const DIGITS = {
 const BASE_CELL = 20;
 const N = 320;
 
-function getTimeString() {
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  char: string;
+  tx: number;
+  ty: number;
+  isTarget: boolean;
+  jig: number;
+  jigSpd: number;
+  jigAmp: number;
+  wing: number;
+  wingSpd: number;
+  size: number;
+  hue: number;
+  sat: number;
+  bri: number;
+  alpha: number;
+  trail: Point[];
+  W: number;
+  H: number;
+}
+
+function getTimeString(): string {
   const now = new Date();
   return `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
 }
 
-function buildTargets(timeStr, cell, W, H) {
+function buildTargets(timeStr: string, cell: number, W: number, H: number): Point[] {
   const chars = timeStr.split('');
-  const widths = chars.map(c => (DIGITS[c]?.[0]?.length ?? 5));
+  const widths = chars.map(c => (DIGITS[c as keyof typeof DIGITS]?.[0]?.length ?? 5));
   const totalCols = (widths.reduce((a,b)=>a+b,0) + (chars.length-1)*2);
   const totalW = totalCols * cell;
   const startX = (W - totalW) / 2, startY = (H - 7*cell) / 2;
-  const pts = [];
+  const pts: Point[] = [];
   let ox = 0;
   for (const ch of chars) {
-    const grid = DIGITS[ch];
+    const grid = DIGITS[ch as keyof typeof DIGITS];
     if (!grid) { ox += 7*cell; continue; }
     const cols = grid[0].length;
     for (let r=0;r<7;r++) for (let c=0;c<cols;c++)
@@ -49,7 +78,7 @@ function buildTargets(timeStr, cell, W, H) {
   return pts;
 }
 
-function makeParticle(x, y, char, W, H, isTarget, cellScale) {
+function makeParticle(x: number, y: number, char: string, W: number, H: number, isTarget: boolean, cellScale: number): Particle {
   return {
     x, y, vx:(Math.random()-.5)*5, vy:(Math.random()-.5)*5,
     char, tx:x, ty:y, isTarget: !!isTarget,
@@ -63,7 +92,7 @@ function makeParticle(x, y, char, W, H, isTarget, cellScale) {
   };
 }
 
-function updateParticle(p, all, phase, mx, my) {
+function updateParticle(p: Particle, all: Particle[], phase: string, mx: number, my: number) {
   p.jig+=p.jigSpd; p.wing+=p.wingSpd;
   p.trail.push({x:p.x,y:p.y});
   if(p.trail.length>5) p.trail.shift();
@@ -98,7 +127,7 @@ function updateParticle(p, all, phase, mx, my) {
   p.x+=p.vx;p.y+=p.vy;
 }
 
-function drawParticle(ctx, p, phase, isDark) {
+function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, phase: string, isDark: boolean) {
   if(phase==='swarm'&&p.trail.length>1){
     ctx.save();
     for(let i=1;i<p.trail.length;i++){
@@ -146,7 +175,12 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({x:400,y:300});
-  const stateRef = useRef({particles:[],phase:'swarm',timer:0,raf:null});
+  const stateRef = useRef<{
+    particles: Particle[];
+    phase: string;
+    timer: number;
+    raf: number | null;
+  }>({particles:[],phase:'swarm',timer:0,raf:null});
   const sizeRef = useRef({w:0, h:0, cell: BASE_CELL});
   const isDarkRef = useRef(isDark);
 
@@ -157,7 +191,7 @@ export default function App() {
   const [displayTime, setDisplayTime] = useState(getTimeString());
   const [phaseText, setPhaseText] = useState('उडताना…');
 
-  const start = useCallback((t, W, H) => {
+  const start = useCallback((t: string, W: number, H: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -166,7 +200,7 @@ export default function App() {
     sizeRef.current = { w: W, h: H, cell };
 
     const targets = buildTargets(t, cell, W, H);
-    const expandedTargets = [];
+    const expandedTargets: Point[] = [];
     const repeats = Math.ceil(N / Math.max(targets.length, 1));
     for(let r=0;r<repeats;r++) for(const tgt of targets) expandedTargets.push(tgt);
     
@@ -200,6 +234,7 @@ export default function App() {
 
     const LABELS = {swarm:'उडताना…',form:'रचताना…',rest:'विराम ✦'};
     const loop = () => {
+      const s = stateRef.current;
       s.timer++;
       if(s.phase==='swarm'&&s.timer>110){s.phase='form';s.timer=0;setPhaseText(LABELS.form);}
       else if(s.phase==='form'&&s.timer>160){s.phase='rest';s.timer=0;setPhaseText(LABELS.rest);}
@@ -242,7 +277,7 @@ export default function App() {
     const container = containerRef.current;
     if (!container) return;
 
-    let resizeTimeout;
+    let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
     const observer = new ResizeObserver(entries => {
       const entry = entries[0];
       if (!entry) return;
@@ -260,7 +295,6 @@ export default function App() {
 
     const iv = setInterval(() => {
       const nt = getTimeString();
-      const currentT = getTimeString(); 
       if (nt !== displayTime) {
          setDisplayTime(nt);
          const { w, h } = sizeRef.current;
@@ -268,11 +302,13 @@ export default function App() {
       }
     }, 10000);
 
+    const currentState = stateRef.current;
+
     return () => {
       observer.disconnect();
       clearTimeout(resizeTimeout);
       clearInterval(iv);
-      if(stateRef.current.raf) cancelAnimationFrame(stateRef.current.raf);
+      if(currentState.raf) cancelAnimationFrame(currentState.raf);
     };
   }, [start, displayTime]);
 

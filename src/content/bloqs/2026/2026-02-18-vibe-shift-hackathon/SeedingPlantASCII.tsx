@@ -6,7 +6,6 @@ import React, {
   useEffect,
   useCallback,
   MouseEvent as ReactMouseEvent,
-  useMemo,
 } from "react";
 import { useTheme } from "next-themes";
 
