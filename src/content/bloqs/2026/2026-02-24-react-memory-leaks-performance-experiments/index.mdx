@@ -34,8 +34,6 @@ That bothered me. We're in an era where most of the React code I ship on a given
 
 Before I could find a leak, I had to know what "normal" looked like. I built a simple **AllocatingBox**, a component that grabs some memory when it mounts (appears on screen) and, in theory, gives it back when it unmounts (is removed from screen).
 
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/naughty-thunder-5g3rpy)**
-
 <iframe src="https://codesandbox.io/embed/5g3rpy?view=preview&hidenavigation=1"
      title="Section 1 — Baseline: What Healthy Memory Looks Like"
      allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
@@ -73,8 +71,6 @@ GC (the cleaning crew) runs occasionally.
 
 This was my first encounter with what I started calling a "Zombie." I created an interval that added memory every second. Even after I unmounted the component, the interval kept running in the dark, hoarding memory. The component was gone. The work wasn't.
 
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/relaxed-morning-2r95dq)**
-
 <iframe src="https://codesandbox.io/embed/2r95dq?view=preview&hidenavigation=1"
      title="Section 2 — Leak: Interval That Never Ends (forked)"
      allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
@@ -109,8 +105,6 @@ JS Heap
 
 Promises don't care about component lifecycles. A Promise is JavaScript's way of saying "I'll get back to you later," and the `.then()` callback is the code that runs when it does. If you trigger a slow fetch (an API call to a server) and unmount the component before the response arrives, that `.then()` callback is still waiting. It holds a closure, which is a fancy word for a function that remembers the variables from the scope where it was created, even after that scope is gone. So the closure keeps the component's data alive in memory until the network request finally finishes. The component left the room, but the promise is still waiting by the door.
 
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/musing-feynman-mkdqj5)**
-
 <iframe src="https://codesandbox.io/embed/mkdqj5?view=preview&hidenavigation=1"
      title="Section 3 — Leak: Async Work Outlives the UI"
      allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
@@ -138,8 +132,6 @@ The fix for orphaned fetches (network requests whose results nobody needs anymor
 
 Still, it's worth sitting with how easy it is to skip this. The code works fine without it. The UI doesn't break. The leak is invisible unless you go looking. That's what makes these things insidious. AI agents are actually good about adding `AbortController` when you ask them to fetch data in an effect. But when the fetch is buried inside a custom hook (a reusable function that wraps `useEffect` and other React hooks), or wrapped in a third-party library, or triggered by a chain of context updates (React Context is a way to share data across many components without passing it through every level), the abort often gets lost in the composition. The agent optimises for the file it's looking at, not for the interaction between files.
 
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/silly-thunder-gtl8pk)**
-
 <iframe src="https://codesandbox.io/embed/gtl8pk?view=preview&hidenavigation=1"
      title="Section 4 — Fix: Abort Async Work"
      allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
@@ -164,8 +156,6 @@ JS Heap
 ## The Ghost in the Resize Handler
 
 I attached a `resize` listener to the `window`. Because `window` is global, it stays alive forever. It's not something React manages. If we don't remove the listener on unmount, it keeps holding onto our component's internal functions. A handler firing in the background for a component that no longer exists. A ghost. This is one of the patterns I've seen AI agents get wrong more often than you'd expect. The agent focuses on the component's internal logic and forgets that the listener it attached lives on a global object with a completely different lifecycle.
-
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/wonderful-mopsa-crxwv2)**
 
 <iframe src="https://codesandbox.io/embed/crxwv2?view=preview&hidenavigation=1"
      title="Section 5 — Leak: Listener That Never Leaves"
@@ -192,8 +182,6 @@ JS Heap
 
 The fix is surgical: always pair an `addEventListener` with a `removeEventListener` in your cleanup. `addEventListener` tells the browser "run this function whenever event X happens." `removeEventListener` says "stop running it." If you only do the first without the second, the function sticks around as a stale closure: a function that still references variables from a component that no longer exists. Removing the listener on unmount ensures resizes no longer touch that dead reference.
 
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/solitary-glitter-y3sqpw)**
-
 <iframe src="https://codesandbox.io/embed/y3sqpw?view=preview&hidenavigation=1"
      title="Section 6 — Fix: Remove the Listener"
      allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
@@ -209,8 +197,6 @@ After adding cleanup, the bumps disappeared. The graph returned to baseline afte
 ## The Ref That Never Stopped Collecting
 
 `useRef` is a strange corner of React. It doesn't trigger re-renders. React doesn't manage its lifecycle the way it does with `useState`. A ref is just a plain object with a `.current` property, and React won't clean it up for you. If you keep pushing data into it without a limit, you create *the staircase of accumulation*. I've noticed AI agents reach for refs as caches fairly often, "store the previous value in a ref" or "keep a history in a ref." The pattern is fine in isolation. But the agent rarely thinks about bounds or cleanup, because in the context of a single prompt, the data looks small.
-
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/nervous-ganguly-svczrd)**
 
 <iframe src="https://codesandbox.io/embed/svczrd?view=preview&hidenavigation=1"
      title="Section 7 — Leak: Refs That Only Grow"
@@ -244,8 +230,6 @@ Two changes fixed the staircase:
 
 It's a gentle discipline. Not about preventing accumulation entirely, just giving it a boundary.
 
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/upbeat-grothendieck-x9q66g)**
-
 <iframe src="https://codesandbox.io/embed/x9q66g?view=preview&hidenavigation=1"
      title="Section 8 — Fix: Refs That Only Grow"
      allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
@@ -270,8 +254,6 @@ JS Heap
 ## Reading the Graphs: A Workflow
 
 After the first eight experiments, I wanted to consolidate the debugging workflow itself into something repeatable. Something I could reach for the next time a heap graph looked suspicious, without having to rediscover the process from scratch.
-
-> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/charming-boyd-3zw7nx)**
 
 <iframe src="https://codesandbox.io/embed/3zw7nx?view=preview&hidenavigation=1"
      title="Section 9 — Tooling Recap: Timeline → Snapshot"
