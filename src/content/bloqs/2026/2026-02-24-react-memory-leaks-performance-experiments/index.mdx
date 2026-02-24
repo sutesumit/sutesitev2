@@ -1,0 +1,331 @@
+---
+title: "Diary of a Memory Hunter: 9 Experiments in React Performance"
+publishedAt: "2026-02-24"
+summary: "Observations from a set of experiments designed to surface how and why memory leaks occur in React."
+slug: "react-memory-leaks-performance-experiments"
+tags:
+  - react
+  - javascript
+  - memory
+  - performance
+  - devtools
+  - debugging
+  - useEffect
+  - garbage-collection
+  - typescript
+authors:
+  - Sumit Sute
+category: Engineering
+draft: false
+featured: false
+---
+
+##
+
+> *The browser never forgets on your behalf. You have to teach it how to let go.*
+
+It actually started much more mundanely: with a PR comment asking if we should pass an `AbortSignal` to a fetch. That tiny suggestion came with a side note: *this might otherwise leak memory*. I realised I didn't have a strong mental model of what that even meant in React. Not really. I could parrot the words, "clean up your effects," and my AI agent would dutifully add a cleanup return every time I asked. But I couldn't picture what happened when it didn't. I couldn't read a heap graph (the heap is where JavaScript stores objects and data your code creates at runtime) and know whether the code I was reviewing, code I didn't write, was actually giving memory back.
+
+That bothered me. We're in an era where most of the React code I ship on a given day was drafted by an agent. It handles the obvious patterns. It adds `clearInterval`. It remembers `AbortController` more reliably than I do. But when something leaks in production, when the tab starts lagging after twenty minutes and nobody knows why, the agent isn't the one staring at DevTools. I am. So I opened up CodeSandbox, deliberately wrote some questionable React code, watched it misbehave, and tried to learn how to read the memory graphs without panicking. This diary is me painstakingly documenting those experiments. Partly for myself, partly for any engineer who reviews more code than they write these days and wants to know what to look for when the heap won't come down.
+
+---
+
+## The Quiet Baseline
+
+Before I could find a leak, I had to know what "normal" looked like. I built a simple **AllocatingBox**, a component that grabs some memory when it mounts (appears on screen) and, in theory, gives it back when it unmounts (is removed from screen).
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/naughty-thunder-5g3rpy)**
+
+<iframe src="https://codesandbox.io/embed/5g3rpy?view=preview&hidenavigation=1"
+     title="Section 1 — Baseline: What Healthy Memory Looks Like"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+### The Experiment
+
+When the component mounts, it allocates a small amount of memory. When it unmounts, React releases all references to that state. A "reference" here is just a pointer: a variable, a callback, or a property that says "I'm still using this data." As long as at least one reference exists, the garbage collector considers the data "in use" and won't touch it. When all references are gone, the memory becomes eligible for collection.
+
+### A Quick Word on Garbage Collection
+
+JavaScript uses a **mark-and-sweep** garbage collector. Think of it like a cleaning crew that works in two passes. First, *mark*: starting from "roots" (things that are always accessible, like global variables and whatever function is currently running), the GC follows every reference it can find and marks those objects as "still needed." Second, *sweep*: anything that didn't get marked is considered unreachable, and the GC frees that memory. The subtle part: the GC doesn't run on your schedule. It runs when the engine decides to. That's why the heap graph is never a flat line. It rises as you allocate and drops in sudden cliffs when the GC kicks in.
+
+Your job, then, isn't to control the collector. It's to make sure you're not quietly keeping references alive that prevent it from doing its work. This is true whether you wrote the code yourself or an agent wrote it for you. The GC doesn't care about authorship. (I kept staring at the uneven graph, expecting something smoother. It took me a while to accept that "uneven but stable" *is* healthy.)
+
+### The Result
+
+I watched the JS Heap in DevTools. It grew when I clicked "Mount" and dropped eventually after "Unmount." Not a flat line. More like breathing. Stability over time is the goal here.
+
+```text
+JS Heap
+  ^
+  |           ____         ________
+  |          /    \______/        \____
+  |_________/                          \____> time
+
+Allocations happen continuously;
+GC (the cleaning crew) runs occasionally.
+```
+
+---
+
+## The Interval That Wouldn't Die
+
+This was my first encounter with what I started calling a "Zombie." I created an interval that added memory every second. Even after I unmounted the component, the interval kept running in the dark, hoarding memory. The component was gone. The work wasn't.
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/relaxed-morning-2r95dq)**
+
+<iframe src="https://codesandbox.io/embed/2r95dq?view=preview&hidenavigation=1"
+     title="Section 2 — Leak: Interval That Never Ends (forked)"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+### The Symptom
+
+The heap kept climbing in steps, one bump per interval tick, even after the component was long gone. The interval callback still held a reference to the component's state (because the function inside `setInterval` "closes over" the variables it uses, keeping them alive in memory even after the component is gone), so the GC couldn't touch it. I remember thinking: *this is what "leak" actually looks like.* Not a dramatic crash. Just a quiet, steady accumulation of things nobody asked for. An AI agent would get this particular case right, it would add the cleanup return. But the shape of the graph is worth internalising, because you'll see this same staircase in messier situations where the cause isn't a textbook missing `clearInterval`.
+
+### The Goodbye Rule
+
+In React, `useEffect` is where you put code that should run after the component renders, things like starting a timer, fetching data, or adding an event listener. It can also return a function, and that returned function runs when the component unmounts. Think of this return as the "Goodbye" function. Without it, the interval holds a reference to the component's state forever. With it, `clearInterval` severs that link on unmount. A small ceremony of letting go.
+
+### The Result
+
+Once I added cleanup, the graph finally looked like a healthy sawtooth (a zigzag pattern that goes up, then drops sharply, then up again, like the teeth of a saw). It rises while the interval runs and drops back to the baseline once I unmount.
+
+```text
+JS Heap
+  ^
+  |      ┌───┐
+  |  ────┘   └───┐     ┌───
+  |              └─────┘
+  +--------------------------> time
+      click      stop   (GC runs, heap drops)
+```
+
+---
+
+## The Promise That Didn't Get the Memo
+
+Promises don't care about component lifecycles. A Promise is JavaScript's way of saying "I'll get back to you later," and the `.then()` callback is the code that runs when it does. If you trigger a slow fetch (an API call to a server) and unmount the component before the response arrives, that `.then()` callback is still waiting. It holds a closure, which is a fancy word for a function that remembers the variables from the scope where it was created, even after that scope is gone. So the closure keeps the component's data alive in memory until the network request finally finishes. The component left the room, but the promise is still waiting by the door.
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/musing-feynman-mkdqj5)**
+
+<iframe src="https://codesandbox.io/embed/mkdqj5?view=preview&hidenavigation=1"
+     title="Section 3 — Leak: Async Work Outlives the UI"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+### The Symptom: The Plateau
+
+You'll see the memory stay elevated long after the component is gone. It just sits there. Patient, unconcerned. It only drops once the network request finally resolves and the callback releases its references.
+
+```text
+JS Heap
+  ^
+  |     ┌────────────────┐
+  |  ───┘                └─── drop (fetch finally resolved)
+  +----------------------------> time
+      mount  unmount
+```
+
+---
+
+## Cutting the Line With AbortController
+
+The fix for orphaned fetches (network requests whose results nobody needs anymore) is `AbortController`. It's a built-in browser API that lets you cancel a `fetch` request. You create one, pass its `signal` to the fetch, and when you want to cancel, you call `abort()`. In a `useEffect` cleanup, this means: when the component unmounts, abort the request. The promise rejects immediately, the closure is released, and the retained memory can be collected.
+
+Still, it's worth sitting with how easy it is to skip this. The code works fine without it. The UI doesn't break. The leak is invisible unless you go looking. That's what makes these things insidious. AI agents are actually good about adding `AbortController` when you ask them to fetch data in an effect. But when the fetch is buried inside a custom hook (a reusable function that wraps `useEffect` and other React hooks), or wrapped in a third-party library, or triggered by a chain of context updates (React Context is a way to share data across many components without passing it through every level), the abort often gets lost in the composition. The agent optimises for the file it's looking at, not for the interaction between files.
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/silly-thunder-gtl8pk)**
+
+<iframe src="https://codesandbox.io/embed/gtl8pk?view=preview&hidenavigation=1"
+     title="Section 4 — Fix: Abort Async Work"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+### The Result
+
+Instead of a plateau, the heap drops almost immediately after unmount. The abort shortens the object's lifetime from "whenever the server responds" to "right now."
+
+```text
+JS Heap
+  ^
+  |     ┌───
+  |  ───┘   └─┐
+  |           └─ (abort) ── drop
+  +----------------------------> time
+```
+
+---
+
+## The Ghost in the Resize Handler
+
+I attached a `resize` listener to the `window`. Because `window` is global, it stays alive forever. It's not something React manages. If we don't remove the listener on unmount, it keeps holding onto our component's internal functions. A handler firing in the background for a component that no longer exists. A ghost. This is one of the patterns I've seen AI agents get wrong more often than you'd expect. The agent focuses on the component's internal logic and forgets that the listener it attached lives on a global object with a completely different lifecycle.
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/wonderful-mopsa-crxwv2)**
+
+<iframe src="https://codesandbox.io/embed/crxwv2?view=preview&hidenavigation=1"
+     title="Section 5 — Leak: Listener That Never Leaves"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+### The Discovery
+
+Even after unmounting, resizing the browser window caused small "bumps" in the memory graph. The handler was still firing, still allocating, still holding references to a component that no longer existed. I only noticed because I was resizing the window out of idle curiosity. (How many of these go unnoticed in production, I wonder.)
+
+```text
+JS Heap
+  ^
+  |    ┌───__           (bumps when resizing)
+  |───┘      └─__
+  +-----------------> time
+    click  stop  resize      ← plateau, bumps on resize
+```
+
+---
+
+## Exorcising the Listener
+
+The fix is surgical: always pair an `addEventListener` with a `removeEventListener` in your cleanup. `addEventListener` tells the browser "run this function whenever event X happens." `removeEventListener` says "stop running it." If you only do the first without the second, the function sticks around as a stale closure: a function that still references variables from a component that no longer exists. Removing the listener on unmount ensures resizes no longer touch that dead reference.
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/solitary-glitter-y3sqpw)**
+
+<iframe src="https://codesandbox.io/embed/y3sqpw?view=preview&hidenavigation=1"
+     title="Section 6 — Fix: Remove the Listener"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+### The Result
+
+After adding cleanup, the bumps disappeared. The graph returned to baseline after unmount, regardless of how aggressively I resized the window. Quiet again.
+
+---
+
+## The Ref That Never Stopped Collecting
+
+`useRef` is a strange corner of React. It doesn't trigger re-renders. React doesn't manage its lifecycle the way it does with `useState`. A ref is just a plain object with a `.current` property, and React won't clean it up for you. If you keep pushing data into it without a limit, you create *the staircase of accumulation*. I've noticed AI agents reach for refs as caches fairly often, "store the previous value in a ref" or "keep a history in a ref." The pattern is fine in isolation. But the agent rarely thinks about bounds or cleanup, because in the context of a single prompt, the data looks small.
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/nervous-ganguly-svczrd)**
+
+<iframe src="https://codesandbox.io/embed/svczrd?view=preview&hidenavigation=1"
+     title="Section 7 — Leak: Refs That Only Grow"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+### The Symptom: The Staircase
+
+In my test, I was adding 5,000 objects to a ref on every click. Each click pushed the heap higher, and it never came back down. Nothing told the browser that data was no longer needed. The graph just kept climbing. Not dramatically, but persistently.
+
+```text
+JS Heap
+  ^
+  |              ┌───
+  |         ┌────┘
+  |    ┌────┘
+  |────┘
+  +----------------------------> time
+    click  click  click  (never drops)
+```
+
+---
+
+## Teaching the Ref to Forget
+
+Two changes fixed the staircase:
+
+- **Cap the cache:** Only keep the last 3 chunks (~15,000 objects). Older data gets discarded on each new push.
+- **Clear on unmount:** Manually set the ref to an empty array when the component leaves.
+
+It's a gentle discipline. Not about preventing accumulation entirely, just giving it a boundary.
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/upbeat-grothendieck-x9q66g)**
+
+<iframe src="https://codesandbox.io/embed/x9q66g?view=preview&hidenavigation=1"
+     title="Section 8 — Fix: Refs That Only Grow"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+### The Result
+
+The graph now has a ceiling. It rises with each click but never exceeds the cap, and drops cleanly after unmount.
+
+```text
+JS Heap
+  ^
+  |  ┌─┐ ┌─┐ ┌─┐   (capped height)
+  |──┘ └─┘ └─┘ └───┐
+  |                └─ drop after unmount
+  +----------------------------> time
+```
+
+---
+
+## Reading the Graphs: A Workflow
+
+After the first eight experiments, I wanted to consolidate the debugging workflow itself into something repeatable. Something I could reach for the next time a heap graph looked suspicious, without having to rediscover the process from scratch.
+
+> **[Try this experiment in CodeSandbox](https://codesandbox.io/p/sandbox/charming-boyd-3zw7nx)**
+
+<iframe src="https://codesandbox.io/embed/3zw7nx?view=preview&hidenavigation=1"
+     title="Section 9 — Tooling Recap: Timeline → Snapshot"
+     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
+It came down to three steps:
+
+1. **The Timeline (Performance Tab):** Tells you *when* memory is sticking. Record a session, toggle your component a few times, and look for the staircase (unbounded growth) or the plateau (memory that won't drop). If the heap returns to baseline, you're probably fine.
+
+2. **The Heap Snapshot (Memory Tab):** Tells you *what* is sticking. Take a snapshot after unmounting, then search for your component name. If it shows up as a retained object (an object the GC couldn't collect because something still points to it), you've found your leak. The "Retainers" panel will show you exactly what's holding the reference, like a chain of breadcrumbs leading from the root back to the object that should have been freed.
+
+3. **The AI assist (optional but useful):** Once you've identified the retained objects and their retainer chains (the list of references keeping an object alive), paste that information into your AI agent and ask it to trace the leak. The agent is surprisingly good at reading retainer paths and suggesting which cleanup is missing. But you have to give it the right input, and that input comes from steps 1 and 2. The agent can't open your DevTools for you. It can only interpret what you bring it.
+
+---
+
+## What I Took Away
+
+Nine experiments later, a few things stayed with me:
+
+- **Every side effect is a small promise you make to the browser.** If your `useEffect` starts a timer, opens a connection, or attaches a listener, the cleanup return is you keeping that promise. Not every effect needs one, but every effect that reaches outside the component does. When reviewing agent-generated code, this is the first thing I check: does the effect clean up after itself?
+
+- **`AbortController` is an act of care.** It's easy to skip. The UI won't break without it. But the memory sits there, waiting for a response to a question nobody's asking anymore. Agents add it reliably in simple cases. The gaps appear in composition, when fetches are nested inside hooks or triggered by context changes across files.
+
+- **Refs are your responsibility.** React manages state; it doesn't manage refs. If you use one as a cache, give it a ceiling and clear it on unmount. This is worth watching for in AI-generated code specifically, because agents like to use refs as quick storage without thinking about growth over time.
+
+- **Healthy memory breathes.** It rises and falls. Plateaus and staircases are the shapes to worry about. No agent can teach you this intuition. You have to sit with the graphs for a while.
+
+- **Timeline first, snapshot second, agent third.** The Performance tab tells you *when*. The Memory tab tells you *what*. Your AI agent can help you interpret *why*, but only if you bring it the right context from the first two steps.
+
+---
+
+## How Other Languages Remember
+
+These experiments left me thinking about JavaScript's mark-and-sweep as one answer to a question every language has to face: *who is responsible for giving memory back?*
+
+**Rust** doesn't have a garbage collector at all. Memory is freed at compile time (before the program even runs) through an ownership model: every value has exactly one owner, and when that owner goes out of scope (for example, when a function finishes), the memory is dropped automatically. No runtime cost, no pauses, no surprises. But the trade-off is that the compiler is strict about it. It has a "borrow checker" that enforces these rules while you write code, and it will refuse to compile if you break them. You wrestle with the compiler instead of wrestling with DevTools. The leak I saw with the zombie interval simply couldn't happen in Rust, because the compiler wouldn't let you hold a reference to something that's already gone.
+
+**Go** takes a different path. It has a garbage collector, but one obsessed with pause times. Most garbage collectors need to briefly "stop the world," pausing your program to safely scan memory. Go's concurrent collector runs alongside your code, doing most of its work without stopping the program. The goal is to keep those pauses under a millisecond. For server-side code that needs to respond to thousands of requests per second, that matters. JavaScript's GC can pause whenever it likes, and in a browser that's usually fine because a few milliseconds of pause won't ruin a button click. In a backend service, you'd feel it.
+
+**Java** has been thinking about this longer than most. Its generational GC is based on an observation: most objects die young. A temporary variable inside a loop, a short-lived string, a one-off calculation. So Java separates objects by age. Young objects get collected often and cheaply in a small, fast pass. Objects that survive long enough get promoted to an "old generation" that's collected less frequently. Java also gives you a choice of different collectors, each tuned for different priorities: maximum speed, minimum pauses, or a balance of both. It's more configurable than JavaScript's approach, but that configurability is itself a source of complexity. The "stop the world" pauses that Java was once notorious for have gotten much shorter over the years, though the reputation lingers.
+
+**Python** uses reference counting as its primary strategy. Every object has a counter that tracks how many variables or other objects point to it. When that count hits zero (nothing references it anymore), the memory is freed immediately, not at some unpredictable later time. It's more predictable than mark-and-sweep. You don't get those sudden cliffs in the heap graph. But it can't handle circular references on its own. Imagine object A points to object B, and object B points back to object A. Even if nothing else in the program uses either of them, both counters stay at 1 forever. So Python layers a separate cycle detector on top that periodically scans for these loops and breaks them. It's a pragmatic combination.
+
+**Swift** takes reference counting further with ARC (Automatic Reference Counting). Like Python, it frees memory as soon as references drop to zero. But ARC is enforced at compile time: the compiler inserts the "increment count" and "decrement count" instructions for you, so there's no runtime overhead for tracking. The downside is there's no cycle detector. Instead, Swift asks you to think about *strong* versus *weak* references. A strong reference says "I need this, keep it alive." A weak reference says "I'm interested in this, but don't keep it alive on my account." By marking certain references as weak, you break potential cycles yourself. It's a middle ground between Rust's strictness and JavaScript's hands-off approach.
+
+**JavaScript**, then, sits in a particular spot. Its mark-and-sweep collector is non-deterministic, meaning you don't decide when it runs, and you can't force it. The engine makes that call based on memory pressure, heuristics, and its own internal scheduling. What you *can* control is reachability. Every leak in this diary came down to the same thing: something kept a reference alive that shouldn't have been alive anymore. The GC was never broken. It was just doing exactly what it was told, which was to keep reachable things around. The fix, every time, was to sever the reference.
+
+**And TypeScript?** It compiles down to JavaScript. The types (like `string`, `number`, or your custom interfaces) are erased entirely at build time, they exist only to help you catch errors while writing code. At runtime, there is no TypeScript. The browser runs plain JavaScript. So the GC behaviour is identical. TypeScript won't protect you from a leaked interval or a dangling closure. What it *can* do is make the shape of your data more visible while you're writing code, which sometimes helps you notice when a ref is holding more than you intended. But once the code is running, it's JavaScript all the way down, sawtooth and all.
+
+What struck me is that none of these are obviously "better." They're trade-offs shaped by what each language cares about most. Rust cares about zero-cost guarantees. Go cares about latency. Java cares about throughput at scale. Python cares about simplicity. Swift cares about predictability without a runtime collector. JavaScript, running in a browser where the user is waiting for a button to respond, cares about not blocking the main thread for too long. The sawtooth I spent nine experiments learning to read is a consequence of that priority.
+
+---
+## The Sawtooth Is Mine to Read
+
+I started this because of a PR comment I didn't fully understand. I'm still not sure I understand all of it. But I can read the graphs now without flinching, I know what a healthy sawtooth looks like, and I have a slightly better sense of why JavaScript chose the trade-offs it did. In a world where the agent writes the code and I review it, that diagnostic intuition feels less like a nice-to-have and more like the actual job. The agent handles the syntax. The sawtooth is mine to read.

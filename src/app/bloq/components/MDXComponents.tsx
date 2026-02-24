@@ -94,6 +94,22 @@ const MDXComponents = {
   td: ({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
     <td className={cn("px-4 py-3 text-sm text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-700 last:border-r-0", className)} {...props} />
   ),
+  iframe: (props: React.IframeHTMLAttributes<HTMLIFrameElement>) => (
+    <iframe
+      width="100%"
+      height="500"
+      {...props}
+      style={{
+        display: 'block',
+        width: '100%',
+        height: 500,
+        border: 'none',
+        borderRadius: 4,
+        overflow: 'hidden',
+        ...((props.style as React.CSSProperties) || {}),
+      }}
+    />
+  ),
 };
 
 export default MDXComponents;
