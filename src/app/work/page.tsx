@@ -12,7 +12,7 @@ export default function Home() {
         <div className='page-title mb-2'>
           <p className="font-bold">Technologies</p>
         </div>
-        <TechStackCard skillList={skillList as any} />
+        <TechStackCard skillList={skillList as Record<string, {name: string, icon: React.ReactNode}[]>} />
       </section>
       
       {/* Project Section */}
@@ -22,7 +22,7 @@ export default function Home() {
         </div>
         <div className="projects flex flex-col gap-2">
           {projects.map((project, index) => (
-            <WorkProjectCard key={index} project={project} index={index} />
+            <WorkProjectCard key={index} project={project} />
           ))}          
         </div>
       </section>

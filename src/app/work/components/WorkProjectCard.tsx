@@ -9,10 +9,9 @@ import { CardBackground } from "@/components/shared/CardBackground";
 
 interface WorkProjectCardProps {
   project: ProjectProps;
-  index: number;
 }
 
-export const WorkProjectCard = ({ project, index }: WorkProjectCardProps) => {
+export const WorkProjectCard = ({ project }: WorkProjectCardProps) => {
   const router = useRouter();
 
   return (
