@@ -2,11 +2,20 @@ import { projects } from '../../data/projectlist';
 import { skillList } from '@/data/skilllist';
 import { WorkProjectCard } from './components/WorkProjectCard';
 import { TechStackCard } from './components/TechStackCard';
+import { ContributionHeatmap } from './components/ContributionHeatmap';
 
 export default function Home() {
 
   return (
     <article className="px-6 py-12 container h-auto font-roboto-mono lowercase flex flex-col gap-4">
+      {/* TODO: Add heatmap */}
+      <section className='heatmap'>
+        <div className='page-title mb-2'>
+          <p className="font-bold">Heatmap</p>
+          {/* <p className="text-xs opacity-75">Track your contributions to open source projects</p> */}
+        </div>
+        <ContributionHeatmap />
+      </section>
       {/* Skill List Section */}
       <section className='skill-list'>
         <div className='page-title mb-2'>
