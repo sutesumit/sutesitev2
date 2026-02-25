@@ -3,10 +3,10 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion as m } from "framer-motion";
-import LiveRepoLinks from "./LiveRepoLinks";
-import Accordion from "./Accordion";
-import { CardBackground } from "./CardBackground";
-import { projects, ProjectProps } from "../../data/projectlist";
+import LiveRepoLinks from "@/components/shared/LiveRepoLinks";
+import Accordion from "@/components/shared/Accordion";
+import { CardBackground } from "@/components/shared/CardBackground";
+import { projects, ProjectProps } from "@/data/projectlist";
 
 const ProjectPage = ({ project }: { project: ProjectProps }) => {
   const [iframeLoading, setIframeLoading] = useState(true);
@@ -41,7 +41,7 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
         <CardBackground />
         <ul className="project-container project-list relative z-10 px-2">
           <li className="project-item text-blue-900 dark:text-blue-400 font-medium">
-            <Link href={project.locallink}>{project.title}</Link>
+            <Link href={`/work/${project.slug}`}>{project.title}</Link>
           </li>
 
           <div className="about-section mt-4 space-y-1">
@@ -134,7 +134,7 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
               key={index}
               className={`project-item text-blue-900 dark:text-blue-400 ${p.title === project.title ? "opacity-50" : "hover:opacity-100"}`}
             >
-              <Link href={p.locallink}>{p.title}</Link>
+              <Link href={`/work/${p.slug}`}>{p.title}</Link>
             </div>
           ))}
         </div>

@@ -20,7 +20,7 @@ export const WorkProjectCard = ({ project, index }: WorkProjectCardProps) => {
       role="article"
       aria-label={project.title}
       className="relative isolate p-4 overflow-hidden blue-border project-list flex flex-col cursor-pointer"
-      onClick={() => router.push(project.locallink)}
+      onClick={() => router.push(`/work/${project.slug}`)}
       initial="rest"
       whileHover="hover"
       animate="rest"
