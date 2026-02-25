@@ -43,7 +43,7 @@ const Footer = () => {
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>last visitor/{visitorCount}</p>
+                <p>last visitor/<ScrambleText text={visitorCount !== null ? visitorCount.toString() : 'xxx'} /></p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
