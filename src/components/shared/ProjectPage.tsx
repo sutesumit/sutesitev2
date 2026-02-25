@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion as m } from "framer-motion";
@@ -10,14 +10,22 @@ import { projects, ProjectProps } from "../../data/projectlist";
 
 const ProjectPage = ({ project }: { project: ProjectProps }) => {
   const [iframeLoading, setIframeLoading] = useState(true);
-  const [screenRatio, setScreenRatio] = useState("16/9");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [iframeScale, setIframeScale] = useState(1);
+
+  const IFRAME_W = 1440;
+  const IFRAME_H = 900;
 
   useEffect(() => {
-    const updateRatio = () =>
-      setScreenRatio(`${window.innerWidth}/${window.innerHeight}`);
-    updateRatio();
-    window.addEventListener("resize", updateRatio);
-    return () => window.removeEventListener("resize", updateRatio);
+    const updateScale = () => {
+      if (containerRef.current) {
+        setIframeScale(containerRef.current.offsetWidth / IFRAME_W);
+      }
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -39,8 +47,9 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
           <div className="about-section mt-4 space-y-1">
             {project.livelink && (
               <div
+                ref={containerRef}
                 className="relative w-full rounded overflow-hidden border border-blue-200 dark:border-blue-800 bg-gray-100 dark:bg-gray-900 shadow-md mb-4"
-                style={{ aspectRatio: screenRatio }}
+                style={{ aspectRatio: `${IFRAME_W} / ${IFRAME_H}` }}
               >
                 {iframeLoading && project.screenshot && (
                   <Image
@@ -57,7 +66,12 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
                 )}
                 <iframe
                   src={project.livelink}
-                  className="w-full h-full"
+                  className="absolute top-0 left-0 origin-top-left"
+                  style={{
+                    width: `${IFRAME_W}px`,
+                    height: `${IFRAME_H}px`,
+                    transform: `scale(${iframeScale})`,
+                  }}
                   title={`Preview of ${project.title}`}
                   onLoad={() => setIframeLoading(false)}
                   sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
