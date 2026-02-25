@@ -19,7 +19,7 @@ export const WorkProjectCard = ({ project, index }: WorkProjectCardProps) => {
     <m.div
       role="article"
       aria-label={project.title}
-      className="relative isolate p-4 overflow-hidden blue-border project-list flex flex-col cursor-pointer"
+      className="relative isolate p-5 overflow-hidden blue-border project-list flex flex-col cursor-pointer"
       onClick={() => router.push(`/work/${project.slug}`)}
       initial="rest"
       whileHover="hover"
@@ -27,7 +27,7 @@ export const WorkProjectCard = ({ project, index }: WorkProjectCardProps) => {
     >
       <CardBackground />
 
-      <div className="flex h-full flex-col px-2 justify-between gap-2">
+      <div className="flex h-full flex-col justify-between gap-2">
         {/* Title — uses project-item for the dash→pipe pseudo-element */}
         <div className="project-item text-blue-900 dark:text-blue-400 font-medium">
           {project.title}
