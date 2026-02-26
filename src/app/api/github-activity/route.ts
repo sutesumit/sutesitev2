@@ -30,6 +30,23 @@ function generateQuery(profiles: string[]) {
   `;
 }
 
+interface ContributionDay {
+  date: string;
+  contributionCount: number;
+}
+
+interface ContributionWeek {
+  contributionDays: ContributionDay[];
+}
+
+interface GitHubUser {
+  contributionsCollection: {
+    contributionCalendar: {
+      weeks: ContributionWeek[];
+    };
+  };
+}
+
 export async function GET() {
   const token = process.env.GITHUB_TOKEN;
 
@@ -77,23 +94,25 @@ export async function GET() {
     }
 
     const mergedData: Record<string, number> = {};
+    const castedData = data as Record<string, GitHubUser>;
 
     // Process each user result (user0, user1, etc.)
-    Object.keys(data).forEach((key) => {
-      const user = data[key];
+    Object.keys(castedData).forEach((key) => {
+      const user = castedData[key];
       if (!user || !user.contributionsCollection) return;
 
-      user.contributionsCollection.contributionCalendar.weeks.forEach((week: any) => {
-        week.contributionDays.forEach((day: any) => {
+      user.contributionsCollection.contributionCalendar.weeks.forEach((week: ContributionWeek) => {
+        week.contributionDays.forEach((day: ContributionDay) => {
           mergedData[day.date] = (mergedData[day.date] || 0) + day.contributionCount;
         });
       });
     });
 
     return NextResponse.json(mergedData);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to fetch GitHub activity', details: error.message },
+      { error: 'Failed to fetch GitHub activity', details: message },
       { status: 500 }
     );
   }

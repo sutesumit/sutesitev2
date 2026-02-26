@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion as m } from "framer-motion";
 import { CardBackground } from "@/components/shared/CardBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -103,8 +103,9 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
         const githubData = await res.json();
         setData(githubData);
         setDoneSteps(p => [...p, 1]);
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Unknown error";
+        setError(message);
         return; // Stop boot on error
       }
 
@@ -136,7 +137,12 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
   const prevMonth = () => (month === 0 ? (setYear((y) => y - 1), setMonth(11)) : setMonth((m) => m - 1));
   const nextMonth = () => {
     if (isAtLatest) return;
-    month === 11 ? (setYear((y) => y + 1), setMonth(0)) : setMonth((m) => m + 1);
+    if (month === 11) {
+      setYear((y) => y + 1);
+      setMonth(0);
+    } else {
+      setMonth((m) => m + 1);
+    }
   };
 
   const weeks = buildMonthGrid(year, month);
@@ -361,22 +367,24 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
 
             {/* Stats */}
             <div className="text-[10px] text-slate-500 dark:text-slate-400 tracking-wider text-center leading-relaxed">
-              <span className="opacity-50">$ </span>
+              <span className="text-slate-800 dark:text-slate-200 font-bold">{GITHUB_PROFILES.length}</span>
+              <span> profiles </span>
+              <span className="opacity-50">&middot; </span>
               <span className="text-slate-800 dark:text-slate-200 font-bold">{monthTotal.toLocaleString()}</span>
               <span> commits </span>
               <span className="opacity-50">&middot; </span>
               <span className="text-slate-800 dark:text-slate-200 font-bold">{activeDays}</span>
-              <span> active</span>
+              <span> days</span>
               {peakDay !== null && (
-                <>
+                <span className="inline-block">
                   <span className="opacity-50"> &middot; </span>
                   <span>peak </span>
                   <span className="text-slate-800 dark:text-slate-200 font-bold">
                     day {peakDay} ({peakCount})
                   </span>
-                </>
+                  <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400 ml-1">_</span>
+                </span>
               )}
-              <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400 ml-1">_</span>
             </div>
           </m.div>
         )}
