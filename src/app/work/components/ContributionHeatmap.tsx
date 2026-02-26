@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { motion as m } from "framer-motion";
 import { CardBackground } from "@/components/shared/CardBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SiGithub } from "react-icons/si";
 
-const SYMBOLS = [" ", "·", "∘", "*", "◆", "●"];
+const SYMBOLS = ["\u00A0", "✧", "✲", "✷", "❃", "❁"];
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -145,11 +146,11 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
         <CardBackground />
         
         {/* Header */}
-        <div className="flex justify-between items-center text-[10px] text-slate-500 tracking-wider mb-4 uppercase">
-          <span className="project-item">contribution-scanner</span>
-          <span className="flex gap-2">
-            <span className="tab" title="Main GitHub Account">@primary</span>
-            <span className="tab" title="Alt/Work Account">@secondary</span>
+        <div className="flex justify-between items-center text-[10px] text-slate-500 tracking-wider mb-4">
+          <span className="project-item">Across following profiles</span>
+          <span className="flex gap-2 items-center">
+            <a href="https://github.com/sutesumit" target="_blank" className="tab flex items-center gap-1"><SiGithub />sutesumit</a>
+            <a href="https://github.com/sumitsute" target="_blank" className="tab flex items-center gap-1"><SiGithub />sumitsute</a>
           </span>
         </div>
 
@@ -184,7 +185,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
             <div className="flex justify-between items-center w-full max-w-sm mb-4 border-b border-slate-200/50 dark:border-slate-800/50 pb-2">
               <button
                 onClick={prevMonth}
-                className="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100/80 dark:hover:bg-slate-900/80 transition-colors cursor-pointer text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                className="w-8 h-8 flex items-center justify-center hover:bg-slate-100/80 dark:hover:bg-slate-900/80 transition-colors cursor-pointer text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               >
                 <ChevronLeft size={16} />
               </button>
@@ -194,7 +195,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
               <button
                 onClick={nextMonth}
                 disabled={isAtLatest}
-                className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+                className={`w-8 h-8 flex items-center justify-center transition-colors ${
                   isAtLatest ? "opacity-30 cursor-default text-slate-400" : "hover:bg-slate-100/80 dark:hover:bg-slate-900/80 cursor-pointer text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
@@ -258,7 +259,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
       {tooltip && (
         <div
           style={{ left: tooltip.x, top: tooltip.y }}
-          className="fixed pointer-events-none transform -translate-x-1/2 -translate-y-full -mt-4 dark:bg-slate-900 bg-slate-50 dark:text-slate-300 text-slate-800 border border-slate-800 font-mono text-[10px] whitespace-pre px-3 py-1.5 z-[999] leading-relaxed tracking-wider"
+          className="fixed pointer-events-none transform -translate-x-1/2 -translate-y-full -mt-4 dark:bg-slate-900 bg-slate-50 border border-slate-300 dark:border-slate-600 dark:text-slate-300 text-slate-800 font-mono text-[10px] whitespace-pre px-3 py-1.5 z-[999] leading-relaxed tracking-wider"
         >
           <div className="flex flex-col gap-0.5">
             <span>{tooltip.dateKey}</span>
