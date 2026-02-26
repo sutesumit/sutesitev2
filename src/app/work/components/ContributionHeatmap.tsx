@@ -5,6 +5,7 @@ import { motion as m } from "framer-motion";
 import { CardBackground } from "@/components/shared/CardBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SiGithub } from "react-icons/si";
+import { GITHUB_PROFILES } from "@/data/github";
 
 const SYMBOLS = ["\u00A0", "✧", "✲", "✷", "❃", "❁"];
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -34,38 +35,16 @@ function buildMonthGrid(year: number, month: number) {
   return Array.from({ length: 6 }, (_, i) => slots.slice(i * 7, i * 7 + 7));
 }
 
-function generatePlaceholderData() {
-  const out: Record<string, number> = {};
-  const today = new Date();
-  for (let i = 364; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const r = Math.random();
-    out[k] =
-      r < 0.28 ? 0
-      : r < 0.5 ? Math.floor(Math.random() * 3) + 1
-      : r < 0.72 ? Math.floor(Math.random() * 5) + 4
-      : r < 0.88 ? Math.floor(Math.random() * 8) + 9
-      : Math.floor(Math.random() * 10) + 18;
-  }
-  return out;
-}
-
 const BOOT_STEPS = [
-  { label: "loading local cache", duration: 280 },
-  { label: "fetching remote timeline", duration: 300 },
+  { label: "initializing engine", duration: 280 },
+  { label: "fetching remote timeline", duration: 800 }, // This will be dynamic now
   { label: "merging contributions", duration: 240 },
   { label: "done", duration: 160 },
 ];
 
 export const ContributionHeatmap = ({ data: externalData = null }: { data?: Record<string, number> | null }) => {
-  const placeholderRef = useRef<Record<string, number> | null>(null);
-  if (!placeholderRef.current) {
-    placeholderRef.current = generatePlaceholderData();
-  }
-  
-  const data = externalData ?? placeholderRef.current;
+  const [data, setData] = useState<Record<string, number>>(externalData || {});
+  const [error, setError] = useState<string | null>(null);
 
   const now = new Date();
   const todayKey = now.toISOString().slice(0, 10);
@@ -107,23 +86,51 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
   }, []);
 
   useEffect(() => {
-    let elapsed = 0;
-    BOOT_STEPS.forEach(({ duration }, i) => {
+    const runBoot = async () => {
+      // Step 0: Initializing
+      setBootStep(0);
+      await new Promise(r => setTimeout(r, 280));
+      setDoneSteps(p => [...p, 0]);
+
+      // Step 1: Fetching (Actual fetch)
+      setBootStep(1);
+      try {
+        const res = await fetch('/api/github-activity');
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to fetch GitHub activity");
+        }
+        const githubData = await res.json();
+        setData(githubData);
+        setDoneSteps(p => [...p, 1]);
+      } catch (e: any) {
+        setError(e.message);
+        return; // Stop boot on error
+      }
+
+      // Step 2: Merging (Wait for effect)
+      setBootStep(2);
+      await new Promise(r => setTimeout(r, 240));
+      setDoneSteps(p => [...p, 2]);
+
+      // Step 3: Done
+      setBootStep(3);
+      await new Promise(r => setTimeout(r, 160));
+      setDoneSteps(p => [...p, 3]);
+
       setTimeout(() => {
-        setBootStep(i);
-        setTimeout(() => {
-          setDoneSteps((p) => [...p, i]);
-          if (i === BOOT_STEPS.length - 1) {
-            setTimeout(() => {
-              setBootStep(-1);
-              setBooted(true);
-            }, 120);
-          }
-        }, duration);
-      }, elapsed);
-      elapsed += duration + 40;
-    });
-  }, []);
+        setBootStep(-1);
+        setBooted(true);
+      }, 120);
+    };
+
+    if (externalData) {
+      setData(externalData);
+      setBooted(true);
+    } else {
+      runBoot();
+    }
+  }, [externalData]);
 
   const isAtLatest = year === now.getFullYear() && month === now.getMonth();
   const prevMonth = () => (month === 0 ? (setYear((y) => y - 1), setMonth(11)) : setMonth((m) => m - 1));
@@ -149,14 +156,14 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
     }
   }
 
-  const levelColors = [
-    "text-slate-300/30 dark:text-slate-600/30", 
-    "text-blue-400 dark:text-blue-900", 
-    "text-blue-500 dark:text-blue-700", 
-    "text-blue-600 dark:text-blue-500", 
-    "text-blue-700 dark:text-blue-400", 
-    "text-blue-900 dark:text-blue-300", 
-  ];
+  // const levelColors = [
+  //   "text-slate-300/30 dark:text-slate-600/30", 
+  //   "text-blue-400 dark:text-blue-900", 
+  //   "text-blue-500 dark:text-blue-700", 
+  //   "text-blue-600 dark:text-blue-500", 
+  //   "text-blue-700 dark:text-blue-400", 
+  //   "text-blue-900 dark:text-blue-300", 
+  // ];
 
   return (
     <>
@@ -170,11 +177,20 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
         
         {/* Header */}
         <div className="flex justify-between items-center text-[10px] text-slate-500 tracking-wider mb-4">
-          <span className="project-item">Across following profiles</span>
-          <span className="flex gap-2 items-center">
-            <a href="https://github.com/sutesumit" target="_blank" className="tab flex items-center gap-1"><SiGithub />sutesumit</a>
-            <a href="https://github.com/sumitsute" target="_blank" className="tab flex items-center gap-1"><SiGithub />sumitsute</a>
-          </span>
+          {/* <span className="project-item">Across following profiles</span> */}
+          {/* <span className="flex gap-2 items-center"> */}
+            {GITHUB_PROFILES.map((profile) => (
+              <a 
+                key={profile}
+                href={`https://github.com/${profile}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="tab flex items-center gap-1"
+              >
+                <SiGithub />{profile}
+              </a>
+            ))}
+          {/* </span> */}
         </div>
 
         {/* Boot */}
@@ -187,12 +203,28 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
               return (
                 <div key={i} className="flex gap-2 items-center">
                   <span className="opacity-50">$</span>
-                  <span className="w-4 text-blue-600 dark:text-blue-400">{running ? SPINNER[spinIdx] : "✓"}</span>
+                  <span className="w-4 text-blue-600 dark:text-blue-400">
+                    {running && !error ? SPINNER[spinIdx] : finished ? "✓" : error && running ? "✗" : " "}
+                  </span>
                   <span className={finished ? "text-slate-800 dark:text-slate-200" : "text-slate-600 dark:text-slate-500"}>{label}</span>
                 </div>
               );
             })}
-            {bootStep >= 0 && <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400">█</span>}
+            {error && (
+              <div className="mt-4 p-3 border border-red-500/30 bg-red-500/5 text-red-500/80">
+                <div className="flex items-start gap-2">
+                  <span className="font-bold">[ERROR]:</span>
+                  <span>{error}</span>
+                </div>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="mt-2 text-[9px] underline cursor-pointer hover:text-red-400"
+                >
+                  [ retry_connection ]
+                </button>
+              </div>
+            )}
+            {bootStep >= 0 && !error && <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400">█</span>}
           </div>
         )}
 
@@ -259,7 +291,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                         transition={{ duration: 0.5, ease: "easeOut" }}
                       >
                         <span className="opacity-30">[</span>
-                        <span className={levelColors[lv]}>{SYMBOLS[lv]}</span>
+                        <span className="text-blue-900 dark:text-blue-300">{SYMBOLS[lv]}</span>
                         <span className="opacity-30">]</span>
                       </m.div>
 
@@ -268,7 +300,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                         <m.div 
                           initial={{ scale: 0, opacity: 0, rotate: -360 }}
                           animate={{ scale: 1, opacity: 1, rotate: 720 }}
-                          transition={{ duration: 1, ease: "easeOut" }}
+                          transition={{ duration: 1, type: "spring", stiffness: 100, damping: 20 }}
                           className="absolute inset-0 flex items-center justify-center text-blue-700 dark:text-blue-400 text-lg pointer-events-none"
                         >
                           ❄

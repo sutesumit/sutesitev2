@@ -5,7 +5,7 @@ import {
     SiMongodb, SiRedux, SiShadcnui, SiRadixui, 
     SiSupabase, SiAwslambda, SiServerless, SiAmazonalexa, 
 } from 'react-icons/si';
-import { RiClaudeLine } from 'react-icons/ri';
+import { RiClaudeLine, RiGeminiLine } from 'react-icons/ri';
 import { BiLogoPostgresql } from 'react-icons/bi';
 import { FaGitAlt } from 'react-icons/fa6';
 
@@ -52,5 +52,6 @@ export const skillList = {
         // { name: 'ESLint', icon: <SiEslint /> },
         { name: 'Cursor', icon: null },
         { name: 'Claude Code', icon: <RiClaudeLine /> },
+        { name: "Gemini CLI", icon: <RiGeminiLine />}
     ],
 };
