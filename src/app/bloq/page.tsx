@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react'
+import IntroCard from './components/IntroCard'
 import IntroText from './components/IntroText'
 import IntroArt from './components/IntroArt'
 import BloqFeed from './components/BloqFeed'
@@ -11,10 +12,10 @@ const page = () => {
 
   return (
     <div className="container flex flex-col pb-12">
-      <div className="blue-border mt-10 h-auto items-center font-roboto-mono">
+      <IntroCard>
         <IntroArt />
         <IntroText />
-      </div>
+      </IntroCard>
       
       <div className="mt-2">
         <Suspense fallback={<div className="text-center py-10">Loading...</div>}>
