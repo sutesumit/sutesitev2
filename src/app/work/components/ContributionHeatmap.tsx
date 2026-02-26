@@ -296,9 +296,9 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                         animate={isRevealed || (isGameOver && isSkull) ? { y: -100, opacity: 0, rotate: 45, scale: 1.5 } : { y: 0, opacity: 1, rotate: 0, scale: 1 }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
                       >
-                        <span className="opacity-30">[</span>
-                        <span className="text-blue-900 dark:text-blue-300">{SYMBOLS[lv]}</span>
-                        <span className="opacity-30">]</span>
+                        <span className="opacity-50">[</span>
+                        <span className="font-bold text-blue-900 dark:text-blue-300">{SYMBOLS[lv]}</span>
+                        <span className="opacity-50">]</span>
                       </m.div>
 
                       {/* The Crystal - Zooms in from behind */}
