@@ -78,6 +78,29 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
   const [spinIdx, setSpinIdx] = useState(0);
   const [booted, setBooted] = useState(false);
 
+  // Game state
+  const [skullDay, setSkullDay] = useState<number | null>(null);
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  const [isGameOver, setIsGameOver] = useState(false);
+
+  // Randomize skull when month/year changes
+  useEffect(() => {
+    const days = new Date(year, month + 1, 0).getDate();
+    setSkullDay(Math.floor(Math.random() * days) + 1);
+    setRevealed(new Set());
+    setIsGameOver(false);
+  }, [year, month]);
+
+  const handleDayClick = (day: number) => {
+    if (isGameOver || revealed.has(day)) return;
+
+    if (day === skullDay) {
+      setIsGameOver(true);
+    } else {
+      setRevealed((prev) => new Set(prev).add(day));
+    }
+  };
+
   useEffect(() => {
     const id = setInterval(() => setSpinIdx((i) => (i + 1) % SPINNER.length), 80);
     return () => clearInterval(id);
@@ -204,30 +227,102 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-7 grid-rows-6 gap-0.5 md:gap-1 mx-auto">
-              {weeks.flat().map((day, idx) => {
-                if (!day) return <div key={idx} className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10" />;
-                const dateKey = toKey(year, month, day);
-                const count = data[dateKey] ?? 0;
-                const lv = densityLevel(count);
-                const isToday = dateKey === todayKey;
+            <div className="relative">
+              <m.div 
+                className="grid grid-cols-7 grid-rows-6 gap-0.5 md:gap-1 mx-auto"
+                animate={isGameOver ? { y: 300, opacity: 0, rotate: 5 } : { y: 0, opacity: 1, rotate: 0 }}
+                transition={{ duration: 1.2, ease: "backIn" }}
+              >
+                {weeks.flat().map((day, idx) => {
+                  if (!day) return <div key={idx} className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10" />;
+                  const dateKey = toKey(year, month, day);
+                  const count = data[dateKey] ?? 0;
+                  const lv = densityLevel(count);
+                  const isToday = dateKey === todayKey;
+                  const isRevealed = revealed.has(day);
+                  const isSkull = day === skullDay;
 
-                return (
-                  <div
-                    key={idx}
-                    className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 flex items-center justify-center text-[10px] sm:text-xs md:text-sm cursor-crosshair select-none transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-900/80 ${
-                      isToday ? "ring-1 ring-blue-500/50" : ""
-                    }`}
-                    onMouseEnter={(e) => setTooltip({ dateKey, count, x: e.clientX, y: e.clientY })}
-                    onMouseLeave={() => setTooltip(null)}
+                  return (
+                    <div
+                      key={idx}
+                      className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 relative flex items-center justify-center text-[10px] sm:text-xs md:text-sm cursor-crosshair select-none transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-900/80 ${
+                        isToday ? "ring-1 ring-blue-500/50" : ""
+                      }`}
+                      onClick={() => handleDayClick(day)}
+                      onMouseEnter={(e) => !isGameOver && setTooltip({ dateKey, count, x: e.clientX, y: e.clientY })}
+                      onMouseLeave={() => setTooltip(null)}
+                    >
+                      {/* The Key Brackets & Symbol - Flies Away */}
+                      <m.div
+                        className="flex items-center justify-center pointer-events-none"
+                        animate={isRevealed || (isGameOver && isSkull) ? { y: -100, opacity: 0, rotate: 45, scale: 1.5 } : { y: 0, opacity: 1, rotate: 0, scale: 1 }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                      >
+                        <span className="opacity-30">[</span>
+                        <span className={levelColors[lv]}>{SYMBOLS[lv]}</span>
+                        <span className="opacity-30">]</span>
+                      </m.div>
+
+                      {/* The Crystal - Zooms in from behind */}
+                      {isRevealed && !isSkull && (
+                        <m.div 
+                          initial={{ scale: 0, opacity: 0, rotate: -360 }}
+                          animate={{ scale: 1, opacity: 1, rotate: 720 }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="absolute inset-0 flex items-center justify-center text-blue-700 dark:text-blue-400 text-lg pointer-events-none"
+                        >
+                          ❄
+                        </m.div>
+                      )}
+
+                      {/* The Skull */}
+                      {isGameOver && isSkull && (
+                        <m.div 
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="absolute inset-0 flex items-center justify-center text-lg pointer-events-none"
+                        >
+                          💀
+                        </m.div>
+                      )}
+                    </div>
+                  );
+                })}
+              </m.div>
+
+              {isGameOver && (
+                <m.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center z-20"
+                >
+                  <m.div 
+                    initial={{ scale: 0.8, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    className="dark:bg-slate-900 bg-slate-50 border border-slate-300 dark:border-slate-600 p-8 flex flex-col items-center"
                   >
-                    <span className="opacity-30">[</span>
-                    <span className={levelColors[lv]}>{SYMBOLS[lv]}</span>
-                    <span className="opacity-30">]</span>
-                  </div>
-                );
-              })}
+                    <span className="text-4xl mb-6 animate-bounce">💀</span>
+                    <button 
+                      onClick={() => {
+                        setRevealed(new Set());
+                        setIsGameOver(false);
+                        setSkullDay(Math.floor(Math.random() * new Date(year, month + 1, 0).getDate()) + 1);
+                      }}
+                      className="px-6 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-300 font-mono text-[10px] tracking-widest uppercase hover:bg-blue-200 dark:hover:bg-blue-950 transition-colors cursor-pointer"
+                    >
+                      [ Try Again ]
+                    </button>
+                  </m.div>
+                </m.div>
+              )}
             </div>
+
+            {/* Hint */}
+            {/* {!isGameOver && revealed.size === 0 && (
+              <div className="mt-2 text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] animate-pulse">
+                Find the crystals ❄ &middot; avoid the trap 💀
+              </div>
+            )} */}
 
             {/* Divider */}
             <hr className="w-full max-w-sm border-t border-slate-200/50 dark:border-slate-800/50 my-4" />
