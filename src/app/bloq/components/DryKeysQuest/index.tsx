@@ -4,7 +4,6 @@ import React from "react";
 import { useIntroGame } from "./useIntroGame";
 import { AsciiBoard } from "./AsciiBoard";
 import { PhraseReveal } from "./PhraseReveal";
-import { CardBackground } from "@/components/shared/CardBackground";
 
 const DryKeysQuest = () => {
   const { guess, clickedKeys, isWon, handleKeyClick, answerKeysSet, setIsPeeking } = useIntroGame();

@@ -9,3 +9,6 @@ export const ART = String.raw`
 | [c]   [a][________________________][a]   [c]  [<][V][>] [ 0  ][.][_] |
 '----------------------------------------------------------------------'
 `;
+
+export const ANSWER = "[ dont repeat yourself ]";
+export const INITIAL_GUESS = "[ ---- ------ -------- ]";

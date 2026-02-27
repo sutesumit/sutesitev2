@@ -1,23 +1,22 @@
 import { useState, useEffect, useMemo } from "react";
-import { ART } from "./constants";
+import { ART, ANSWER, INITIAL_GUESS } from "./constants";
 
 export const useIntroGame = () => {
-  const [answer] = useState("[ dont repeat yourself ]");
-  const [guess, setGuess] = useState<string>("[ ---- ------ -------- ]");
+  const [guess, setGuess] = useState<string>(INITIAL_GUESS);
   const [clickedKeys, setClickedKeys] = useState<Set<string>>(new Set());
   const [isWon, setIsWon] = useState(false);
 
   const answerKeysSet = useMemo(() => new Set(
-    answer
+    ANSWER
       .slice(1, -1) // Remove outer brackets
       .trim() // Remove leading/trailing spaces
       .split("") // Split into individual characters
       .filter(char => char !== ' ') // Filter out spaces
       .map(char => `[${char.toLowerCase()}]`) // Format each character
-  ), [answer]);
+  ), []);
 
   useEffect(() => {
-    if (guess === answer && !isWon) {
+    if (guess === ANSWER && !isWon) {
       setIsWon(true);
       const allKeys = ART.match(/\[.*?\]/g);
       if (allKeys) {
@@ -26,11 +25,11 @@ export const useIntroGame = () => {
         setClickedKeys(new Set(keysToExplode));
       }
     }
-  }, [guess, answer, isWon]);
+  }, [guess, isWon]);
 
   const handleKeyClick = (key: string) => {
     if (key === '[Esc]') {
-      setGuess("[ ---- ------ -------- ]");
+      setGuess(INITIAL_GUESS);
       setClickedKeys(new Set()); // Reset all
       setIsWon(false);
       return;
@@ -41,13 +40,11 @@ export const useIntroGame = () => {
     newClickedKeys.add(key);
     setClickedKeys(newClickedKeys);
 
-    console.log(`The pressed key is: ${key.toLowerCase()}`);
     if (answerKeysSet.has(key.toLowerCase())) {
-      console.log("Correct!");
       const charToReveal = key.slice(1, -1).toLowerCase();
       setGuess((prevGuess) => {
         const newGuessChars = prevGuess.split('');
-        const answerChars = answer.split('');
+        const answerChars = ANSWER.split('');
 
         for (let i = 0; i < answerChars.length; i++) {
           if (answerChars[i].toLowerCase() === charToReveal) {
@@ -56,15 +53,13 @@ export const useIntroGame = () => {
         }
         return newGuessChars.join('');
       });
-    } else {
-      console.log("Wrong!");
     }
   };
 
   const [isPeeking, setIsPeeking] = useState(false);
 
   return {
-    guess: isPeeking ? answer : guess,
+    guess: isPeeking ? ANSWER : guess,
     clickedKeys,
     isWon,
     handleKeyClick,
