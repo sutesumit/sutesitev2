@@ -283,11 +283,11 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                   return (
                     <div
                       key={idx}
-                      className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 relative flex items-center justify-center text-[10px] sm:text-xs md:text-sm cursor-crosshair select-none transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-900/80 ${
+                      className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 relative flex items-center justify-center text-[10px] sm:text-xs md:text-sm cursor-crosshair select-none transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-900/80 group ${
                         isToday ? "ring-1 ring-blue-500/50" : ""
                       }`}
                       onClick={() => handleDayClick(day)}
-                      onMouseEnter={(e) => !isGameOver && setTooltip({ dateKey, count, x: e.clientX, y: e.clientY })}
+                      onMouseEnter={(e) => !isGameOver && !isRevealed && setTooltip({ dateKey, count, x: e.clientX, y: e.clientY })}
                       onMouseLeave={() => setTooltip(null)}
                     >
                       {/* The Key Brackets & Symbol - Flies Away */}
@@ -305,11 +305,25 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                       {isRevealed && !isSkull && (
                         <m.div 
                           initial={{ scale: 0, opacity: 0, rotate: -360 }}
-                          animate={{ scale: 1, opacity: 1, rotate: 720 }}
-                          transition={{ duration: 1, type: "spring", stiffness: 100, damping: 20 }}
-                          className="absolute inset-0 flex items-center justify-center text-blue-700 dark:text-blue-400 text-lg pointer-events-none"
+                          animate={{ 
+                            scale: 1, 
+                            opacity: 1, 
+                            rotate: 720,
+                          }}
+                          transition={{ 
+                            rotate: { duration: 1, type: "spring", stiffness: 100, damping: 20 },
+                            scale: { duration: 1, type: "spring", stiffness: 100, damping: 20 },
+                            opacity: { duration: 1 }
+                          }}
+                          className="absolute inset-0 flex items-center justify-center text-blue-700 dark:text-blue-400 text-lg pointer-events-none group"
                         >
-                          ❄
+                          <m.span
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                            className="inline-block group-hover:[animation-play-state:paused]"
+                          >
+                            ❄
+                          </m.span>
                         </m.div>
                       )}
 
