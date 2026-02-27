@@ -53,6 +53,20 @@ export const Key = ({ label, handleKeyClick, isClicked, isCorrect, onMouseEnter,
         setHoverColor('');
     };
 
+    const renderLabel = () => {
+        if (label.startsWith('[') && label.endsWith(']')) {
+            const inner = label.slice(1, -1);
+            return (
+                <>
+                    <span className="opacity-30">[</span>
+                    {inner}
+                    <span className="opacity-30">]</span>
+                </>
+            );
+        }
+        return label;
+    };
+
     return (
         <m.div
             onClick={handleKeyClick}
@@ -66,7 +80,7 @@ export const Key = ({ label, handleKeyClick, isClicked, isCorrect, onMouseEnter,
             style={{ color: isClicked ? '' : hoverColor }}
             className={`inline-block cursor-pointer relative z-10 ${isClicked ? 'font-bold' : ''}`}
         >
-            {label}
+            {renderLabel()}
         </m.div>
     );
 };

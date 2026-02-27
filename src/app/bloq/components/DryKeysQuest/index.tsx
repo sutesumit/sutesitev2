@@ -6,7 +6,7 @@ import { AsciiBoard } from "./AsciiBoard";
 import { PhraseReveal } from "./PhraseReveal";
 import { CardBackground } from "@/components/shared/CardBackground";
 
-const IntroArt = () => {
+const DryKeysQuest = () => {
   const { guess, clickedKeys, isWon, handleKeyClick, answerKeysSet, setIsPeeking } = useIntroGame();
 
   return (
@@ -25,4 +25,4 @@ const IntroArt = () => {
   );
 };
 
-export default IntroArt;
+export default DryKeysQuest;

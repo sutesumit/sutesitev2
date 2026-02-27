@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react'
 import IntroCard from './components/IntroCard'
 import IntroText from './components/IntroText'
-import IntroArt from './components/IntroArt'
+import DryKeysQuest from './components/DryKeysQuest'
 import BloqFeed from './components/BloqFeed'
 import { getBloqPosts, getAllCategories, getAllTags } from '@/lib/bloq'
 
@@ -13,7 +13,7 @@ const page = () => {
   return (
     <div className="container flex flex-col pb-12">
       <IntroCard>
-        <IntroArt />
+        <DryKeysQuest />
         <IntroText />
       </IntroCard>
       

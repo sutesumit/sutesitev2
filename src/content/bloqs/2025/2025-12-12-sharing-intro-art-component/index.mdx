@@ -21,12 +21,12 @@ draft: false
 featured: false
 ---
 
-import IntroArt from '@/app/bloq/components/IntroArt'
+import DryKeysQuest from '@/app/bloq/components/DryKeysQuest'
 import SeedingPlant from "@/components/specific/SeedingPlant";
 import SeedingPlantWrapped from "./SeedingPlantWrapped";
 
 <div className="pb-4 mb-4">
-  <IntroArt />
+  <DryKeysQuest />
 </div>
 
 ---
@@ -91,7 +91,7 @@ I’ve separated the code like a responsible adult. Squash it all together if yo
 ```text
 src/
 └── components/
-    └── IntroArt/
+    └── DryKeysQuest/
         ├── index.tsx          # Main export
         ├── useIntroGame.ts    # Game logic hook
         ├── AsciiBoard.tsx     # The rendered board
@@ -405,7 +405,7 @@ import { useIntroGame } from "./useIntroGame";
 import { AsciiBoard } from "./AsciiBoard";
 import { PhraseReveal } from "./PhraseReveal";
 
-const IntroArt = () => {
+const DryKeysQuest = () => {
   const { guess, clickedKeys, isWon, handleKeyClick, answerKeysSet, setIsPeeking } = useIntroGame();
 
   return (
@@ -422,7 +422,7 @@ const IntroArt = () => {
   );
 };
 
-export default IntroArt;
+export default DryKeysQuest;
 ```
 
 ## Your Turn
