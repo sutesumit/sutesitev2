@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { MDXRemote } from 'next-mdx-remote/rsc';
-import { getBloqPostBySlug, getRelatedPosts } from '@/lib/bloq';
+import { getBloqPostBySlug, getBloqPosts, getRelatedPosts } from '@/lib/bloq';
 import DryKeysQuest from '@/app/bloq/components/DryKeysQuest';
 import BloqCard from '@/app/bloq/components/BloqCard';
 import MDXComponents from '@/app/bloq/components/MDXComponents';
@@ -14,6 +15,100 @@ import ClapsCounter from '@/components/shared/ClapsCounter';
 import ViewCounter from '../components/ViewCounter';
 import TrackView from '../components/TrackView';
 
+const SITE_URL = 'https://sumitsute.com';
+
+export async function generateStaticParams() {
+  const posts = getBloqPosts();
+  return posts.map((post) => ({
+    slug: post.url,
+  }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const post = getBloqPostBySlug(slug);
+
+  if (!post) {
+    return {
+      title: 'Post Not Found',
+    };
+  }
+
+  const postUrl = `${SITE_URL}/bloq/${post.url}`;
+  const imageUrl = post.image ? `${SITE_URL}${post.image}` : `${SITE_URL}/sumit-sute-homepage.jpg`;
+
+  return {
+    title: post.title,
+    description: post.summary,
+    alternates: {
+      canonical: postUrl,
+    },
+    openGraph: {
+      title: post.title,
+      description: post.summary,
+      url: postUrl,
+      siteName: 'Sumit Sute Personal Dev Page',
+      images: [
+        {
+          url: imageUrl,
+          width: 800,
+          height: 600,
+          alt: post.title,
+        },
+      ],
+      type: 'article',
+      publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt,
+      authors: post.authors.map(() => `${SITE_URL}/about`),
+      tags: post.tags,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.summary,
+      images: [imageUrl],
+    },
+  };
+}
+
+function BlogPostingJsonLd({ post }: { post: ReturnType<typeof getBloqPostBySlug> & NonNullable<ReturnType<typeof getBloqPostBySlug>> }) {
+  const postUrl = `${SITE_URL}/bloq/${post.url}`;
+  const imageUrl = post.image ? `${SITE_URL}${post.image}` : `${SITE_URL}/sumit-sute-homepage.jpg`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.summary,
+    url: postUrl,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt || post.publishedAt,
+    author: {
+      '@type': 'Person',
+      name: post.authors[0] || 'Sumit Sute',
+      url: SITE_URL,
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': postUrl,
+    },
+    image: imageUrl,
+    keywords: post.tags.join(', '),
+    publisher: {
+      '@type': 'Person',
+      name: 'Sumit Sute',
+      url: SITE_URL,
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
+
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = getBloqPostBySlug(slug);
@@ -26,6 +121,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <article className="container py-10">
+      <BlogPostingJsonLd post={post} />
       <TrackView slug={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
       <div className="px-4">
