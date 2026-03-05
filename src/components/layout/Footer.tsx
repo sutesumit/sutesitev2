@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react'
 import Link from 'next/link'
 import { FaGithub, FaLinkedin } from 'react-icons/fa'
+import { MdOutlineRssFeed } from "react-icons/md";
 import { IoIosMail } from 'react-icons/io'
 import { CheckCheck } from 'lucide-react'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -34,6 +35,7 @@ const Footer = () => {
             <Link className='social-tab' target='_blank' href='https://github.com/sutesumit'><FaGithub /></Link> 
             <Link className='social-tab' target='_blank' href='https://www.linkedin.com/in/sumitsute/'><FaLinkedin /></Link> 
             <Link className='social-tab' target='_blank' href='mailto:sumitsute@alumni.iitm.ac.in'><IoIosMail /></Link>
+            <Link className='social-tab' href='/feed.xml'><MdOutlineRssFeed /></Link>
           </div>
           <TooltipProvider>
             <Tooltip>
