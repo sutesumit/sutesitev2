@@ -4,6 +4,8 @@ import BlipCard from "./components/BlipCard";
 import IntroCard from "./components/IntroCard";
 import IntroText from "./components/IntroText";
 
+export const dynamic = 'force-dynamic';
+
 const BlipPage = async () => {
   const blips = await getBlips();
 
