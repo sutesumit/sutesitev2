@@ -21,12 +21,11 @@ export default function TagBadge({ tag, className, asLink = true }: TagBadgeProp
 
   if (asLink) {
     return (
-      <Link 
-        href={`/bloq/tag/${encodeURIComponent(tag)}`}
+      <div 
         className={badgeClasses}
       >
         #{tag}
-      </Link>
+      </div>
     );
   }
 
