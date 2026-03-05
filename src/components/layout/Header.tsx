@@ -5,9 +5,9 @@ import ToggleTheme from '../specific/ToggleTheme'
 import { usePathname } from 'next/navigation'
 
 const navtabs = [
-  { title: 'Blip', href: '/blip' },
   { title: 'Work', href: '/work' },
   { title: 'Bloq', href: '/bloq' },
+  { title: 'Blip', href: '/blip' },
   { title: 'About', href: '/about' }
 ]
 
