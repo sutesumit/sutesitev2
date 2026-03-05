@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-05 | **Articles written:** 10 | **Version:** 1.6.0 (2026-03)
+> **Last evolved:** 2026-03-06 | **Articles written:** 11 | **Version:** 1.7.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -19,6 +19,7 @@ A changelog of what this skill has learned over time.
 | 2026-03-05 | 1.4.0 | The Skill That Writes Itself (polish) | Added hyperlink to orphan article; clarified Rohit's nudge as agentic skill.md concept; added quirks (cauliflower, ouroboros); grounded the conundrum in genuine uncertainty | Human |
 | 2026-03-05 | 1.5.0 | The Skill That Writes Itself (final) | Added meta note: this article's revisions evolved the skill from 1.0.0 to 1.5.0; the skill writes about itself evolving while evolving | Human |
 | 2026-03-05 | 1.6.0 | Blip | Documented the blip microblog feature; showed debugging journey (redirect trap, JSON parsing, static caching); added pattern: shorten the path from thought to capture | Agent |
+| 2026-03-06 | 1.7.0 | Metadata That Matters | Added per-post SEO with generateMetadata, JSON-LD BlogPosting schema, generateStaticParams; each bloq now has unique title, description, canonical URL, OpenGraph; added `seo` tag to registry | Agent |
 
 ---
 
@@ -39,6 +40,7 @@ Tags serve discoverability and related-post suggestions. Every article must shar
 | `ai` | 3+ | High (buzz) | AI tools, agents, Claude, LLMs |
 | `experiments` | 3+ | Low | Creative/technical explorations |
 | `reflections` | 2+ | Low | Personal learning arcs, events |
+| `seo` | 1+ | High | Metadata, OpenGraph, JSON-LD, search optimization |
 
 ### Tag rules
 
@@ -427,7 +429,7 @@ After every new article is published, the agent or human should:
 ## Quick Reference
 
 ### Essential tags (pick 2+)
-`typescript` | `react` | `nextjs` | `debugging` | `frontend` | `backend` | `ai` | `experiments` | `reflections`
+`typescript` | `react` | `nextjs` | `debugging` | `frontend` | `backend` | `ai` | `experiments` | `reflections` | `seo`
 
 ### Voice checklist
 - [ ] First person singular
