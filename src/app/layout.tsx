@@ -20,14 +20,17 @@ const robotoMono = Roboto_Mono({
   subsets: ["latin"]
 })
 
+const SITE_URL = 'https://sumitsute.com';
+const SITE_NAME = 'Sumit Sute Personal Dev Page';
+const SITE_DESCRIPTION = "Sumit Sute's personal dev page, featuring projects and writing, grounded in an engineering approach that favors simplicity, clear boundaries, and long-term maintainability.";
+const OG_DESCRIPTION = "Projects and writing by Sumit Sute, shaped by simplicity, clear boundaries, and long-term maintainability.";
+
 export const metadata: Metadata = {
-  title: "sumit sute",
-  description: "Sumit Sute's personal dev page, featuring projects and writing, grounded in an engineering approach that favors simplicity, clear boundaries, and long-term maintainability.",
-  alternates: {
-    types: {
-      'application/rss+xml': '/feed.xml',
-    },
+  title: {
+    default: 'sumit sute',
+    template: '%s | sumit sute',
   },
+  description: SITE_DESCRIPTION,
   keywords: [
     'developer',
     'portfolio',
@@ -48,13 +51,25 @@ export const metadata: Metadata = {
     'developer blog',
     'engineering writing'
   ],
-  authors: [{ name: 'Sumit Sute', url: 'https://sumitsute.com/about' }],
-  metadataBase: new URL('https://sumitsute.com'),
+  authors: [{ name: 'Sumit Sute', url: `${SITE_URL}/about` }],
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: SITE_URL,
+    types: {
+      'application/rss+xml': '/feed.xml',
+    },
+  },
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
-    title: "sumit sute",
-    description: "Projects and writing by Sumit Sute, shaped by simplicity, clear boundaries, and long-term maintainability.",
-    url: 'https://sumitsute.com',
-    siteName: 'Sumit Sute Personal Dev Page',
+    title: 'sumit sute',
+    description: OG_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    locale: 'en_US',
     images: [
       {
         url: '/sumit-sute-homepage.jpg',
@@ -67,8 +82,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "sumit sute",
-    description: "Projects and writing by Sumit Sute, shaped by simplicity, clear boundaries, and long-term maintainability.",
+    title: 'sumit sute',
+    description: OG_DESCRIPTION,
     images: [
       {
         url: '/sumit-sute-homepage.jpg',
@@ -82,6 +97,29 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLdWebSite = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  author: {
+    '@type': 'Person',
+    name: 'Sumit Sute',
+    url: SITE_URL,
+  },
+};
+
+const jsonLdPerson = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Sumit Sute',
+  url: SITE_URL,
+  sameAs: [],
+  jobTitle: 'Software Engineer',
+  knowsAbout: ['Web Development', 'TypeScript', 'React', 'Next.js', 'System Design'],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -89,6 +127,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${robotoMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdPerson) }}
+        />
+      </head>
       <body className="font-roboto-mono dark:text-slate-300 overflow-y-scroll" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Header />
