@@ -1,0 +1,237 @@
+---
+title: "I Was Productive Before I Was Competent"
+publishedAt: "2026-03-04"
+summary: "I could navigate a codebase for months without being able to explain it. So I pointed an AI at the code and asked it to map the system. What I learned wasn't in the output. It was in the reading."
+slug: "architecture-was-already-there"
+tags:
+  - architecture
+  - documentation
+  - ai-collaboration
+  - onboarding
+authors:
+  - Sumit Sute
+category: "Reflections"
+draft: true
+featured: false
+---
+
+## The Gap
+
+> "You can walk through a building every day and never once think about load-bearing walls."
+
+There's a specific kind of comfort you develop after a few months in a codebase. You know which files to open when a bug report comes in. You know the folder structure by feel. You've shipped features. You've fixed things under pressure. If someone asks where the authentication logic lives, you answer without hesitation.
+
+But then someone asks *why* the system is shaped the way it is, why one function handles three completely different kinds of requests, why a single object gets passed through every layer, why there are two utility folders doing roughly the same thing, and you hesitate. Not because you haven't seen the code. Because you've never had to explain it.
+
+I'd been navigating a codebase for months. I could operate in it. I could not describe it.
+
+That gap bothered me enough to do something about it.
+
+---
+
+## The Experiment
+
+I didn't sit down with a blank document and start writing architecture docs from memory. I'm not sure that would have worked, and honestly, I'm not sure it would have been the most useful way to spend the time.
+
+Instead, I pointed an AI model at the codebase (the actual source code) and asked it to map the system. Layer by layer. Flow by flow.
+
+The model did most of the work. With minimal steering ("trace this request end-to-end," "explain how routing works," "describe what this layer is responsible for"), it produced detailed architecture documentation. Accurate documentation. It identified layers I'd been working inside without naming. It drew boundaries I'd been respecting without articulating. It found patterns I'd been following without knowing they were patterns.
+
+I thought the output would be the useful part. The documents themselves: the diagrams, the flow traces, the layer breakdowns. Things I could hand to the next person who joined the team.
+
+That wasn't wrong, exactly. But the real value turned out to be something I didn't expect.
+
+---
+
+## Reading Is the Work
+
+> "The AI mapped the territory. I had to learn to read the map."
+
+Here's what happened: the model produced a document that described my own codebase, and I couldn't skim it. I had to *read* it. Carefully. Because I kept running into sentences that were accurate but that I wouldn't have been able to write myself. Descriptions of flows I'd participated in but never traced. Names for patterns I'd used but never identified.
+
+Every section became a checkpoint:
+
+```text
+Can I explain this without looking at the code?
+[ ] yes
+[ ] sort of
+[ ] only with the file open
+```
+
+Most of the time, the honest answer was "sort of." I knew the pieces. I didn't know the shape they made together.
+
+So the documentation became a reading exercise. Not writing; reading. Reading the AI's description of my system, and asking myself at each point: do I actually understand this? Could I defend this to a peer? Could I explain where this would break?
+
+The sections where I could, I moved past. The sections where I couldn't, I dug into the code until I could. Sometimes the model had missed a subtlety. More often, the model had seen something I hadn't.
+
+---
+
+## Flows, Not Files
+
+The single most useful thing the AI did, and the thing I've carried forward as an approach, was that it didn't describe the codebase file by file. It traced *flows*.
+
+A request enters the system. What happens to it?
+
+```text
+Incoming request
+  → Entry point: parse the event, determine the source
+    → Authentication: validate the caller
+      → Routing: load the right handler based on the path
+        → Business logic: the handler calls domain functions
+          → Data access: domain functions talk to the database
+        ← Result
+      ← Format the response based on the source
+    ← Return
+```
+
+This seems obvious written out. But when you're inside a codebase, you don't think in flows. You think in files. You open `handler.js` and read it. You open `users.js` and read it. You understand each file in isolation. What you miss is the *sequence* (the order in which things happen, the data that moves between layers, the decisions that get made at each boundary).
+
+The model traced flows like this across different kinds of requests (web API calls, voice interactions, scheduled background tasks), and suddenly I could see that the same entry point was handling all three. Not because someone was lazy, but because all three shared the same infrastructure: authentication, connection pooling, error handling, response formatting. The monolithic design was a *choice*, not an accident.
+
+I wouldn't have seen that by reading files. I saw it by reading flows.
+
+---
+
+## The Context Object (Or: The Thing Hiding in Plain Sight)
+
+One of the patterns the model surfaced was something I'd used in literally every feature I'd built but never thought about:
+
+```javascript
+// Every layer receives and passes forward the same object
+const context = {
+  _Params: {},    // what was requested
+  _Auth: {},      // who's asking
+  _Client: null,  // database connection
+  _Response: {},  // how to format the answer
+  _Event: {}      // the raw incoming event
+};
+```
+
+This object threads through the entire backend. The entry point populates it. Every handler receives it. Every domain function reads from it. Every response formatter uses it.
+
+I'd been passing `context` as a parameter for months. I'd never stopped to think about what it *was*. The model called it a "shared context object" and described it as the system's circulatory system. And, yeah. That's exactly what it is. Every layer depends on it. It carries authentication state, database connections, and response formatting strategy through the entire request lifecycle. It's not a utility. It's <del>just a parameter</del> the architecture itself.
+
+The moment I read that description, something clicked. The codebase stopped being a collection of files and became a pipeline. `context` is the fluid.
+
+Naming it changed how I thought about it. Which brings me to the next thing.
+
+---
+
+## Naming as Understanding
+
+> "If you can't name it cleanly, the responsibility probably isn't clean either."
+
+The model named things. Not file names; *architectural roles*.
+
+The entry point file became "Entry Point Layer." The database wrapper became "Data Access Layer." The files that sit between handlers and the database became "Domain Layer." The frontend files that wrap API calls became "Services Layer."
+
+These aren't revolutionary labels. They're standard. But applying them to *this specific codebase* forced a clarity that hadn't existed before.
+
+Once I called something the "Domain Layer," I could see its responsibility: encapsulate business rules and database access so that handlers never touch the database directly. That's not written in a style guide anywhere in the repo. But it's the rule. Every handler follows it. The model saw it. I'd been following it without knowing it was a rule.
+
+And when naming *didn't* work cleanly, that was even more useful. The codebase had two utility directories: different names, same purpose. The model dutifully documented both. Reading that documentation, the duplication was embarrassingly obvious. Naming them forced the question: why do both exist? (The answer, as far as I can tell: accumulated convention. No one planned it.)
+
+---
+
+## Tracing the Frontend
+
+The same approach worked on the frontend. The model traced what happens when a user navigates to a page:
+
+```text
+User clicks a link
+  → Router matches the path
+    → Route guard checks authentication + permissions
+      → Page component renders (thin wrapper)
+        → Feature component manages state
+          → Custom hook handles data fetching
+            → Service method builds request payload
+              → API wrapper adds auth token, sends HTTP request
+                → Backend processes and returns JSON
+              ← API wrapper checks success flag, returns content
+            ← Service parses response
+          ← Hook updates local state
+        ← Component re-renders with data
+      ← UI displays results
+```
+
+Twelve layers from click to pixels. Reading that trace, I noticed something I'd missed while building features: the custom data-fetching hook was called three times on the same page: once for each status category. Same hook, different filter parameters, each managing its own loading state, pagination, and background refresh independently. The staff-facing dashboard used the *same hook* with different inputs, just fewer instances.
+
+That's an architectural decision: "one hook that can be parameterized" vs. "separate hooks per use case." It was invisible to me until I saw it in a trace. I'd used it. I'd never noticed the pattern.
+
+---
+
+## Trade-offs, Not Best Practices
+
+The thing the model couldn't do, the thing I had to bring, was judgment about trade-offs.
+
+The AI documented choices accurately:
+
+- A single serverless function handling multiple event types
+- Global state management with only a handful of reducers
+- Dynamic file-based routing instead of a framework
+- Two different UI libraries coexisting
+- Two different date libraries coexisting
+
+Each of these looks wrong in isolation. A linter for "clean architecture" would flag all of them. But each one exists for a reason. A single function means one deployment, one cold start budget, one connection pool. Dynamic routing means adding an endpoint is adding a file: no config, no registration. Global state with few reducers means authentication is accessible everywhere without prop drilling through dozens of routes.
+
+The model described *what* the choices were. I had to figure out *why* they made sense here. That's the part that required actually understanding the system: the constraints it operates under, the problems it was built to solve, the trade-offs the team made (or inherited, or stumbled into).
+
+Good architecture documentation explains *why*, not just *what*. The AI gave me the *what*. The *why* was my job.
+
+---
+
+## What Actually Changed
+
+After going through this process (reading the AI's documentation, validating it, digging into the parts I couldn't explain), something shifted.
+
+- **Navigation became architectural.** Instead of "which folder is this in?" I'd think "which layer does this belong to?" and go straight there. Not faster because of memorization. Faster because of a mental model.
+
+- **Debugging got directional.** Instead of searching everywhere, I could ask "is this a routing problem, a domain logic problem, or a data access problem?" and narrow immediately.
+
+- **Feature conversations changed.** Instead of "put the new thing near the similar thing," I could say "this is a domain concern, not a handler concern" and have that mean something.
+
+- **The system felt *owned*.** This is the one I didn't expect. Before the documentation, I was <del>a developer working in</del> a tenant in the codebase. After it, something closer to a custodian. Not because I wrote the docs. I mostly didn't. Because I'd finally internalized what I was looking at.
+
+---
+
+## The Honest Part About AI
+
+I want to be precise about what happened here, because it's easy to make this story land wrong in either direction.
+
+The AI generated the architecture documentation. Almost entirely. With minimal steering. It read the codebase, identified the layers, traced the flows, named the patterns, and produced clear, accurate descriptions of a system I'd been working in for months.
+
+I did not write the documentation. I *read* it.
+
+And that reading, the careful, section-by-section "do I actually understand this?" reading, is where the learning happened. Not in the generation. In the validation. In the moments where the model described something I recognised but couldn't have articulated. In the moments where I had to open the actual code to verify a claim. In the moments where I realised the model had seen a pattern I'd been blind to.
+
+The model wasn't a replacement for understanding. It was a *catalyst* for it. It gave me a map detailed enough to be worth reading closely, and reading it closely is what taught me the territory.
+
+I don't think I'd have learned the same things by writing the docs from scratch. I'd have documented what I already knew, in the order I already thought about it. The model documented what was *actually there*, in an order determined by the code's structure, not my habits. That difference mattered.
+
+---
+
+## An Approach, Not a Tutorial
+
+If any of this is useful as a method, and it's a method I plan to use again the next time I join a codebase, it's this:
+
+- **Trace flows, not files.** Pick a user action and follow it through every layer until it hits the database and comes back. Do this for at least three different kinds of requests. The architecture lives in the sequence, not the structure.
+
+- **Name the layers.** Not the file names; the *roles*. What is this layer responsible for? If you can't name it cleanly, the responsibility probably isn't clean. That's useful information too.
+
+- **Look for the shared state.** Most systems have something (a context object, a Redux store, a request-scoped container) that threads through multiple layers. Find it. That's usually where the real architecture lives.
+
+- **Ask "why this and not something else?"** at every trade-off. A monolith instead of microservices. A single entry point instead of many. Two libraries where one would do. The answer is always a trade-off, and the trade-off is always context-dependent.
+
+- **Use the AI.** Seriously. Point a model at the code and let it map the system. Then read what it produces, not as gospel, but as a mirror. The parts you can't verify are the parts you don't yet understand. That's where the work is.
+
+---
+
+## What Remains After the Docs
+
+> "Code answers: how does this work? Architecture answers: why does this exist this way?"
+
+I thought this exercise would produce documents. It did, and they're useful. But the actual output, the thing I kept, was a way of seeing systems that I didn't have before.
+
+Architecture is already there in every codebase. It's in the flows, the boundaries, the shared state, the trade-offs. It exists whether or not anyone writes it down. Documentation doesn't create it. Documentation, or in my case reading documentation that an AI created, merely reveals it.
+
+The architecture was already there. I just hadn't learned to look.
