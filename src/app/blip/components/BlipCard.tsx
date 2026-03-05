@@ -40,7 +40,7 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
       whileHover="hover"
       animate="rest"
       className={cn(
-        "relative p-3 overflow-hidden rounded-md border-l-2 border-l-blue-500 !border-l-solid cursor-default",
+        "relative p-3 overflow-hidden rounded-md border-l-[1px] border-l-blue-500 !border-l-solid cursor-default",
         className
       )}
     >

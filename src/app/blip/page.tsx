@@ -24,7 +24,7 @@ const BlipPage = async () => {
             no blips yet...
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-1">
+          <div className="grid grid-cols-1 gap-2">
             {blips.map((blip) => (
               <BlipCard key={blip.id} blip={blip} />
             ))}
