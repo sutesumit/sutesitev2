@@ -1,0 +1,144 @@
+---
+title: "The Skill That Writes Itself"
+publishedAt: "2026-03-05"
+summary: "An orphan article revealed a drifting taxonomy. A colleague called my guide a skill. I made it literal. Now the skill is writing about itself, and I'm not sure if that's the point or the problem."
+slug: "the-skill-that-writes-itself"
+tags:
+  - typescript
+  - ai
+  - debugging
+  - experiments
+  - reflections
+authors:
+  - Sumit Sute
+category: "Reflections"
+draft: false
+featured: false
+---
+
+## The Orphan
+
+> "A guide that doesn't change is a fossil. A skill that grows is a practice."
+
+My article about [architecture documentation](/bloq/architecture-was-already-there) had no related posts. Zero. The algorithm that suggests "you might also like" works on tag overlap — share two tags with another article, and you appear in each other's suggestions. This one shared nothing. It was an island. A lonely, well-written island, but still.
+
+The tags weren't wrong. They were just... unique: `architecture`, `documentation`, `ai-collaboration`, `onboarding`. None of these existed anywhere else in the bloq. I'd invented them for that piece and ghosted them immediately after. Classic commitment issues.
+
+This was the symptom. The disease was taxonomy drift. Every article was creating its own vocabulary. `next.js` here, `nextjs` there. `ai-collaboration` in one place, `agentic-mode` in another, `ai` in a third. The system worked, but only technically. Semantically, it was a beautiful mess.
+
+---
+
+## The Normalization
+
+I audited all eight articles. The pattern was obvious:
+
+```text
+40+ unique tags across 8 articles
+Most used once: rhizome, anthropic, garbage-collection, useeffect, cauliflower
+Core tags with actual connectivity: typescript, react, nextjs, debugging, ai
+```
+
+Yes, `cauliflower` too was in my ai-generated tags. Don't ask. Actually, do ask — it's in the [blog setup article](/bloq/setting-up-blog-series), and it involves a vegetable shop and an architectural epiphany. The bloq voice is weird like that.
+
+I consolidated. Every article now shares at least two tags with at least one other article. The orphan got `typescript`, `ai`, `debugging`, `reflections`. Now it has friends. I imagine it's much happier.
+
+But here's what I knew: this would happen again. The next article I write, I'll invent new tags. Or I'll forget the normalized forms. The taxonomy will drift. The orphans will return, blinking in the sunlight, wondering where everyone went.
+
+Not because I'm careless. Because the system had no memory.
+
+---
+
+## The Nudge
+
+Around this time, [Rohit](https://blog.kernelanxiety.dev/) glanced at my `BLOQ-GUIDE.md` and said, offhandedly, "this sounds more like a skill than a guide."
+
+He wasn't being poetic. He meant it literally. In the world of AI agents, a `SKILL.md` is a specific thing — a document that agents read to understand how to perform a task. It's instructions, context, conventions. The agent consults it before acting.
+
+But something about his framing clicked differently for me. Sure, it's an agentic skill — a document for machines to read. But what if it was also a skill in the human sense? Something you practice. Something that improves with repetition. Something that grows.
+
+So I made a decision: every time I evoke this skill — every time an agent reads it to write a new article — the skill should also get updated with what was learned. The document wouldn't just tell agents how to write. It would remember what worked, what didn't, what patterns emerged. It would accumulate judgment.
+
+The tag normalization was the immediate problem. But the real transformation was turning a static instruction set into something that evolves with every use.
+
+An agentic skill that's also a living practice. Why not both?
+
+---
+
+## The Skill
+
+I renamed `BLOQ-GUIDE.md` to `BLOQ-SKILL.md` and added the parts that make it breathe:
+
+**Evolution Log.** A table that tracks what changed, when, and why. Every article adds a row. The skill accumulates history. Future archaeologists will understand exactly how the taxonomy got this weird.
+
+**Tag Registry.** Not just a list, but a living table: which tags exist, how many articles use them, what they're for. When a new article adds a tag, the registry grows. When a tag proves useless (looking at you, `cauliflower`), it can be deprecated.
+
+**Distilled Patterns.** Observations that have held up across multiple articles. "What consistently works" and "what consistently fails." These aren't rules — they're patterns that earned their place through repetition. They're the senior engineer voice, distilled.
+
+**Pattern Proposals.** A holding area for new observations. An agent can propose a pattern here. If it appears in three or more articles, it graduates to "consistently works." The skill learns from practice. It's like machine learning, except the machine is a markdown file and the training data is my blog.
+
+**Post-Article Checklist.** After every article:
+
+```markdown
+- [ ] Add entry to Evolution Log
+- [ ] Update tag registry if new tags emerged
+- [ ] Propose patterns if you noticed something
+- [ ] Increment version
+```
+
+The skill writes itself because the process of writing includes the process of updating the skill. The loop is built in. It's ouroboros all the way down.
+
+---
+
+## What This Changes
+
+The skill is now part of the workflow, not a reference document you consult once and forget. When an agent writes a new article, it reads the skill first. It knows the tag registry. It knows what patterns have held up. And after it writes, it updates the skill with what it learned.
+
+This means the taxonomy can't drift indefinitely. Every new tag gets registered. Every pattern gets proposed or verified. The skill keeps the system coherent without requiring me to remember everything — which is good, because I definitely won't.
+
+It also means the writing can improve over time. Not because I'm getting better (though I hope I am), but because the skill is accumulating judgment. The voice maturation notes track where the writing has been and where it wants to go. The distilled patterns capture what works. The next article inherits everything the previous articles learned.
+
+The skill is a kind of externalized intuition. It remembers so I don't have to.
+
+---
+
+## The Conundrum
+
+Here's where it gets strange.
+
+This article you're reading is being written by an agent using the skill I just described. The agent read the skill. It's following the patterns. It will update the skill after this is published.
+
+Which means: the skill is writing about itself. And I'm the human in the loop, reading what it produces, giving feedback, watching the loop continue.
+
+Is there value in this for a human to consume?
+
+I genuinely don't know. The article is accurate. It describes what happened. It's written in a voice that sounds like me — quirks and all. But it emerged from a conversation with an agent, not from me sitting down to write. The words are generated. The structure was suggested. My role was reading, responding, steering.
+
+Maybe the value is in the interaction itself. The agent produced a draft. I read it and noticed what was missing. The reading taught me what I actually wanted to say. The revision emerged from that gap between what was produced and what I wanted.
+
+This is the symbiosis. Not "I tell the agent what to write." But "the agent writes something, I read it, the reading teaches me, I respond, something new emerges." The skill captures this loop. It grows because the conversation continues. And the conversation continues because the skill keeps the system coherent enough to support it.
+
+If you're counting at home, this very article — through its multiple drafts and revisions and feedback loops — has already bumped the skill from version 1.0.0 to 1.5.0. The skill is literally evolving as I write about it evolving. I'm not sure if that's profound or just silly. Probably both.
+
+Or maybe I'm overthinking it. Maybe the value is simpler: this article exists, it says something true, and you're reading it. The process that produced it is interesting to me, but you're just here for the content. That's fine too.
+
+---
+
+## What I'm Still Figuring Out
+
+- **Is this writing?** It's something adjacent to writing. Collaborative thinking, maybe. The words exist. The byline says my name. But the process is different enough that the label doesn't quite fit. I'm not losing sleep over it.
+
+- **Does the skill actually improve the output?** Too early to tell. The mechanism is there. But growth requires attention. If I stop reading carefully, stop giving honest feedback, the skill becomes a document that *could* evolve but doesn't. It needs the human in the loop to stay alive.
+
+- **Will I remember to update it?** The checklist helps. But checklists only work if you check them. This is the ongoing practice part.
+
+---
+
+## The Loop
+
+This article will update the skill. The evolution log will get a new row. The tag registry will confirm that these tags connect. Maybe a pattern will be proposed. The version will tick upward.
+
+And then the next article will be written. The skill will be read. The loop will continue.
+
+The skill writes itself. I write with it. The boundary is porous. Whether that produces something worth reading — that's the experiment.
+
+The experiment continues.
