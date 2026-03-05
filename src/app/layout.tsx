@@ -22,7 +22,12 @@ const robotoMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   title: "sumit sute",
-  description: "Sumit Sute’s personal dev page, featuring projects and writing, grounded in an engineering approach that favors simplicity, clear boundaries, and long-term maintainability.",  
+  description: "Sumit Sute's personal dev page, featuring projects and writing, grounded in an engineering approach that favors simplicity, clear boundaries, and long-term maintainability.",
+  alternates: {
+    types: {
+      'application/rss+xml': '/feed.xml',
+    },
+  },
   keywords: [
     'developer',
     'portfolio',
