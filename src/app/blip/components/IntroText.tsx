@@ -4,10 +4,9 @@ const IntroText = () => {
   return (
     <div className="px-5 py-4">
       <p className="">
-        Some thoughts don&apos;t need 2000 words. They just need to exist. Blips are 
-        the short ones—the ones that arrive mid-commute and vanish if not caught. 
-        This is where I catch them. Posted through <span className="highlight italic">CLI</span> mid-work 
-        to quickly document an epiphany and forget about it.
+        Some thoughts don&apos;t need essays. They just need somewhere to land.
+        Blips are the small ones: ideas that appear mid-commute, mid-debug, mid-coffee.
+        I post them straight from the <span className="highlight">terminal</span> so they don&apos;t disappear before they exist.
       </p>
     </div>
   )
