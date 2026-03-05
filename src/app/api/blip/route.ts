@@ -22,24 +22,34 @@ async function parseContent(req: Request): Promise<string> {
   if (contentType.includes("application/x-www-form-urlencoded")) {
     const text = await req.text();
     const params = new URLSearchParams(text);
-    return params.get("content")?.trim() || "";
+    // Support both "content=message" and raw "message"
+    const content = params.get("content") || params.get("") || text.replace(/^content=/, "");
+    return content.trim();
   }
   
   // Handle JSON (curl -H "Content-Type: application/json" -d '{"content":"..."}')
+  if (contentType.includes("application/json")) {
+    try {
+      const body = await req.json();
+      return typeof body?.content === 'string' ? body.content.trim() : "";
+    } catch {
+      return "";
+    }
+  }
+  
+  // Raw body (curl -d "message" without content-type)
   try {
-    const body = await req.json();
-    return typeof body?.content === 'string' ? body.content.trim() : "";
-  } catch {
-    // Fallback: try to parse as URLSearchParams anyway
     const text = await req.text();
-    const params = new URLSearchParams(text);
-    return params.get("content")?.trim() || "";
+    return text.trim();
+  } catch {
+    return "";
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const authHeader = req.headers.get("X-Key");
+    // Support both "K" (short) and "X-Key" (legacy) headers
+    const authHeader = req.headers.get("K") || req.headers.get("X-Key");
     
     if (!validateApiKey(authHeader)) {
       return NextResponse.json(
