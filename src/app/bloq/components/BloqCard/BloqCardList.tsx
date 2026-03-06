@@ -4,6 +4,7 @@ import { BloqPost } from '@/lib/bloq'
 import { cn } from '@/lib/utils'
 import { BloqDate, BloqTitle, BloqSummary, BloqBackground } from './parts'
 import ViewCounter from '../ViewCounter'
+import ClapsCounter from '@/components/shared/ClapsCounter'
 // import TagList from '../TagList'
 
 interface BloqCardListProps {
@@ -33,18 +34,14 @@ export const BloqCardList = ({ post, className }: BloqCardListProps) => {
           <div className="flex-1">
             <div className='flex justify-between'>
               <BloqDate post={post} />
-              <ViewCounter slug={post.url} className="text-xs opacity-60 flex items-center text-gray-500" />
+              <div className="flex items-center justify-center gap-3">
+                <ViewCounter slug={post.url} className="text-xs flex items-center text-gray-500" />
+                <ClapsCounter postId={post.url} postType="bloq" interactive={false} className="text-xs flex items-center text-gray-500" />
+              </div>
             </div>
             <BloqTitle post={post} />
             <BloqSummary post={post} />
           </div>
-          
-          {/* Tags section */}
-          {/* {post.tags && post.tags.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-              <TagList tags={post.tags} maxTags={5} asLinks={false} />
-            </div>
-          )} */}
         </m.div>
       </m.div>
     </Link>

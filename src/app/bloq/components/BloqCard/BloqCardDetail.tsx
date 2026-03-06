@@ -7,6 +7,7 @@ import { useCardCollapse } from "../../hooks/useCardCollapse";
 import { BloqDate, BloqTitle, BloqSummary, BloqBackground } from "./parts";
 import TagList from "../TagList";
 import ViewCounter from "../ViewCounter";
+import ClapsCounter from "@/components/shared/ClapsCounter";
 
 interface BloqCardDetailProps {
   post: BloqPost;
@@ -57,15 +58,31 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
-                className="flex-grow inline-block truncate font-medium text-blue-900 dark:text-blue-400 ml-2 text-right"
+                className="flex-grow flex items-center justify-end gap-3 ml-2"
               >
-                {post.title}
+                <span className="truncate font-medium text-blue-900 dark:text-blue-400 text-right">
+                  {post.title}
+                </span>
+                <ClapsCounter
+                  postId={post.url}
+                  postType="bloq"
+                  interactive={true}
+                  className="text-xs opacity-60 flex items-center text-gray-500 shrink-0"
+                />
               </m.div>
             ) : (
-              <ViewCounter
-                slug={post.url}
-                className="text-xs opacity-60 flex items-center text-gray-500"
-              />
+              <div className="flex items-center gap-3">
+                <ViewCounter
+                  slug={post.url}
+                  className="text-xs flex items-center text-gray-500"
+                />
+                <ClapsCounter
+                  postId={post.url}
+                  postType="bloq"
+                  interactive={true}
+                  className="text-xs flex items-center text-gray-500"
+                />
+              </div>
             )}
           </AnimatePresence>
         </div>
