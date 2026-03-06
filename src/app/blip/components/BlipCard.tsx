@@ -5,6 +5,7 @@ import type { Blip } from "@/types/blip";
 import { cn } from "@/lib/utils";
 import { motion as m } from "framer-motion";
 import { BloqBackground } from "@/app/bloq/components/BloqCard/parts";
+import ClapsCounter from "@/components/shared/ClapsCounter";
 
 type BlipCardProps = {
   blip: Blip;
@@ -50,9 +51,17 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
         <p className="text-slate-800 dark:text-slate-200 leading-relaxed flex-1">
           {blip.content}
         </p>
-        <time className="text-xs text-slate-400 dark:text-slate-600 shrink-0 pt-0.5">
-          {formatRelativeTime(blip.created_at)}
-        </time>
+        <div className="flex items-center gap-3 shrink-0 pt-0.5">
+          <time className="text-xs text-slate-400 dark:text-slate-600">
+            {formatRelativeTime(blip.created_at)}
+          </time>
+          <ClapsCounter 
+            postId={blip.id} 
+            postType="blip" 
+            interactive={true} 
+            className="text-xs text-slate-400 dark:text-slate-600"
+          />
+        </div>
       </m.div>
     </m.article>
   );
