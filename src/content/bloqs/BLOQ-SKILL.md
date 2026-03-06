@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-06 | **Articles written:** 10 | **Version:** 1.6.0 (2026-03)
+> **Last evolved:** 2026-03-06 | **Articles written:** 11 | **Version:** 1.7.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -19,6 +19,7 @@ A changelog of what this skill has learned over time.
 | 2026-03-05 | 1.4.0 | The Skill That Writes Itself (polish) | Added hyperlink to orphan article; clarified Rohit's nudge as agentic skill.md concept; added quirks (cauliflower, ouroboros); grounded the conundrum in genuine uncertainty | Human |
 | 2026-03-05 | 1.5.0 | The Skill That Writes Itself (final) | Added meta note: this article's revisions evolved the skill from 1.0.0 to 1.5.0; the skill writes about itself evolving while evolving | Human |
 | 2026-03-06 | 1.6.0 | Metadata That Matters | Added per-post SEO with generateMetadata, JSON-LD BlogPosting schema, generateStaticParams; each bloq now has unique title, description, canonical URL, OpenGraph; added `seo` tag to registry | Agent |
+| 2026-03-06 | 1.7.0 | The Lazy Way to Build Better Software | Documented spec-driven development approach; questions-as-specifications pattern; design for the third case; specs as documentation; added `backend` tag prominence; embedded ClapsCounter component demo in article | Agent |
 
 ---
 
@@ -280,6 +281,8 @@ Patterns that have emerged across multiple articles. These are observations that
 | Connectivity as constraint | The Skill That Writes Itself | Pending (1/3) — requiring minimum shared tags forces discovery of common themes |
 | Reading as mirror | The Skill That Writes Itself (revision) | Pending (1/3) — reading AI output reveals what you actually think; the draft shows gaps |
 | Honest disclosure | The Skill That Writes Itself (revision) | Pending (1/3) — admitting AI involvement is part of learning in public; hiding it is performing a false authorship |
+| Design for the third case | The Lazy Way to Build Better Software | Pending (1/3) — when building for two, ask what happens with three; reveals whether to unify or separate |
+| Specs as documentation | The Lazy Way to Build Better Software | Pending (1/3) — the spec written before coding becomes the mental model for future maintenance |
 
 ---
 
