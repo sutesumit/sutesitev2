@@ -10,6 +10,7 @@ import SeedingPlant from "@/components/specific/SeedingPlant";
 import SeedingPlantASCII from "@/content/bloqs/2026/2026-02-18-vibe-shift-hackathon/SeedingPlantASCII";
 import MarathiClock from "@/content/bloqs/2026/2026-02-18-vibe-shift-hackathon/MarathiClock";
 import { SeedingPlantWrapped } from '@/content/bloqs/2025/2025-12-12-sharing-intro-art-component/SeedingPlantWrapped';
+import ClapsCounter from '@/components/shared/ClapsCounter';
 import TrackView from '../components/TrackView';
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -27,7 +28,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <TrackView slug={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
       <div className="px-4">
-        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped }} />
+        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, ClapsCounter }} />
       </div>
       <div className="px-4">
         <RelatedPosts posts={relatedPosts} />
