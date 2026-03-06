@@ -1,3 +1,5 @@
+"use client";
+
 import ScrambleText from "@/components/shared/ScrambleText";
 import { Eye, EyeClosed } from "lucide-react";
 import { useState, useEffect } from "react";
