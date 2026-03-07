@@ -450,6 +450,8 @@ After every new article is published, the agent or human should:
 - [ ] Forward-looking close
 - [ ] No tutorial steps
 - [ ] No emoji
+- [ ] No em dashes (use commas, colons, or periods)
+- [ ] Like explaining to a friend, not preaching
 
 ### File structure
 ```
