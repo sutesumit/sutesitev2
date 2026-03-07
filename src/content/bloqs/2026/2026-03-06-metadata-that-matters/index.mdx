@@ -1,17 +1,16 @@
 ---
 title: "Metadata That Matters"
 publishedAt: "2026-03-06"
-summary: "Every bloq URL shared the same title and description. I built per-post metadata with generateMetadata, JSON-LD structured data, and static generation. Now each article introduces itself properly to search engines and social platforms."
+summary: "Every bloq URL shared the same title and description. I learned to speak the languages platforms understand — OpenGraph for social, JSON-LD for search. Each article now introduces itself properly to the machines that distribute it."
 slug: "metadata-that-matters"
 tags:
   - nextjs
-  - typescript
   - seo
-  - debugging
+  - reflections
 authors:
   - Sumit Sute
 category: "Engineering"
-draft: true
+draft: false
 featured: false
 ---
 
@@ -28,212 +27,120 @@ Description: Sumit Sute's personal dev page...
 
 Not the article title. Not the article summary. Just the generic homepage metadata, copy-pasted across every URL like a lazy form letter.
 
-The content was unique. The code was thoughtful. But to the outside world, every post looked identical. The Skill That Writes Itself? Same metadata as Hello World. Architecture Was Already There? Indistinguishable from my homepage.
+The content was unique. The code was thoughtful. But to the outside world, every post looked identical. *The Skill That Writes Itself*? Same metadata as *Hello World*. *Architecture Was Already There*? Indistinguishable from my homepage.
 
 I'd built the reading experience. I'd ignored the discovery experience.
 
 ---
 
-## What Was Missing
+## The Vocabulary of Platforms
 
-The root `layout.tsx` had metadata, but it was static:
+The web has a translation problem. Your page speaks HTML. But Twitter wants one dialect. LinkedIn wants another. Google wants structured data. Pinterest wants something else entirely.
 
-```typescript
-export const metadata: Metadata = {
-  title: "sumit sute",
-  description: "Sumit Sute's personal dev page...",
-  // ...openGraph, twitter, etc.
-};
+These aren't just different formats — they're different *ontologies*. Different ways of understanding what a thing *is*.
+
+### OpenGraph: The Social Dialect
+
+OpenGraph was invented by Facebook in 2010. The idea: any web page can describe itself in a way social platforms understand. Instead of guessing what your page is about, platforms read explicit metadata.
+
+```html
+<meta property="og:title" content="The Skill That Writes Itself" />
+<meta property="og:description" content="An orphan article..." />
+<meta property="og:type" content="article" />
+<meta property="og:image" content="https://..." />
 ```
 
-This is fine for the homepage. But Next.js expects you to generate per-page metadata using `generateMetadata`. I hadn't done that for the bloq routes.
+When someone pastes your URL into Twitter or LinkedIn, the platform fetches these tags and builds a preview card. The image, the title, the description — all come from OpenGraph.
 
-The result: every `/bloq/[slug]` page inherited the root metadata. No unique titles. No article-specific OpenGraph images. No JSON-LD structured data for BlogPosting schema.
+**Why images matter:** The `og:image` is your first impression on social. A good preview image can double click-through rates. But here's the thing — if you don't provide one, platforms will either show nothing (boring) or scrape something random from your page (often worse).
 
----
+I decided not to fake it. If a post has no image, it gets no image. Better silence than a misleading homepage screenshot.
 
-## The Fix, In Three Parts
+### JSON-LD: The Search Dialect
 
-### 1. Enhanced Root Metadata
+JSON-LD stands for "JSON for Linking Data." It's JSON, but with a twist: it's *linked* data, meaning it connects your content to a shared vocabulary.
 
-First, I improved the root layout to set a better foundation:
+Regular JSON is just structure:
 
-```typescript
-export const metadata: Metadata = {
-  title: {
-    default: 'sumit sute',
-    template: '%s | sumit sute',  // Pages use this template
-  },
-  alternates: {
-    canonical: SITE_URL,
-  },
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  openGraph: {
-    locale: 'en_US',
-    // ...
-  },
-};
+```json
+{
+  "title": "My Post",
+  "author": "Sumit Sute"
+}
 ```
 
-The `title.template` means any page that sets `title: "My Post"` becomes `"My Post | sumit sute"`.
+JSON-LD adds *context*:
 
-I also added JSON-LD structured data for the site itself:
-
-```typescript
-const jsonLdWebSite = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: SITE_NAME,
-  url: SITE_URL,
-  author: {
-    '@type': 'Person',
-    name: 'Sumit Sute',
-  },
-};
-```
-
-This gets injected into `<head>` as a script tag. Search engines love it.
-
----
-
-### 2. Per-Post Metadata with generateMetadata
-
-The real fix was in `src/app/bloq/[slug]/page.tsx`. I added a `generateMetadata` function:
-
-```typescript
-export async function generateMetadata({ params }): Promise<Metadata> {
-  const { slug } = await params;
-  const post = getBloqPostBySlug(slug);
-
-  if (!post) {
-    return { title: 'Post Not Found' };
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "My Post",
+  "author": {
+    "@type": "Person",
+    "name": "Sumit Sute"
   }
-
-  const postUrl = `${SITE_URL}/bloq/${post.url}`;
-  const imageUrl = post.image 
-    ? `${SITE_URL}${post.image}` 
-    : `${SITE_URL}/sumit-sute-homepage.jpg`;
-
-  return {
-    title: post.title,
-    description: post.summary,
-    alternates: {
-      canonical: postUrl,
-    },
-    openGraph: {
-      title: post.title,
-      description: post.summary,
-      url: postUrl,
-      type: 'article',
-      publishedTime: post.publishedAt,
-      modifiedTime: post.updatedAt,
-      tags: post.tags,
-      images: [{ url: imageUrl, width: 800, height: 600, alt: post.title }],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: post.title,
-      description: post.summary,
-      images: [imageUrl],
-    },
-  };
 }
 ```
 
-Now each post has:
-- Unique title and description
-- Canonical URL (important for SEO — tells search engines "this is the real URL")
-- OpenGraph with `type: 'article'`, publication date, tags
-- Twitter card with the post's image (or fallback to site default)
+The `@context` says: "I'm using the schema.org vocabulary." The `@type` says: "This is a BlogPosting, not a Product or Event." Search engines don't have to guess — they *know*.
+
+This is how Google builds those rich results. The knowledge panel that shows cooking time for recipes. The event dates for concerts. The review stars for products. All of it comes from structured data.
+
+**The key difference from regular JSON:** JSON-LD isn't about storing data. It's about *asserting meaning*. You're not just saying "there's an author" — you're saying "this is a Person, in the schema.org sense, and here's their name."
 
 ---
 
-### 3. BlogPosting JSON-LD Schema
+## The Canonical Problem
 
-Structured data is how you speak robot to search engines. I added a component that generates BlogPosting schema for each article:
+There's another piece: canonical URLs.
 
-```typescript
-function BlogPostingJsonLd({ post }) {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    headline: post.title,
-    description: post.summary,
-    datePublished: post.publishedAt,
-    dateModified: post.updatedAt || post.publishedAt,
-    author: {
-      '@type': 'Person',
-      name: post.authors[0] || 'Sumit Sute',
-    },
-    keywords: post.tags.join(', '),
-  };
+When someone links to your post with query parameters (`?utm_source=twitter`), or when a scraper copies your content, search engines see multiple URLs with identical content. Which one is the "real" one?
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
-  );
-}
+```html
+<link rel="canonical" href="https://sumitsute.com/bloq/the-skill-that-writes-itself" />
 ```
 
-This renders inside the article. Google can now understand: this is a blog post, here's when it was published, here's who wrote it, here's what it's about.
-
-Rich results in search. Better social previews. Proper attribution.
+This tells search engines: "No matter how you got here, this is the authoritative URL." It consolidates ranking signals. It protects against duplicate content penalties. It's a small thing that matters at scale.
 
 ---
 
-## Static Generation for Free
+## The Mental Model
 
-While I was at it, I added `generateStaticParams`:
+Here's how I think about it now:
 
-```typescript
-export async function generateStaticParams() {
-  const posts = getBloqPosts();
-  return posts.map((post) => ({
-    slug: post.url,
-  }));
-}
-```
+| Layer | Speaks to | Purpose |
+|-------|-----------|---------|
+| HTML | Browsers | Renders the page |
+| OpenGraph | Social platforms | Builds preview cards |
+| JSON-LD | Search engines | Enables rich results |
+| Canonical | Everyone | Declares the authoritative URL |
 
-This tells Next.js: at build time, read all the bloq posts and pre-render them as static HTML. No server-side rendering needed. Fast page loads. Better SEO (crawlers get immediate content).
-
-The build output confirmed it:
-
-```
-├ ● /bloq/[slug]
-├   ├ /bloq/the-skill-that-writes-itself
-├   ├ /bloq/architecture-was-already-there
-├   └ [+6 more paths]
-```
-
-All nine posts, statically generated at build time.
+Each layer is a translation. Each layer is optional but valuable. Each layer requires you to think about how your content exists *outside* your site.
 
 ---
 
-## What Happens When I Add a New Post?
+## What I Built
 
-The `generateStaticParams` function calls `getBloqPosts()` at build time. That function reads the filesystem. So:
+The implementation was straightforward once I understood the concepts:
 
-- **Dev server**: New posts work immediately — metadata generates on-demand
-- **Production**: Run `npm run build` and the new post gets pre-rendered
+1. **Per-page metadata** — Each bloq post generates its own title, description, and canonical URL
+2. **Conditional images** — If a post has an image, include it in OpenGraph. If not, don't fake it with a fallback
+3. **JSON-LD BlogPosting** — Each post asserts its type, author, dates, and keywords in schema.org vocabulary
+4. **Static generation** — Build once, serve fast. Search engines get immediate content, no JavaScript required
 
-No manual registration. No database to update. Drop a file in `src/content/bloqs/`, rebuild, done.
+The code is unremarkable. The *understanding* was the work.
 
 ---
 
 ## What I Took Away
 
-- **Metadata is part of the content.** If you write something worth reading, make sure it introduces itself properly when shared.
-- **generateMetadata is not optional for dynamic routes.** Without it, every page inherits the layout's metadata.
-- **JSON-LD is underused.** It's a few lines of code that unlock rich search results. Worth the effort.
-- **Static generation is a nice side effect.** Once you have `generateMetadata`, adding `generateStaticParams` is trivial.
-- **Canonical URLs matter.** If someone copies your content, search engines know which version is the original.
+- **Metadata is translation.** You're not just adding tags — you're teaching platforms how to understand your content.
+- **OpenGraph is your social identity.** When someone shares your link, the preview *is* your content. Make it count.
+- **JSON-LD is assertion, not storage.** The `@context` and `@type` matter more than the data itself. You're participating in a shared vocabulary.
+- **Don't fake images.** A missing image is honest. A misleading fallback is not.
+- **Canonical URLs are hygiene.** They take five minutes and protect you from a class of SEO problems you don't want to debug.
 
 The bloq now speaks for itself. Each article has its own voice, its own preview, its own identity in the machines that distribute it.
 
-The metadata writes itself. I just had to ask.
+The metadata writes itself. I just had to learn the language.

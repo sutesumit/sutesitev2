@@ -35,9 +35,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const postUrl = `${SITE_URL}/bloq/${post.url}`;
-  const imageUrl = post.image ? `${SITE_URL}${post.image}` : `${SITE_URL}/sumit-sute-homepage.jpg`;
 
-  return {
+  const baseMetadata: Metadata = {
     title: post.title,
     description: post.summary,
     alternates: {
@@ -48,14 +47,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: post.summary,
       url: postUrl,
       siteName: 'Sumit Sute Personal Dev Page',
-      images: [
-        {
-          url: imageUrl,
-          width: 800,
-          height: 600,
-          alt: post.title,
-        },
-      ],
       type: 'article',
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,
@@ -66,16 +57,28 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       card: 'summary_large_image',
       title: post.title,
       description: post.summary,
-      images: [imageUrl],
     },
   };
+
+  if (post.image) {
+    const imageUrl = `${SITE_URL}${post.image}`;
+    baseMetadata.openGraph = {
+      ...baseMetadata.openGraph,
+      images: [{ url: imageUrl, width: 800, height: 600, alt: post.title }],
+    };
+    baseMetadata.twitter = {
+      ...baseMetadata.twitter,
+      images: [imageUrl],
+    };
+  }
+
+  return baseMetadata;
 }
 
 function BlogPostingJsonLd({ post }: { post: ReturnType<typeof getBloqPostBySlug> & NonNullable<ReturnType<typeof getBloqPostBySlug>> }) {
   const postUrl = `${SITE_URL}/bloq/${post.url}`;
-  const imageUrl = post.image ? `${SITE_URL}${post.image}` : `${SITE_URL}/sumit-sute-homepage.jpg`;
 
-  const jsonLd = {
+  const jsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     headline: post.title,
@@ -92,7 +95,6 @@ function BlogPostingJsonLd({ post }: { post: ReturnType<typeof getBloqPostBySlug
       '@type': 'WebPage',
       '@id': postUrl,
     },
-    image: imageUrl,
     keywords: post.tags.join(', '),
     publisher: {
       '@type': 'Person',
@@ -100,6 +102,10 @@ function BlogPostingJsonLd({ post }: { post: ReturnType<typeof getBloqPostBySlug
       url: SITE_URL,
     },
   };
+
+  if (post.image) {
+    jsonLd.image = `${SITE_URL}${post.image}`;
+  }
 
   return (
     <script
