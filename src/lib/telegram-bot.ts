@@ -259,7 +259,13 @@ export async function initBot() {
 
 export async function startBot() {
   const bot = await initBot();
+  
+  bot.catch((err) => {
+    console.error("Bot error:", err);
+  });
+  
+  console.log("Starting Telegram bot...");
   await bot.start();
-  console.log("Telegram bot started");
+  console.log("Telegram bot stopped");
   return bot;
 }
