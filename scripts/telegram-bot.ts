@@ -1,3 +1,6 @@
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
 import { startBot } from "@/lib/telegram-bot";
 
 startBot().catch((err) => {
