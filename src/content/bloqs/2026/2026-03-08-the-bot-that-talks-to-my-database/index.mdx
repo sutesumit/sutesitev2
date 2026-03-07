@@ -15,97 +15,51 @@ draft: true
 featured: false
 ---
 
-## A Bot, A Plan, A Serial Number
+## What's a Blip?
 
 > "Every UUID slice is a cry for help."
 
-Here's the thing about blips: they were using UUIDs. Long, ugly, impossible-to-remember UUIDs. And somewhere in `BlipCard.tsx`, I had written `blip.id.slice(0, 2)` like that was a reasonable thing to do. First two characters of a UUID. As if `a3` meant anything to anyone.
+[Blips](/blip) are short, 280-character posts. Think of them as tweets that live on my own infrastructure. They're stored in Supabase, rendered on a Next.js page, and until recently, identified by UUIDs.
 
-It didn't. I knew it didn't. But it worked, and I moved on.
-
-Then came the plan: sequential base-62 serials. `0, 1, 2... 9, a, b... Z, 10, 11`. Short. Memorable. The kind of thing you could type into a Telegram bot without wanting to throw your phone across the room.
-
----
-
-## The Architecture (Or: What I Built Before It Worked)
-
-The plan was clean:
-
-```text
-User sends message → Telegram Bot → Supabase → Response
-                                    ↑
-                            blip_serial (base-62)
-```
-
-Four pieces:
-1. **Database migration** - Add `blip_serial` column, backfill existing blips
-2. **API routes** - CRUD by serial instead of UUID
-3. **Base-62 utility** - Encode/decode functions
-4. **Telegram bot** - grammy framework, polling mode
-
-Simple enough. Famous last words.
-
----
-
-## The Migration That Wouldn't
-
-First roadblock: PostgreSQL's `substr()` function expects INTEGER arguments, not BIGINT. My sequence was BIGINT. My ROW_NUMBER was BIGINT. Everything was BIGINT except the function that needed INTEGER.
-
-```sql
--- This exploded
-result := substr(chars, (seq_val % base) + 1, 1) || result;
-
--- This worked
-result := substr(chars, ((seq_val % base) + 1)::INTEGER, 1) || result;
-```
-
-The fix was a cast. One `::INTEGER` and the database was happy. But for a moment there, I wasn't debugging. I was bargaining. "Maybe I don't need base-62. Base-10 is fine. Base-10 is humble."
-
-No. We cast.
-
----
-
-## The Bot That Wouldn't Respond
-
-The bot started fine:
-
-```text
-Starting Telegram bot (polling)...
-Bot @bliplivebot is running!
-```
-
-I sent `/start`. Nothing. I sent it again. Nothing. I checked the Telegram API directly:
-
-```bash
-curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates"
-# {"ok":true,"result":[]}
-```
-
-Empty. The bot was running, polling, doing everything right. Except responding.
-
-The issue? Middleware order. In grammy, handlers run in registration order. I had:
+The UUID problem wasn't theoretical. In `BlipCard.tsx`, I had this:
 
 ```typescript
-bot.on("message", async (ctx) => { /* handles everything */ });
-bot.command("start", async (ctx) => { /* never reached */ });
+<span>{blip.id.slice(0, 2)}.</span>
 ```
 
-The message handler caught `/start` before the command handler could see it. It returned early for commands (`if (text.startsWith("/")) return;`), but that didn't help because grammy had already moved on.
-
-The fix: register commands first.
-
-```typescript
-bot.command("start", async (ctx) => { /* now this runs first */ });
-bot.on("message", async (ctx) => { /* fallback */ });
-```
-
-Order matters. Middleware is a pipeline, not a buffet.
+First two characters of a UUID. `a3`, `f7`, `2b`. Meaningless, but it filled the space. The real goal was something you could reference, type, remember. Serial numbers.
 
 ---
 
-## The Serials Themselves
+## The Feature: Serials + Telegram CRUD
 
-Base-62 encoding is satisfyingly simple:
+Two things needed to happen:
+
+1. **Sequential base-62 serials** for each blip (`0, 1, 2... 9, a, b... Z, 10`)
+2. **Telegram bot** to create, read, update, and delete blips using those serials
+
+The logical flow:
+
+```text
+┌─────────────┐     ┌──────────────┐     ┌──────────┐
+│  Telegram   │────▶│  Next.js API │────▶│ Supabase │
+│  User       │     │  Routes      │     │ Database │
+└─────────────┘     └──────────────┘     └──────────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │  blip_serial │
+                    │  (base-62)   │
+                    └──────────────┘
+```
+
+User sends a message. Bot processes it. API queries Supabase by `blip_serial`. Response flows back.
+
+---
+
+## Technical Concept 1: Base-62 Encoding
+
+Base-62 uses all alphanumeric characters: `0-9`, `a-z`, `A-Z`. That's 62 symbols. The encoding is reversible and compact:
 
 ```typescript
 const BASE62_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -123,63 +77,244 @@ export function encodeBase62(num: number): string {
   
   return result;
 }
-```
 
-Number goes in. String comes out. `0` becomes `"0"`, `10` becomes `"a"`, `61` becomes `"Z"`, `62` becomes `"10"`.
-
-The database handles generation via a Postgres function and trigger, so every new blip gets its serial atomically. No race conditions. No collision logic. Just sequential numbers wearing a base-62 costume.
-
----
-
-## The Bot Commands
-
-Once the middleware was fixed, the bot worked:
-
-| Command | What it does |
-|---------|--------------|
-| `/start` | Shows help |
-| `/list` | Last 10 blips |
-| `/get <serial>` | Fetch one |
-| `/edit <serial>` | Enter edit mode |
-| `/del <serial>` | Delete |
-| (any text) | Create new blip |
-
-The edit flow is conversational:
-
-```text
-Me: /edit a3
-Bot: Editing blip a3: "old content". Send new content:
-Me: New and improved content
-Bot: Updated blip a3
-```
-
-Session state tracks the mode. Grammy's session middleware handles the persistence. Simple, stateful, human.
-
----
-
-## Auth: Two Systems, One Database
-
-The existing blip API uses `BLIP_SECRET_KEY` via headers. The Telegram bot uses `TELEGRAM_ALLOWED_USER_IDS` via whitelist. They coexist.
-
-```typescript
-function isAllowed(userId: number): boolean {
-  return getAllowedUserIds().includes(userId);
+export function decodeBase62(str: string): number {
+  let result = 0;
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    const value = BASE62_CHARS.indexOf(char);
+    result = result * 62 + value;
+  }
+  
+  return result;
 }
 ```
 
-No JWTs. No OAuth. Just a comma-separated list of Telegram user IDs in an environment variable. The bot checks the list before every action. If you're not on it, you get "Unauthorized" and that's that.
+Examples:
+- `0` → `"0"`
+- `10` → `"a"`
+- `35` → `"z"`
+- `61` → `"Z"`
+- `62` → `"10"`
+- `3844` → `"100"`
 
-Is this enterprise-grade security? No. Is it sufficient for a personal bot that posts 280-character thoughts? Absolutely.
+Why base-62? URL-safe, case-sensitive, no special characters. A blip at serial `a3` is `/blip` with `a3` displayed. No collision handling needed because the sequence is atomic.
+
+---
+
+## Technical Concept 2: Database-First Serial Generation
+
+The serial isn't generated in application code. It's generated by PostgreSQL.
+
+```sql
+CREATE SEQUENCE blip_serial_seq START 1;
+
+CREATE OR REPLACE FUNCTION generate_blip_serial()
+RETURNS TEXT AS $$
+DECLARE
+  seq_val BIGINT;
+  result TEXT := '';
+  chars TEXT := '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+BEGIN
+  SELECT nextval('blip_serial_seq') INTO seq_val;
+  
+  WHILE seq_val > 0 LOOP
+    result := substr(chars, ((seq_val % 62) + 1)::INTEGER, 1) || result;
+    seq_val := seq_val / 62;
+  END LOOP;
+  
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_set_blip_serial
+  BEFORE INSERT ON blips
+  FOR EACH ROW
+  EXECUTE FUNCTION set_blip_serial();
+```
+
+Every INSERT fires the trigger. The trigger calls `generate_blip_serial()`. The function pulls from the sequence and encodes. No race conditions, no duplicate checks, no application-level coordination.
+
+### The Backfill Problem
+
+Existing blips needed serials too. The migration backfills in chronological order:
+
+```sql
+WITH ordered_blips AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) - 1 as row_num
+  FROM blips
+  WHERE blip_serial IS NULL
+)
+-- Convert row_num to base-62 and update
+```
+
+Oldest blip gets `0`. Next gets `1`. And so on.
+
+---
+
+## Technical Concept 3: Dynamic API Routes by Serial
+
+Next.js App Router supports dynamic segments. The route `/api/blip/[serial]` handles operations on a specific blip:
+
+```typescript
+// src/app/api/blip/[serial]/route.ts
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ serial: string }> }
+) {
+  const { serial } = await params;
+  const supabase = getSupabaseServerClient();
+  
+  const { data, error } = await supabase
+    .from("blips")
+    .select("id, content, created_at, blip_serial")
+    .eq("blip_serial", serial)
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json({ error: "Blip not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ blip: data });
+}
+```
+
+Same pattern for PUT and DELETE. The serial becomes the primary lookup key.
+
+---
+
+## Technical Concept 4: Grammy Bot with Middleware Order
+
+The Telegram bot uses [grammy](https://grammy.dev/), a TypeScript-first framework. The key insight: middleware order determines handler execution.
+
+This didn't work:
+
+```typescript
+bot.on("message", async (ctx) => {
+  if (text.startsWith("/")) return; // Commands ignored here
+  // Handle regular messages
+});
+
+bot.command("start", async (ctx) => {
+  // Never reached! Message handler already ran.
+});
+```
+
+This works:
+
+```typescript
+bot.command("start", async (ctx) => {
+  // Runs first for /start
+});
+
+bot.command("list", async (ctx) => {
+  // Runs first for /list
+});
+
+bot.on("message", async (ctx) => {
+  // Fallback for non-command messages
+});
+```
+
+Grammy processes handlers in registration order. Specific matchers (commands) before generic matchers (all messages).
+
+### Session State for Edit Flow
+
+The `/edit` command needs to remember which blip is being edited:
+
+```typescript
+interface SessionData {
+  mode?: "edit" | "delete";
+  editingSerial?: string;
+}
+
+bot.use(session({ initial: (): SessionData => ({}) }));
+
+bot.command("edit", async (ctx) => {
+  const serial = ctx.match?.trim();
+  ctx.session.mode = "edit";
+  ctx.session.editingSerial = serial;
+  await ctx.reply(`Editing blip ${serial}. Send new content:`);
+});
+
+bot.on("message", async (ctx) => {
+  if (ctx.session.mode === "edit" && ctx.session.editingSerial) {
+    await updateBlip(ctx.session.editingSerial, ctx.message.text);
+    ctx.session.mode = undefined;
+    ctx.session.editingSerial = undefined;
+  }
+});
+```
+
+Session persists across messages. The bot remembers state until the operation completes.
+
+---
+
+## Technical Concept 5: Dual Auth Systems
+
+Two authentication mechanisms coexist:
+
+| System | Used By | Mechanism |
+|--------|---------|-----------|
+| `BLIP_SECRET_KEY` | curl, direct API calls | Header `K` or `X-Key` |
+| `TELEGRAM_ALLOWED_USER_IDS` | Telegram bot | User ID whitelist |
+
+```typescript
+// API route auth
+function validateApiKey(authHeader: string | null): boolean {
+  return authHeader === process.env.BLIP_SECRET_KEY;
+}
+
+// Telegram bot auth
+function isAllowed(userId: number): boolean {
+  const ids = process.env.TELEGRAM_ALLOWED_USER_IDS?.split(",") || [];
+  return ids.map(Number).includes(userId);
+}
+```
+
+No overlap. The bot doesn't check the API key. The API doesn't check Telegram user IDs. Each system trusts its own source.
+
+---
+
+## The Full Flow
+
+Here's what happens when you send "Hello world" to the bot:
+
+```text
+1. Telegram server receives message
+2. Bot polls Telegram API (getUpdates)
+3. Grammy parses update, matches to "message" handler
+4. Handler checks: is user in TELEGRAM_ALLOWED_USER_IDS?
+5. Handler checks: is session in edit/delete mode? (no)
+6. Handler checks: does text start with "/"? (no)
+7. Handler calls createBlip("Hello world")
+8. Supabase INSERT triggers set_blip_serial()
+9. Sequence increments, base-62 encodes, returns "x9"
+10. Bot replies: "Created blip x9"
+```
+
+And when you send `/get x9`:
+
+```text
+1-4. Same as above
+5. Handler matches "get" command
+6. Handler extracts serial from ctx.match
+7. Handler calls getBlipBySerial("x9")
+8. Supabase SELECT WHERE blip_serial = 'x9'
+9. Bot replies: "x9. Hello world"
+```
 
 ---
 
 ## What I Took Away
 
-- **Order matters in middleware.** Handlers run in registration order. Commands before messages, specific before generic.
-- **Casting is humbling.** PostgreSQL's type system doesn't care about your feelings. BIGINT is not INTEGER, and `substr()` will remind you.
-- **Simple auth is underrated.** A whitelist of user IDs does the job when the job is "let me and only me post blips from Telegram."
-- **Base-62 is aesthetically pleasing.** `a3` is better than `a3f2...`. Not everything needs to be a UUID.
-- **The bot doesn't need to be smart.** It needs to be reliable. Polling, sessions, Supabase calls. No AI, no fancy features. Just CRUD with a chat interface.
+- **Middleware order is execution order.** Register specific handlers before generic ones. The pipeline doesn't reroute itself.
+- **Database-generated serials are atomic.** No application-level coordination, no collision detection, no retry logic. The sequence handles it.
+- **Base-62 is compact and reversible.** Encode at write time, decode when needed. The serial is both identifier and display value.
+- **Dual auth is fine for personal tools.** API key for curl, user ID whitelist for Telegram. No need to unify them.
+- **Sessions enable conversational flows.** Edit mode persists across messages. The bot remembers context.
 
 ---
 
@@ -188,18 +323,18 @@ Is this enterprise-grade security? No. Is it sufficient for a personal bot that 
 ```text
 src/
 ├── lib/
-│   ├── base62.ts           # Encode/decode
-│   ├── telegram-bot.ts     # Grammy bot logic
-│   └── blip.ts             # Supabase queries
+│   ├── base62.ts              # encodeBase62, decodeBase62
+│   ├── telegram-bot.ts        # Grammy bot, handlers, session
+│   └── blip.ts                # Supabase queries for blips
 ├── app/api/
-│   ├── blip/route.ts       # POST, GET (list)
-│   ├── blip/[serial]/route.ts  # GET, PUT, DELETE by serial
-│   └── telegram/webhook/route.ts  # Webhook endpoint
-├── types/blip.ts           # Blip type with blip_serial
-└── scripts/telegram-bot.ts # Standalone runner
+│   ├── blip/route.ts          # POST (create), GET (list)
+│   ├── blip/[serial]/route.ts # GET, PUT, DELETE by serial
+│   └── telegram/webhook/route.ts # Webhook endpoint (alternative to polling)
+├── types/blip.ts              # Blip type with blip_serial field
+└── scripts/telegram-bot.ts    # Standalone runner with dotenv
 
 supabase/migrations/
-└── 001_add_blip_serial.sql # Migration with backfill
+└── 001_add_blip_serial.sql    # Column, sequence, function, trigger, backfill
 ```
 
-Run it with `npm run bot`. Send `/start` to @bliplivebot. If you're on the whitelist, you're in.
+Run with `npm run bot`. Send `/start` to @bliplivebot. Create a [blip](/blip) from your phone.
