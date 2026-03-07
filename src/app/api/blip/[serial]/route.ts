@@ -18,16 +18,13 @@ function validateApiKey(authHeader: string | null): boolean {
 async function parseContent(req: Request): Promise<string> {
   const contentType = req.headers.get("content-type") || "";
   
-  // Handle form-urlencoded (curl -d "content=...")
   if (contentType.includes("application/x-www-form-urlencoded")) {
     const text = await req.text();
     const params = new URLSearchParams(text);
-    // Support both "content=message" and raw "message"
     const content = params.get("content") || params.get("") || text.replace(/^content=/, "");
     return content.trim();
   }
   
-  // Handle JSON (curl -H "Content-Type: application/json" -d '{"content":"..."}')
   if (contentType.includes("application/json")) {
     try {
       const body = await req.json();
@@ -37,7 +34,6 @@ async function parseContent(req: Request): Promise<string> {
     }
   }
   
-  // Raw body (curl -d "message" without content-type)
   try {
     const text = await req.text();
     return text.trim();
@@ -46,9 +42,46 @@ async function parseContent(req: Request): Promise<string> {
   }
 }
 
-export async function POST(req: Request) {
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ serial: string }> }
+) {
   try {
-    // Support both "K" (short) and "X-Key" (legacy) headers
+    const { serial } = await params;
+    const supabase = getSupabaseServerClient();
+    
+    const { data, error } = await supabase
+      .from("blips")
+      .select("id, content, created_at, blip_serial")
+      .eq("blip_serial", serial)
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json(
+        { error: "Blip not found" },
+        { status: 404, headers: noStoreHeaders }
+      );
+    }
+
+    return NextResponse.json(
+      { blip: data as Blip },
+      { status: 200, headers: noStoreHeaders }
+    );
+  } catch (error: unknown) {
+    console.error("Error in blip GET by serial:", error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json(
+      { error: message },
+      { status: 500, headers: noStoreHeaders }
+    );
+  }
+}
+
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ serial: string }> }
+) {
+  try {
     const authHeader = req.headers.get("K") || req.headers.get("X-Key");
     
     if (!validateApiKey(authHeader)) {
@@ -58,6 +91,7 @@ export async function POST(req: Request) {
       );
     }
 
+    const { serial } = await params;
     const content = await parseContent(req);
 
     if (!content) {
@@ -77,24 +111,24 @@ export async function POST(req: Request) {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("blips")
-      .insert({ content })
+      .update({ content })
+      .eq("blip_serial", serial)
       .select("id, content, created_at, blip_serial")
       .single();
 
-    if (error) {
-      console.error("Error creating blip:", error);
+    if (error || !data) {
       return NextResponse.json(
-        { error: "Failed to create blip" },
-        { status: 500, headers: noStoreHeaders }
+        { error: "Blip not found or update failed" },
+        { status: 404, headers: noStoreHeaders }
       );
     }
 
     return NextResponse.json(
       { blip: data as Blip },
-      { status: 201, headers: noStoreHeaders }
+      { status: 200, headers: noStoreHeaders }
     );
   } catch (error: unknown) {
-    console.error("Error in blip POST:", error);
+    console.error("Error in blip PUT:", error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: message },
@@ -103,28 +137,41 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ serial: string }> }
+) {
   try {
+    const authHeader = req.headers.get("K") || req.headers.get("X-Key");
+    
+    if (!validateApiKey(authHeader)) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: noStoreHeaders }
+      );
+    }
+
+    const { serial } = await params;
     const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase
+    
+    const { error } = await supabase
       .from("blips")
-      .select("id, content, created_at, blip_serial")
-      .order("created_at", { ascending: false });
+      .delete()
+      .eq("blip_serial", serial);
 
     if (error) {
-      console.error("Error fetching blips:", error);
       return NextResponse.json(
-        { error: "Failed to fetch blips" },
+        { error: "Failed to delete blip" },
         { status: 500, headers: noStoreHeaders }
       );
     }
 
     return NextResponse.json(
-      { blips: data as Blip[] },
+      { success: true },
       { status: 200, headers: noStoreHeaders }
     );
   } catch (error: unknown) {
-    console.error("Error in blip GET:", error);
+    console.error("Error in blip DELETE:", error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: message },

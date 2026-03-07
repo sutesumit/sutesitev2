@@ -12,6 +12,8 @@ type BlipCardProps = {
   className?: string;
 };
 
+const placeholderBlipContent = "The internet rewards speed, but good thinking moves slowly. Write a little every day. Publish imperfect ideas. Over time the archive becomes your mind extended — a public notebook of how you learned to see.."
+
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -47,7 +49,12 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
     >
       <BloqBackground />
       
-      <m.div layout className="flex items-start gap-4 px-2">
+      <m.div layout className="flex items-start gap-2 px-2">
+        <div className="flex items-center justify-center min-w-5 h-5 shrink-0 mt-0.5">
+          <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 opacity-70">
+            {blip.blip_serial}.
+          </span>
+        </div>
         <p className="text-slate-800 dark:text-slate-200 leading-relaxed flex-1">
           {blip.content}
         </p>
