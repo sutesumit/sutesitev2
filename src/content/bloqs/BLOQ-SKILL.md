@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-06 | **Articles written:** 11 | **Version:** 1.7.0 (2026-03)
+> **Last evolved:** 2026-03-07 | **Articles written:** 11 | **Version:** 1.8.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -20,12 +20,13 @@ A changelog of what this skill has learned over time.
 | 2026-03-05 | 1.5.0 | The Skill That Writes Itself (final) | Added meta note: this article's revisions evolved the skill from 1.0.0 to 1.5.0; the skill writes about itself evolving while evolving | Human |
 | 2026-03-06 | 1.6.0 | Metadata That Matters | Added per-post SEO with generateMetadata, JSON-LD BlogPosting schema, generateStaticParams; each bloq now has unique title, description, canonical URL, OpenGraph; added `seo` tag to registry | Agent |
 | 2026-03-06 | 1.7.0 | The Lazy Way to Build Better Software | Documented spec-driven development approach; questions-as-specifications pattern; design for the third case; specs as documentation; added `backend` tag prominence; embedded ClapsCounter component demo in article | Agent |
+| 2026-03-07 | 1.8.0 | Tag rule revision | Revised tag rules: minimum 3 tags (was 2), maximum 7; replaced "only if genuinely necessary" with prompting step to encourage organic new tag creation; goal is balance between consistency (shared tags) and freshness (new tags when they fit) | Human |
 
 ---
 
 ## Tag Registry
 
-Tags serve discoverability and related-post suggestions. Every article must share **at least two tags** with other bloqs.
+Tags serve discoverability and related-post suggestions. Every article must have **3-7 tags**, with **at least two shared** with other bloqs.
 
 ### Core shared tags (high connectivity)
 
@@ -44,14 +45,14 @@ Tags serve discoverability and related-post suggestions. Every article must shar
 
 ### Tag rules
 
-1. **Minimum 2 shared tags** — verify overlap before publishing
-2. **Prefer core tags** — use from the registry when they fit
-3. **Normalize variants:**
+1. **Minimum 3 tags, maximum 7** — enough for connectivity, not so many it dilutes meaning
+2. **At least 2 shared tags** — verify overlap with existing articles before publishing
+3. **Prefer core tags** — use from the registry when they fit
+4. **Normalize variants:**
    - `nextjs` (not `next.js` or `Next.js`)
    - `ai` (not `ai-collaboration`, `agentic-mode`, `llm`)
    - `typescript` (not `ts`)
    - `supabase` (not `postgres` when using Supabase)
-4. **Maximum 7 tags** — keep focused
 5. **Lowercase except proper nouns** — `react`, `typescript`, `supabase`
 
 ### Tag selection workflow
@@ -59,9 +60,12 @@ Tags serve discoverability and related-post suggestions. Every article must shar
 ```
 1. Core technology → typescript, react, nextjs
 2. Domain → frontend, backend, debugging, experiments
-3. Verify → check at least 2 tags exist in other articles
-4. Unique → add 1-2 only if genuinely necessary
+3. Verify → at least 2 tags must exist in other articles
+4. Ask → "Is there a theme here that doesn't have a tag yet?"
+5. If yes → add it freely (no permission needed)
 ```
+
+The goal is balance: enough shared tags for discoverability, room for new tags when they genuinely fit.
 
 ---
 
@@ -123,7 +127,7 @@ featured: false
 | `publishedAt` | Yes | `"YYYY-MM-DD"` (quoted) | Must match the date prefix in the folder name. |
 | `summary` | Yes | Quoted string, 1–2 sentences | Written in the bloq voice. Appears on feed cards. |
 | `slug` | Yes | `"kebab-case-slug"` (quoted) | URL path. Must be a valid URL segment, never a sentence. |
-| `tags` | Yes | 2-space indented list | Lowercase except proper nouns/brands (`react`, `supabase`). Minimum 2 shared tags. |
+| `tags` | Yes | 2-space indented list | Lowercase except proper nouns/brands (`react`, `supabase`). 3-7 tags, at least 2 shared. |
 | `authors` | Yes | 2-space indented list | Full name. |
 | `category` | Yes | Quoted string | One of: `"Engineering"`, `"Reflections"`, `"Getting Started"`, `"Development"`. |
 | `draft` | Yes | `true` / `false` | `true` = visible in dev, hidden in production. |
@@ -246,9 +250,10 @@ The senior engineer voice:
 
 - Tutorial-style step-by-step instructions
 - Impersonal, corporate, or documentation-tone
-- Exhaustive API references — prefer narrative over reference
-- Uncritical AI boosterism — the voice is nuanced, sometimes skeptical
+- Exhaustive API references (prefer narrative over reference)
+- Uncritical AI boosterism (the voice is nuanced, sometimes skeptical)
 - Emoji-heavy or exclamation-mark-heavy
+- **Em dashes (—).** Never use them. They feel generated and robotic. Use commas, colons, or periods instead.
 
 ---
 
@@ -396,8 +401,9 @@ When an agent is tasked with creating a new bloq:
 7. Tag casing: lowercase except proper nouns (`react`, `typescript`, `supabase`)
 8. Do not add emoji
 9. Keep the philosophical undercurrent — every post should say something about learning, agency, or building
-10. Ensure at least 2 tags from the core shared tags list
+10. Ensure at least 2 tags from the core shared tags list, minimum 3 tags total
 11. Normalize tag names: `nextjs` not `next.js`, `ai` not `ai-collaboration`
+12. After selecting core tags, ask: "Is there a theme here that doesn't have a tag yet?" — add freely if yes
 
 ### After publication
 1. **Update Evolution Log** — what did this article teach?
@@ -432,6 +438,9 @@ After every new article is published, the agent or human should:
 
 ### Essential tags (pick 2+)
 `typescript` | `react` | `nextjs` | `debugging` | `frontend` | `backend` | `ai` | `experiments` | `reflections` | `seo`
+
+### Tag limits
+3-7 tags per article, at least 2 shared with existing articles
 
 ### Voice checklist
 - [ ] First person singular
