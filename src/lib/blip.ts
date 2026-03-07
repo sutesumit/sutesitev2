@@ -6,7 +6,7 @@ export async function getBlips(): Promise<Blip[]> {
   
   const { data, error } = await supabase
     .from("blips")
-    .select("id, content, created_at")
+    .select("id, content, created_at, blip_serial")
     .order("created_at", { ascending: false });
 
   if (error) {
