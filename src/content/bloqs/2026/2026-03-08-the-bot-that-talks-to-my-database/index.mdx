@@ -1,13 +1,13 @@
 ---
 title: "The Bot That Talks to My Database"
 publishedAt: "2026-03-08"
-summary: "I built a Telegram bot that CRUDs blips by serial number. The serials are base-62, the auth is a whitelist, and somewhere along the way I learned that middleware order matters more than I wanted to admit."
+summary: "I built a Telegram bot that CRUDs blips from my phone. Along the way, I learned about polling vs webhooks, middleware order, and why the Bot API is surprisingly elegant."
 slug: "the-bot-that-talks-to-my-database"
 tags:
   - typescript
   - backend
-  - debugging
   - nextjs
+  - ai
 authors:
   - Sumit Sute
 category: "Engineering"
@@ -15,134 +15,140 @@ draft: true
 featured: false
 ---
 
-## What's a Blip?
+## Why a Telegram Bot?
 
-> "Every UUID slice is a cry for help."
+> "The best interface is the one you already have open."
 
-[Blips](/blip) are short, 280-character posts. Think of them as tweets that live on my own infrastructure. They're stored in Supabase, rendered on a Next.js page, and until recently, identified by UUIDs.
+[Blips](/blip) are short, 280-character posts. Think of them as tweets on my own infrastructure. Until now, creating one meant opening a terminal, crafting a curl command, and hoping I remembered the API key.
 
-The UUID problem wasn't theoretical. Somewhere in the UI, I was displaying the first two characters of a UUID like that meant something. `a3`, `f7`, `2b`. Meaningless placeholders.
+I wanted something simpler. Open Telegram. Type a message. Done.
 
-The goal: serial numbers you could reference, type, and remember.
+Telegram bots are perfect for this. They live in the same app where I already chat with humans. No separate app, no authentication flow, no context switching. Just a conversation.
 
 ---
 
-## The Feature at a Glance
+## How Telegram Bots Work
 
-Two pieces:
+Telegram's Bot API is HTTP-based and surprisingly simple.
 
-1. **Sequential base-62 serials** for each blip (`0, 1, 2... 9, a, b... Z, 10`)
-2. **Telegram bot** to create, read, update, and delete blips using those serials
+### The Bot Father
 
-The flow:
+Every bot starts with [@BotFather](https://t.me/botfather). Send `/newbot`, pick a name, get a token. That token is your bot's identity. It looks like:
 
 ```text
-┌─────────────┐     ┌──────────────┐     ┌──────────┐
-│  Telegram   │────▶│  Next.js API │────▶│ Supabase │
-│  Message    │     │  Routes      │     │ Database │
-└─────────────┘     └──────────────┘     └──────────┘
-                           │
-                           ▼
-                    blip_serial (base-62)
+123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 ```
 
-User sends a message. Bot processes it. API queries by serial. Response flows back.
+With this token, you can call any Bot API endpoint:
+
+- `getMe` — get bot info
+- `getUpdates` — fetch new messages
+- `sendMessage` — reply to a user
+- `setWebhook` — register a webhook URL
+
+### Bots vs Users
+
+Bots are special Telegram accounts:
+
+- They can't initiate conversations (users must start first)
+- They have a limited rate of API calls
+- They can be added to groups
+- They receive commands (messages starting with `/`)
+
+The important part: bots don't have passwords. Authentication is purely token-based. If you have the token, you control the bot.
 
 ---
 
-## Concept 1: Base-62 Encoding
+## Getting Messages: Polling vs Webhooks
 
-Base-62 uses all alphanumeric characters: `0-9`, `a-z`, `A-Z`. That's 62 symbols.
+There are two ways to receive messages from Telegram.
 
-| Decimal | Base-62 |
-|---------|---------|
-| 0       | 0       |
-| 10      | a       |
-| 35      | z       |
-| 61      | Z       |
-| 62      | 10      |
-| 3844    | 100     |
+### Polling
 
-Why base-62?
-
-- **URL-safe** — no special characters to encode
-- **Case-sensitive** — 62 symbols instead of 36
-- **Compact** — four digits in base-62 covers 14 million values
-- **Human-readable** — `a3` is easier to remember than `a3f2e8c1-...`
-
-The encoding is reversible. Given `a3`, you can decode back to the original number. This means the serial is both identifier and display value, no lookup table needed.
-
----
-
-## Concept 2: Database-Generated Serials
-
-The serial isn't generated in application code. PostgreSQL handles it.
-
-The mechanism:
-
-1. A **sequence** tracks the next number (standard Postgres feature)
-2. A **function** converts the number to base-62 (custom PL/pgSQL)
-3. A **trigger** fires on every INSERT, calling the function
-
-This is atomic. No race conditions, no duplicate checks, no application-level coordination. The database guarantees uniqueness because sequences are designed for exactly this.
-
-### The Backfill Problem
-
-Existing blips needed serials too. The solution: a migration that:
-
-1. Orders existing blips by creation date
-2. Assigns sequential numbers starting from 0
-3. Converts each number to base-62
-4. Updates the `blip_serial` column
-
-Oldest blip gets `0`. Next gets `1`. Chronological order preserved.
-
-The tricky part: PostgreSQL's `substr()` function expects INTEGER arguments, but sequences return BIGINT. A simple cast (`::INTEGER`) fixed it, but not before I questioned whether base-10 was "humble enough."
-
----
-
-## Concept 3: Dynamic Routes by Serial
-
-Next.js App Router supports dynamic segments in routes. Instead of querying by UUID:
+Your bot repeatedly calls `getUpdates` to fetch new messages:
 
 ```text
-GET /api/blip/a3f2e8c1-4b5d-...
+Bot: Any new messages?
+Telegram: Here's a list.
+Bot: (processes messages)
+Bot: Any new messages?
+Telegram: Nothing new.
+(repeat forever)
 ```
 
-You query by serial:
+**Pros:**
+- Simple to implement
+- Works behind NAT/firewall
+- No public URL needed
+
+**Cons:**
+- Constant API calls (even when idle)
+- Slight delay between message and response
+- Needs a running process
+
+### Webhooks
+
+You register a public HTTPS URL with Telegram. When a message arrives, Telegram POSTs it to your URL:
 
 ```text
-GET /api/blip/a3
+User sends message → Telegram servers → POST to your URL → Your server responds
 ```
 
-The route handler extracts the serial from the URL, queries Supabase with `.eq("blip_serial", serial)`, and returns the blip.
+**Pros:**
+- Real-time delivery
+- No wasted API calls
+- Scales better
 
-Same pattern for PUT (update) and DELETE. The serial becomes the primary lookup key for all operations. The UUID still exists internally, but the public interface uses serials.
+**Cons:**
+- Requires public HTTPS URL
+- Needs TLS certificate
+- More complex setup (ngrok for local dev)
+
+### Which I Used
+
+Both. The bot supports polling for development (`npm run bot`) and webhooks for production (via a Next.js API route). The webhook endpoint at `/api/telegram/webhook` receives POST requests and passes them to the same handler logic.
+
+For local development, polling is easier. No ngrok, no tunnel, just run the script. For production, webhooks are cleaner. The bot only wakes up when there's actual work.
 
 ---
 
-## Concept 4: Grammy Bot and Middleware Order
+## Grammy: A TypeScript-First Bot Framework
 
-The Telegram bot uses [grammy](https://grammy.dev/), a TypeScript-first bot framework.
+[Grammy](https://grammy.dev/) is a bot framework designed for TypeScript. It handles the low-level API calls and provides structure for handling messages.
 
-The key insight: **middleware order determines handler execution**.
+### Handlers and Middleware
 
-Handlers are registered in code. When a message arrives, grammy checks each handler in order. The first match wins.
+Grammy uses a middleware pattern. You register handlers, and when an update arrives, each handler gets a chance to process it:
 
-This means:
+```text
+Update arrives → Handler 1 → Handler 2 → Handler 3 → Response
+```
 
-- **Specific handlers first** — commands like `/start`, `/list`, `/edit`
-- **Generic handlers last** — catch-all for regular messages
+Handlers can:
+- Process the update and respond
+- Pass to the next handler
+- Stop the chain
 
-If you register the generic handler first, it matches everything. Commands never get a chance. The bot receives the message but doesn't respond correctly.
+### The Order Problem
 
-I learned this the hard way. The bot was running, polling, receiving messages. But `/start` returned nothing. The message handler was catching everything, returning early for commands, and the command handlers never ran.
+Here's what bit me: **handlers run in registration order**.
 
-Order matters. Middleware is a pipeline, not a buffet.
+I registered a generic "message" handler first, then specific "command" handlers. The message handler caught everything, including commands. My `/start` command never ran because the message handler already processed it.
 
-### Session State for Conversational Flows
+The fix: register specific handlers before generic ones.
 
-The `/edit` command needs to remember context across messages:
+```text
+Commands first  → /start, /list, /edit
+Generic last    → catch-all for regular messages
+```
+
+Middleware is a pipeline. Order matters. This isn't unique to grammy, it's how most bot frameworks work. But it's the kind of thing you learn by breaking it first.
+
+---
+
+## Session State for Conversational Flows
+
+Some operations need multiple messages. The `/edit` flow:
 
 ```text
 User: /edit a3
@@ -151,87 +157,112 @@ User: Updated text here
 Bot: Updated blip a3
 ```
 
-Grammy's session middleware stores state between messages. The bot remembers `mode: "edit"` and `editingSerial: "a3"` until the operation completes or is cancelled.
+The bot needs to remember: "we're in edit mode, targeting blip a3."
 
-Without sessions, every message is stateless. The bot can't ask follow-up questions.
+Grammy's session middleware stores state per chat. When the first message arrives, the bot sets `mode: "edit"` and `target: "a3"`. When the second message arrives, the bot checks the session, sees it's in edit mode, and processes accordingly.
 
----
-
-## Concept 5: Dual Auth Systems
-
-Two authentication mechanisms coexist:
-
-| System | Used By | Mechanism |
-|--------|---------|-----------|
-| Secret key | curl, direct API | Header-based token |
-| User ID whitelist | Telegram bot | Numeric ID check |
-
-They don't overlap. The bot doesn't know about the API key. The API routes don't know about Telegram user IDs. Each system trusts its own source.
-
-For a personal tool, this is sufficient. No JWTs, no OAuth, no shared token store. Just two simple checks in two different places.
-
-The Telegram user ID whitelist is particularly simple: a comma-separated list of numbers in an environment variable. If your ID is in the list, you're authorized. If not, you get "Unauthorized."
+Without sessions, every message is independent. The bot can't ask follow-up questions or maintain context.
 
 ---
 
-## The Full Flow: Creating a Blip
+## Authentication: User ID Whitelist
+
+Telegram sends the user's ID with every message. It's a number, permanent and unique.
+
+The bot checks this ID against a whitelist stored in an environment variable:
+
+```text
+TELEGRAM_ALLOWED_USER_IDS=123456789,987654321
+```
+
+If the ID is in the list, the request proceeds. If not, "Unauthorized."
+
+This is deliberately simple. No JWTs, no OAuth, no token refresh. For a personal bot, a hardcoded whitelist is sufficient. The security model is: if you have my phone, you have access to the bot. If you don't, you don't.
+
+---
+
+## The Commands
+
+The bot supports these commands:
+
+| Command | What it does |
+|---------|--------------|
+| `/start` | Show help |
+| `/list` | Show recent blips |
+| `/get <id>` | Fetch a specific blip |
+| `/edit <id>` | Edit a blip (conversational) |
+| `/del <id>` | Delete a blip |
+| (any text) | Create a new blip |
+
+The conversational edit flow uses sessions. The delete and create flows are single-message. The list and get commands are read-only.
+
+---
+
+## The Full Flow: A Message Travels
 
 When you send "Hello world" to the bot:
 
-1. **Telegram receives** the message on their servers
-2. **Bot polls** Telegram's API for new updates (long polling)
-3. **Grammy parses** the update and matches handlers
-4. **Auth check** — is this user ID in the whitelist?
-5. **Mode check** — is there an active edit/delete session?
-6. **Command check** — does the text start with `/`?
-7. **Create blip** — INSERT into Supabase
-8. **Trigger fires** — generates base-62 serial atomically
-9. **Response** — bot replies with the new serial
+```text
+1. You type "Hello world" in Telegram
+2. Telegram's servers receive the message
+3. Either:
+   a. Bot polls getUpdates → receives message, OR
+   b. Telegram POSTs to webhook URL
+4. Grammy parses the update
+5. Grammy runs handlers in order:
+   - Is it /start? No.
+   - Is it /list? No.
+   - Is it /edit? No.
+   - Is it a regular message? Yes.
+6. Handler checks: is user ID whitelisted? Yes.
+7. Handler checks: are we in edit/delete mode? No.
+8. Handler creates blip in database
+9. Handler replies: "Created blip a3"
+10. Response travels back: bot → Telegram → your phone
+```
 
-The user sees: `Created blip a3`
+Latency is usually under a second. Most of that is network round-trip time.
 
 ---
 
-## The Full Flow: Reading a Blip
+## Webhook Setup for Production
 
-When you send `/get a3`:
+To use webhooks instead of polling:
 
-1. **Telegram receives** the message
-2. **Bot polls** and grammy parses
-3. **Command matched** — `/get` handler runs (registered before generic handler)
-4. **Serial extracted** from the command argument
-5. **Query** — SELECT WHERE blip_serial = 'a3'
-6. **Response** — bot replies with content
+1. Deploy your bot endpoint (e.g., `https://yoursite.com/api/telegram/webhook`)
+2. Register it with Telegram:
 
-The user sees: `a3. Hello world`
+```text
+POST https://api.telegram.org/bot<TOKEN>/setWebhook
+?url=https://yoursite.com/api/telegram/webhook
+```
+
+3. Telegram will now POST updates to that URL
+
+For local development, use [ngrok](https://ngrok.com/) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/) to expose localhost:
+
+```text
+ngrok http 3000
+# → https://abc123.ngrok.io
+
+curl -F "url=https://abc123.ngrok.io/api/telegram/webhook" \
+  https://api.telegram.org/bot<TOKEN>/setWebhook
+```
 
 ---
 
 ## What I Took Away
 
-- **Middleware order is execution order.** Register specific handlers before generic ones. The pipeline doesn't reroute itself.
-- **Database-generated serials are atomic.** No application-level coordination, no collision detection, no retry logic. The sequence handles it.
-- **Base-62 is compact and reversible.** The serial is both identifier and display value.
-- **Dual auth is fine for personal tools.** API key for direct access, user ID whitelist for Telegram. No need to unify them.
-- **Sessions enable conversational flows.** Edit mode persists across messages. The bot remembers context.
+- **Polling for dev, webhooks for prod.** Polling is zero-setup. Webhooks scale better.
+- **Middleware order matters.** Register specific handlers before generic ones.
+- **Sessions enable conversations.** Without state, every message is isolated.
+- **User ID is free auth.** Telegram sends it with every message. Use it.
+- **The Bot API is well-designed.** HTTP-based, simple endpoints, predictable behavior. Rare for a messaging API.
 
 ---
 
-## The Architecture Summary
+## Try It
 
-```text
-src/lib/
-├── base62.ts           # Encode/decode utilities
-├── telegram-bot.ts     # Grammy handlers and session logic
-└── blip.ts             # Supabase queries
+Run with `npm run bot` (polling) or deploy the webhook endpoint. Send `/start` to your bot. Create a [blip](/blip) from your phone.
 
-src/app/api/
-├── blip/route.ts       # Create and list
-├── blip/[serial]/route.ts  # Read, update, delete by serial
-└── telegram/webhook/route.ts  # Alternative: webhook instead of polling
-
-supabase/migrations/
-└── 001_add_blip_serial.sql  # Column, sequence, trigger, backfill
-```
-
-Run with `npm run bot`. Send `/start` to the bot. Create a [blip](/blip) from your phone.
+The bot is just an API client with a chat interface. But that's the point. The best tool is the one you actually use.
