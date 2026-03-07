@@ -100,7 +100,10 @@ export async function initBot() {
   );
 
   bot.on("message", async (ctx) => {
+    console.log("Received message from:", ctx.from?.id, "Text:", ctx.message.text);
+    
     if (!isAllowed(ctx.from?.id ?? 0)) {
+      console.log("Unauthorized user");
       await ctx.reply("Unauthorized");
       return;
     }
@@ -264,8 +267,12 @@ export async function startBot() {
     console.error("Bot error:", err);
   });
   
-  console.log("Starting Telegram bot...");
-  await bot.start();
+  console.log("Starting Telegram bot (polling)...");
+  await bot.start({
+    onStart: (botInfo) => {
+      console.log(`Bot @${botInfo.username} is running!`);
+    },
+  });
   console.log("Telegram bot stopped");
   return bot;
 }
