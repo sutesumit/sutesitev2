@@ -25,7 +25,7 @@ BEGIN
   END IF;
   
   WHILE seq_val > 0 LOOP
-    result := substr(chars, (seq_val % base) + 1, 1) || result;
+    result := substr(chars, ((seq_val % base) + 1)::INTEGER, 1) || result;
     seq_val := seq_val / base;
   END LOOP;
   
@@ -50,9 +50,9 @@ base62_serials AS (
       WHEN row_num = 0 THEN '0'
       ELSE (
         WITH RECURSIVE base62(n, r, result) AS (
-          SELECT row_num, row_num % 62, substr('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', (row_num % 62) + 1, 1)
+          SELECT row_num, row_num % 62, substr('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', ((row_num % 62) + 1)::INTEGER, 1)
           UNION ALL
-          SELECT n / 62, (n / 62) % 62, substr('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', ((n / 62) % 62) + 1, 1) || result
+          SELECT n / 62, (n / 62) % 62, substr('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', (((n / 62) % 62) + 1)::INTEGER, 1) || result
           FROM base62 WHERE n >= 62
         )
         SELECT result FROM base62 WHERE n < 62 LIMIT 1
