@@ -99,11 +99,117 @@ export async function initBot() {
     })
   );
 
+  bot.command("start", async (ctx) => {
+    console.log("/start command from:", ctx.from?.id);
+    if (!isAllowed(ctx.from?.id ?? 0)) {
+      await ctx.reply("Unauthorized");
+      return;
+    }
+    await ctx.reply(
+      "Blip Bot - Post short updates\n\n" +
+      "Just send a message to create a blip\n" +
+      "/list - Show recent blips\n" +
+      "/get <serial> - Show specific blip\n" +
+      "/edit <serial> - Edit a blip\n" +
+      "/del <serial> - Delete a blip"
+    );
+  });
+
+  bot.command("list", async (ctx) => {
+    console.log("/list command from:", ctx.from?.id);
+    if (!isAllowed(ctx.from?.id ?? 0)) {
+      await ctx.reply("Unauthorized");
+      return;
+    }
+
+    try {
+      const blips = await getBlips(10);
+      if (blips.length === 0) {
+        await ctx.reply("No blips yet");
+        return;
+      }
+
+      const message = blips.map(formatBlip).join("\n\n");
+      await ctx.reply(message, { parse_mode: "HTML" });
+    } catch {
+      await ctx.reply("Failed to fetch blips");
+    }
+  });
+
+  bot.command("get", async (ctx) => {
+    console.log("/get command from:", ctx.from?.id);
+    if (!isAllowed(ctx.from?.id ?? 0)) {
+      await ctx.reply("Unauthorized");
+      return;
+    }
+
+    const serial = ctx.match?.trim();
+    if (!serial) {
+      await ctx.reply("Usage: /get <serial>");
+      return;
+    }
+
+    try {
+      const blip = await getBlipBySerial(serial);
+      if (!blip) {
+        await ctx.reply("Blip not found");
+        return;
+      }
+      await ctx.reply(formatBlip(blip), { parse_mode: "HTML" });
+    } catch {
+      await ctx.reply("Failed to fetch blip");
+    }
+  });
+
+  bot.command("edit", async (ctx) => {
+    console.log("/edit command from:", ctx.from?.id);
+    if (!isAllowed(ctx.from?.id ?? 0)) {
+      await ctx.reply("Unauthorized");
+      return;
+    }
+
+    const serial = ctx.match?.trim();
+    if (!serial) {
+      await ctx.reply("Usage: /edit <serial>");
+      return;
+    }
+
+    const blip = await getBlipBySerial(serial);
+    if (!blip) {
+      await ctx.reply("Blip not found");
+      return;
+    }
+
+    ctx.session.mode = "edit";
+    ctx.session.editingSerial = serial;
+    await ctx.reply(`Editing blip <code>${serial}</code>:\n\n${blip.content}\n\nSend new content:`, { parse_mode: "HTML" });
+  });
+
+  bot.command("del", async (ctx) => {
+    console.log("/del command from:", ctx.from?.id);
+    if (!isAllowed(ctx.from?.id ?? 0)) {
+      await ctx.reply("Unauthorized");
+      return;
+    }
+
+    const serial = ctx.match?.trim();
+    if (!serial) {
+      await ctx.reply("Usage: /del <serial>");
+      return;
+    }
+
+    try {
+      await deleteBlip(serial);
+      await ctx.reply(`Deleted blip <code>${serial}</code>`, { parse_mode: "HTML" });
+    } catch {
+      await ctx.reply("Failed to delete blip (not found?)");
+    }
+  });
+
   bot.on("message", async (ctx) => {
-    console.log("Received message from:", ctx.from?.id, "Text:", ctx.message.text);
+    console.log("Message from:", ctx.from?.id, "Text:", ctx.message.text);
     
     if (!isAllowed(ctx.from?.id ?? 0)) {
-      console.log("Unauthorized user");
       await ctx.reply("Unauthorized");
       return;
     }
@@ -152,108 +258,6 @@ export async function initBot() {
       await ctx.reply(`Created blip <code>${blip.blip_serial}</code>`, { parse_mode: "HTML" });
     } catch {
       await ctx.reply("Failed to create blip");
-    }
-  });
-
-  bot.command("start", async (ctx) => {
-    if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
-      return;
-    }
-    await ctx.reply(
-      "Blip Bot - Post short updates\n\n" +
-      "Just send a message to create a blip\n" +
-      "/list - Show recent blips\n" +
-      "/get <serial> - Show specific blip\n" +
-      "/edit <serial> - Edit a blip\n" +
-      "/del <serial> - Delete a blip"
-    );
-  });
-
-  bot.command("list", async (ctx) => {
-    if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
-      return;
-    }
-
-    try {
-      const blips = await getBlips(10);
-      if (blips.length === 0) {
-        await ctx.reply("No blips yet");
-        return;
-      }
-
-      const message = blips.map(formatBlip).join("\n\n");
-      await ctx.reply(message, { parse_mode: "HTML" });
-    } catch {
-      await ctx.reply("Failed to fetch blips");
-    }
-  });
-
-  bot.command("get", async (ctx) => {
-    if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
-      return;
-    }
-
-    const serial = ctx.match?.trim();
-    if (!serial) {
-      await ctx.reply("Usage: /get <serial>");
-      return;
-    }
-
-    try {
-      const blip = await getBlipBySerial(serial);
-      if (!blip) {
-        await ctx.reply("Blip not found");
-        return;
-      }
-      await ctx.reply(formatBlip(blip), { parse_mode: "HTML" });
-    } catch {
-      await ctx.reply("Failed to fetch blip");
-    }
-  });
-
-  bot.command("edit", async (ctx) => {
-    if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
-      return;
-    }
-
-    const serial = ctx.match?.trim();
-    if (!serial) {
-      await ctx.reply("Usage: /edit <serial>");
-      return;
-    }
-
-    const blip = await getBlipBySerial(serial);
-    if (!blip) {
-      await ctx.reply("Blip not found");
-      return;
-    }
-
-    ctx.session.mode = "edit";
-    ctx.session.editingSerial = serial;
-    await ctx.reply(`Editing blip <code>${serial}</code>:\n\n${blip.content}\n\nSend new content:`, { parse_mode: "HTML" });
-  });
-
-  bot.command("del", async (ctx) => {
-    if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
-      return;
-    }
-
-    const serial = ctx.match?.trim();
-    if (!serial) {
-      await ctx.reply("Usage: /del <serial>");
-      return;
-    }
-
-    try {
-      await deleteBlip(serial);
-      await ctx.reply(`Deleted blip <code>${serial}</code>`, { parse_mode: "HTML" });
-    } catch {
-      await ctx.reply("Failed to delete blip (not found?)");
     }
   });
 
