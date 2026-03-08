@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-07 | **Articles written:** 11 | **Version:** 1.8.0 (2026-03)
+> **Last evolved:** 2026-03-08 | **Articles written:** 12 | **Version:** 1.9.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -21,6 +21,7 @@ A changelog of what this skill has learned over time.
 | 2026-03-06 | 1.6.0 | Metadata That Matters | Added per-post SEO with generateMetadata, JSON-LD BlogPosting schema, generateStaticParams; each bloq now has unique title, description, canonical URL, OpenGraph; added `seo` tag to registry | Agent |
 | 2026-03-06 | 1.7.0 | The Lazy Way to Build Better Software | Documented spec-driven development approach; questions-as-specifications pattern; design for the third case; specs as documentation; added `backend` tag prominence; embedded ClapsCounter component demo in article | Agent |
 | 2026-03-07 | 1.8.0 | Tag rule revision | Revised tag rules: minimum 3 tags (was 2), maximum 7; replaced "only if genuinely necessary" with prompting step to encourage organic new tag creation; goal is balance between consistency (shared tags) and freshness (new tags when they fit) | Human |
+| 2026-03-08 | 1.9.0 | When Not To Unify | Documented the third case test applied to API unification; code duplication as domain separation; unify infrastructure not intent; added `architecture` tag to registry | Agent |
 
 ---
 
@@ -42,6 +43,7 @@ Tags serve discoverability and related-post suggestions. Every article must have
 | `experiments` | 3+ | Low | Creative/technical explorations |
 | `reflections` | 2+ | Low | Personal learning arcs, events |
 | `seo` | 1+ | High | Metadata, OpenGraph, JSON-LD, search optimization |
+| `architecture` | 2+ | Medium | System design, trade-offs, layer separation, patterns |
 
 ### Tag rules
 
@@ -288,6 +290,8 @@ Patterns that have emerged across multiple articles. These are observations that
 | Honest disclosure | The Skill That Writes Itself (revision) | Pending (1/3) — admitting AI involvement is part of learning in public; hiding it is performing a false authorship |
 | Design for the third case | The Lazy Way to Build Better Software | Pending (1/3) — when building for two, ask what happens with three; reveals whether to unify or separate |
 | Specs as documentation | The Lazy Way to Build Better Software | Pending (1/3) — the spec written before coding becomes the mental model for future maintenance |
+| Duplication as domain separation | When Not To Unify | Pending (1/3) — code that looks duplicated may be serving different intents; unify infrastructure, not domain |
+| Unify infrastructure, not intent | When Not To Unify | Pending (1/3) — extract shared utilities (error handling, validation) but keep semantically different APIs separate |
 
 ---
 
