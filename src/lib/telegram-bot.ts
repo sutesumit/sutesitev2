@@ -5,6 +5,8 @@ type MyContext = Context;
 
 const MAX_CONTENT_LENGTH = 280;
 
+let botInstance: Bot<MyContext> | null = null;
+
 function getAllowedUserIds(): number[] {
   const ids = process.env.TELEGRAM_ALLOWED_USER_IDS;
   if (!ids) return [];
@@ -80,15 +82,19 @@ function formatBlip(blip: { blip_serial: string; content: string; created_at: st
   return `<code>${blip.blip_serial}.</code> ${blip.content}\n<i>${timeStr}</i>`;
 }
 
-export async function initBot() {
+export async function initBot(): Promise<Bot<MyContext>> {
+  if (botInstance) {
+    return botInstance;
+  }
+
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
     throw new Error("TELEGRAM_BOT_TOKEN not configured");
   }
 
-  const bot = new Bot<MyContext>(token);
+  botInstance = new Bot<MyContext>(token);
 
-  bot.command("start", async (ctx) => {
+  botInstance.command("start", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -103,7 +109,7 @@ export async function initBot() {
     );
   });
 
-  bot.command("list", async (ctx) => {
+  botInstance.command("list", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -123,7 +129,7 @@ export async function initBot() {
     }
   });
 
-  bot.command("get", async (ctx) => {
+  botInstance.command("get", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -147,7 +153,7 @@ export async function initBot() {
     }
   });
 
-  bot.command("edit", async (ctx) => {
+  botInstance.command("edit", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -181,7 +187,7 @@ export async function initBot() {
     }
   });
 
-  bot.command("del", async (ctx) => {
+  botInstance.command("del", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -201,7 +207,7 @@ export async function initBot() {
     }
   });
 
-  bot.on("message", async (ctx) => {
+  botInstance.on("message", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -223,5 +229,5 @@ export async function initBot() {
     }
   });
 
-  return bot;
+  return botInstance;
 }
