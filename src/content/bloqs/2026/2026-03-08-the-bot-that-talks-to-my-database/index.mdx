@@ -77,27 +77,38 @@ You give Telegram a URL. When a message arrives, Telegram POSTs to that URL.
 User sends message → Telegram → POST to your URL → You handle it
 ```
 
-No polling. No wasted calls. Real-time. Your server sleeps until there's work, then wakes up, does the thing, goes back to sleep.
+No polling. No wasted calls. Real-time. Your server sleeps until there's work.
 
-The catch: your URL needs to be public. Telegram can't POST to `localhost:3000`. Your laptop is behind a router, behind a firewall, behind several layers of networking equipment you don't fully understand.
+The catch: your URL needs to be public. Telegram can't POST to `localhost:3000`.
 
-So you need a real server with HTTPS. Which you should have anyway if you're building stuff for the internet.
+### What Webhooks Actually Are
+
+A webhook is just: someone else's server calling your server.
+
+That's it. It's an HTTP POST request. You expose an endpoint. They hit it when something happens.
+
+You've seen this pattern before:
+
+- **Stripe:** Payment succeeds → POST to your `/webhooks/stripe` endpoint
+- **GitHub:** Push to repo → POST to your `/webhooks/github` endpoint
+- **Slack:** Someone mentions @bot → POST to your `/webhooks/slack` endpoint
+- **Telegram:** Someone messages bot → POST to your `/webhooks/telegram` endpoint
+
+Same pattern. Different services. They all push events to you instead of you pulling from them.
+
+### Rule of Thumb
+
+**Use webhooks when:** You control a server and want real-time updates from external services.
+
+**Use polling when:** You're behind a firewall, don't have a public URL, or the service doesn't support webhooks.
+
+Most production apps use webhooks. Most local development uses polling (or a tunnel like ngrok to fake a public URL).
 
 ### What I Use
 
-Webhooks in production. The bot lives at `/api/telegram/webhook`. Telegram POSTs there, the handler does its thing.
+Webhooks in production. The bot lives at `/api/telegram/webhook`. Telegram POSTs there.
 
-### Dev Setup
-
-Polling exists for local testing. Run `npm run bot` and it starts polling Telegram's API. Useful for development before you have a production server with HTTPS.
-
-I don't use it anymore. But it's there if I need to debug something locally.
-
-**Why keep it?** Zero-config testing. No ngrok, no tunnel, no public URL. Just run the script.
-
-**Why remove it?** Dead code if you never use it. Adds dotenv as a dependency. Confuses the architecture (two ways to do the same thing).
-
-For now, it stays. Might not forever.
+Polling exists for local dev. Run `npm run bot`, it polls. Useful before you have HTTPS set up. I don't use it anymore.
 
 ---
 
