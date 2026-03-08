@@ -94,6 +94,8 @@ export async function initBot(): Promise<Bot<MyContext>> {
 
   botInstance = new Bot<MyContext>(token);
 
+  await botInstance.init();
+
   botInstance.command("start", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
