@@ -1,5 +1,5 @@
 export const replies = {
-  unauthorized: "Nice try, but nope.",
+  unauthorized: "Nice try, but nope. This bot is not for you.",
   noBlips: "Crickets... nothing here yet.",
   blipNotFound: "That blip doesn't exist (yet?)",
   blipCreated: (serial: string) => `Blip <code>${serial}</code> is born!`,
@@ -14,7 +14,7 @@ export const replies = {
   usageEdit: "Usage: /edit <serial> <new content>",
   usageDel: "Usage: /del <serial>",
   startIntro: 
-    "Blip Bot\n\n" +
+    "Blip Bot for [sumit sute](https://www.sutesite.com/blip)\n\n" +
     "Just send a message to create a blip.\n\n" +
     "/list – See what you've blipped lately\n" +
     "/get <serial> – Pull up a specific blip\n" +

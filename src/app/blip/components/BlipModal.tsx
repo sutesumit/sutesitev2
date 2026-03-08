@@ -3,7 +3,7 @@
 import React, { useEffect, useCallback, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion as m, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Link, Check, X } from 'lucide-react'
 import type { Blip } from '@/types/blip'
 import ClapsCounter from '@/components/shared/ClapsCounter'
 import { BloqBackground } from '@/app/bloq/components/BloqCard/parts'
@@ -121,7 +121,7 @@ const BlipModal = ({ blips }: BlipModalProps) => {
             </m.div>
             {/* Header bar */}
             <div className="relative z-10 flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-end w-10 h-6 pr-2 shrink-0 border-r-[1px] border-r-blue-500 !border-l-solid opacity-50 relative overflow-hidden">
+              <div className="flex items-center justify-end pr-2 shrink-0 relative overflow-hidden opacity-50">
                 <AnimatePresence mode="popLayout" custom={direction}>
                   <m.div
                     key={activeBlip.id}
@@ -135,18 +135,29 @@ const BlipModal = ({ blips }: BlipModalProps) => {
                     animate="center"
                     exit="exit"
                     transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400"
+                    className="flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111] overflow-hidden shadow-sm text-xs"
                   >
-                    # {activeBlip.blip_serial}
+                    <div className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
+                      <span className="font-bold text-slate-700 dark:text-slate-300">blip</span>
+                    </div>
+                    <div className="px-2 py-0.5 flex items-center gap-1 bg-white dark:bg-[#0a0a0a]">
+                      <span className="text-slate-400 dark:text-slate-500 font-sans">#</span>
+                      <span className="font-mono text-slate-600 dark:text-slate-400 tracking-wider">
+                        {activeBlip.blip_serial}
+                      </span>
+                    </div>
                   </m.div>
                 </AnimatePresence>
               </div>
+              {/* <div className='page-title opacity-50'>
+                <p className="font-bold">blip</p>
+              </div> */}
               <div className="flex items-center gap-3">
                 {/* Copy permalink */}
                 <button
                   onClick={copyLink}
                   title={isCopied ? "copied!" : "copy permalink"}
-                  className={`transition-colors relative overflow-hidden flex items-center justify-center w-7 h-7 rounded-lg ${
+                  className={`transition-colors relative overflow-hidden flex items-center justify-center w-7 h-7 rounded-sm ${
                     isCopied ? "text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10" : "text-slate-400 dark:text-slate-600 hover:text-blue-500 hover:bg-slate-100 dark:hover:text-blue-400 dark:hover:bg-slate-800"
                   }`}
                   aria-label={isCopied ? "copied!" : "copy permalink"}
@@ -170,7 +181,7 @@ const BlipModal = ({ blips }: BlipModalProps) => {
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
                       >
-                        <Copy size={16} strokeWidth={2} />
+                        <Link size={16} strokeWidth={2} />
                       </m.div>
                     )}
                   </AnimatePresence>
@@ -179,9 +190,9 @@ const BlipModal = ({ blips }: BlipModalProps) => {
                 <button
                   onClick={close}
                   aria-label="close"
-                  className="text-slate-400 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-base leading-none"
+                  className="transition-colors relative overflow-hidden flex items-center justify-center w-7 h-7 rounded-sm text-slate-400 dark:text-slate-600 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800"
                 >
-                  ✕
+                  <X size={16} strokeWidth={2} />
                 </button>
               </div>
             </div>
@@ -266,7 +277,7 @@ const BlipModal = ({ blips }: BlipModalProps) => {
                 postId={activeBlip.id}
                 postType="blip"
                 interactive={true}
-                className="text-xs text-slate-400 dark:text-slate-600"
+                className="text-xs opacity-80"
               />
             </div>
           </m.div>

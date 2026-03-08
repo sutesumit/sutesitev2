@@ -49,12 +49,12 @@ export default function ClapsCounter({
             onClick={handleClick}
             onKeyDown={handleKeyDown}
             disabled={!interactive || maxReached}
-            whileTap={interactive && !maxReached ? { scale: 0.9 } : undefined}
+            whileTap={interactive && !maxReached ? { scale: 0.95 } : undefined}
             className={cn(
-                "inline-flex items-center gap-0.5 transition-colors p-1",
-                interactive && !maxReached && "cursor-pointer blue-border hover:bg-blue-100 hover:text-blue-500 dark:hover:bg-blue-900 dark:hover:text-blue-400",
-                maxReached && "cursor-default opacity-50",
-                !interactive && "cursor-default",
+                "inline-flex items-center gap-1.5 transition-all duration-300 p-1.5 px-2 rounded-md border text-xs",
+                interactive && !maxReached ? 
+                    "cursor-pointer border-blue-500/50 bg-blue-50 dark:bg-blue-950/40 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:border-blue-500 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 hover:shadow-sm hover:-translate-y-0.5" :
+                    "cursor-default border-transparent bg-transparent",
                 className
             )}
             aria-label={isLoading ? 'Loading claps count...' : `${totalClaps} claps${maxReached ? ' (max reached)' : ''}`}

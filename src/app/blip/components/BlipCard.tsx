@@ -72,7 +72,7 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
               postId={blip.id} 
               postType="blip" 
               interactive={true}
-              className="text-xs text-slate-400 dark:text-slate-600"
+              className="text-xs opacity-80"
             />
           </span>
         </p>

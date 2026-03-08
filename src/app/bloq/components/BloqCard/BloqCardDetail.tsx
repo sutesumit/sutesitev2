@@ -67,20 +67,20 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
                   postId={post.url}
                   postType="bloq"
                   interactive={true}
-                  className="text-xs opacity-60 flex items-center text-gray-500 shrink-0"
+                  className="text-xs opacity-90 flex items-center shrink-0"
                 />
               </m.div>
             ) : (
               <div className="flex items-center gap-3">
                 <ViewCounter
                   slug={post.url}
-                  className="text-xs flex items-center text-gray-500"
+                  className="text-xs flex items-center"
                 />
                 <ClapsCounter
                   postId={post.url}
                   postType="bloq"
                   interactive={true}
-                  className="text-xs flex items-center text-gray-500"
+                  className="text-xs flex items-center"
                 />
               </div>
             )}
