@@ -1,5 +1,6 @@
 import { Bot, Context } from "grammy";
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { replies } from "@/lib/telegram-replies";
 
 type MyContext = Context;
 
@@ -98,78 +99,71 @@ export async function initBot(): Promise<Bot<MyContext>> {
 
   botInstance.command("start", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
+      await ctx.reply(replies.unauthorized);
       return;
     }
-    await ctx.reply(
-      "Blip Bot\n\n" +
-      "Send any message to create a blip\n" +
-      "/list - Recent blips\n" +
-      "/get <serial> - Show a blip\n" +
-      "/edit <serial> <text> - Update a blip\n" +
-      "/del <serial> - Delete a blip"
-    );
+    await ctx.reply(replies.startIntro);
   });
 
   botInstance.command("list", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
+      await ctx.reply(replies.unauthorized);
       return;
     }
 
     try {
       const blips = await getBlips(10);
       if (blips.length === 0) {
-        await ctx.reply("No blips yet");
+        await ctx.reply(replies.noBlips);
         return;
       }
 
       const message = blips.map(formatBlip).join("\n\n");
       await ctx.reply(message, { parse_mode: "HTML" });
     } catch {
-      await ctx.reply("Failed to fetch blips");
+      await ctx.reply(replies.fetchFailed);
     }
   });
 
   botInstance.command("get", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
+      await ctx.reply(replies.unauthorized);
       return;
     }
 
     const serial = ctx.match?.trim();
     if (!serial) {
-      await ctx.reply("Usage: /get <serial>");
+      await ctx.reply(replies.usageGet);
       return;
     }
 
     try {
       const blip = await getBlipBySerial(serial);
       if (!blip) {
-        await ctx.reply("Blip not found");
+        await ctx.reply(replies.blipNotFound);
         return;
       }
       await ctx.reply(formatBlip(blip), { parse_mode: "HTML" });
     } catch {
-      await ctx.reply("Failed to fetch blip");
+      await ctx.reply(replies.fetchFailed);
     }
   });
 
   botInstance.command("edit", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
+      await ctx.reply(replies.unauthorized);
       return;
     }
 
     const args = ctx.match?.trim();
     if (!args) {
-      await ctx.reply("Usage: /edit <serial> <new content>");
+      await ctx.reply(replies.usageEdit);
       return;
     }
 
     const firstSpace = args.indexOf(" ");
     if (firstSpace === -1) {
-      await ctx.reply("Usage: /edit <serial> <new content>");
+      await ctx.reply(replies.usageEdit);
       return;
     }
 
@@ -177,41 +171,41 @@ export async function initBot(): Promise<Bot<MyContext>> {
     const newContent = args.slice(firstSpace + 1).trim();
 
     if (newContent.length > MAX_CONTENT_LENGTH) {
-      await ctx.reply(`Content must be ${MAX_CONTENT_LENGTH} characters or less`);
+      await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH));
       return;
     }
 
     try {
       const updated = await updateBlip(serial, newContent);
-      await ctx.reply(`Updated blip <code>${updated.blip_serial}</code>`, { parse_mode: "HTML" });
+      await ctx.reply(replies.blipUpdated(updated.blip_serial), { parse_mode: "HTML" });
     } catch {
-      await ctx.reply("Failed to update blip (not found?)");
+      await ctx.reply(replies.updateFailed);
     }
   });
 
   botInstance.command("del", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
+      await ctx.reply(replies.unauthorized);
       return;
     }
 
     const serial = ctx.match?.trim();
     if (!serial) {
-      await ctx.reply("Usage: /del <serial>");
+      await ctx.reply(replies.usageDel);
       return;
     }
 
     try {
       await deleteBlip(serial);
-      await ctx.reply(`Deleted blip <code>${serial}</code>`, { parse_mode: "HTML" });
+      await ctx.reply(replies.blipDeleted(serial), { parse_mode: "HTML" });
     } catch {
-      await ctx.reply("Failed to delete blip (not found?)");
+      await ctx.reply(replies.deleteFailed);
     }
   });
 
   botInstance.on("message", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
-      await ctx.reply("Unauthorized");
+      await ctx.reply(replies.unauthorized);
       return;
     }
 
@@ -219,15 +213,15 @@ export async function initBot(): Promise<Bot<MyContext>> {
     if (!text || text.startsWith("/")) return;
 
     if (text.length > MAX_CONTENT_LENGTH) {
-      await ctx.reply(`Content must be ${MAX_CONTENT_LENGTH} characters or less`);
+      await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH));
       return;
     }
 
     try {
       const blip = await createBlip(text);
-      await ctx.reply(`Created blip <code>${blip.blip_serial}</code>`, { parse_mode: "HTML" });
+      await ctx.reply(replies.blipCreated(blip.blip_serial), { parse_mode: "HTML" });
     } catch {
-      await ctx.reply("Failed to create blip");
+      await ctx.reply(replies.createFailed);
     }
   });
 
