@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import Lottie, { LottieRefCurrentProps } from 'lottie-react'
-import seedingPlantLottie from '../../../public/seedingplant'
+import seedingPlantLottie from '@/data/seedingplant'
 
 const SeedingPlant: React.FC = () => {
 
