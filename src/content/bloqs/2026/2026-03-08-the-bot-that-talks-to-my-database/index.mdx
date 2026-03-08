@@ -23,7 +23,7 @@ So I have these [blips](/blip). Short posts, 280 characters. Like tweets, but mi
 
 Posting one used to mean curl. Terminal. API key. Fine for a robot, annoying for a human on a phone walking to get coffee.
 
-Now there are two interfaces. Terminal commands for when I'm working. Telegram bot for when I'm not. Same database, same blips, different entry points depending on where I am.
+Now there are two interfaces. Terminal commands for when I'm working and don't need Telegram distractions. And Telegram bot for when I'm already distracted. Same database, same blips, different entry points depending on where I am.
 
 This article is about the Telegram bot. How it works, what I learned building it. The curl stuff is boring. HTTP calls. You know HTTP.
 
@@ -31,13 +31,13 @@ This article is about the Telegram bot. How it works, what I learned building it
 
 ## Telegram Bots, Quickly
 
-You talk to @BotFather on Telegram. Yes, that's a real account. Yes, the name is ridiculous. Send `/newbot`, pick a name, get a token.
+You talk to [@BotFather](https://t.me/botfather) on Telegram. Yes, that's a real account. Yes, the name is ridiculous. Send `/newbot`, pick a name, get a token.
 
 That token is your bot's password. Lose it and the bot is orphaned forever. Telegram doesn't do password resets. Parental rights are permanent.
 
-With the token, you call Telegram's API. `sendMessage` to reply. `getUpdates` to fetch messages. It's HTTP. JSON in, JSON out. Nothing fancy. If you've ever called a REST API, you can build a Telegram bot.
+With the token, you call Telegram's API. `sendMessage` to reply. `getUpdates` to fetch messages. It's HTTP. JSON in, JSON out. Nothing fancy, just REST API.
 
-Bots are weird accounts. They can't start conversations (they're shy). They have rate limits (they get tired). They get commands (stuff starting with `/`). But mostly: they're just code that talks to Telegram's servers and pretends to be a person.
+Bots are peculiar accounts. They won’t message you first, they speak only so fast (rate limits), and they mostly listen for commands (the / kind). Otherwise, they’re just code talking to Telegram’s servers and masquerading as a user.
 
 ---
 
@@ -103,56 +103,81 @@ For now, it stays. Might not forever.
 
 ## Grammy and Middleware
 
-I use [grammy](https://grammy.dev/) for the bot. TypeScript framework. Handles the API plumbing so I don't have to think about it.
+I use [grammy](https://grammy.dev/) for the bot. TypeScript framework. Handles the API plumbing.
 
-The interesting bit is middleware. Which sounds fancy but isn't.
+You know middleware. Express has it. Redux has it. It's everywhere. A chain of functions, each doing one thing, passing control to the next.
 
-### What Middleware Actually Is
+### When Middleware Helps
 
-You know how sometimes you have a function, and you want to run some code before it? Like, check if the user is allowed to do the thing before doing the thing?
+Cross-cutting concerns. Stuff that applies to multiple handlers:
 
-You could do:
+- Auth (is this user allowed?)
+- Logging (what happened?)
+- Error handling (what broke?)
+- Rate limiting (slow down)
 
-```text
-handler() {
-  if (!allowed) return
-  // actual logic
-}
-```
+Without middleware, each handler repeats this logic. With middleware, it's centralized. Register once, applies everywhere.
 
-But now every handler needs that check. And maybe you also want logging. And error handling. And analytics. Suddenly every handler starts with fifteen lines of boilerplate. Your actual logic is buried at the bottom.
+### When Middleware Hurts
 
-Middleware is a pattern for this. Instead of one big function, you have a chain of small ones. Each does one thing and passes control to the next.
+Over-abstraction. Not everything needs a chain.
 
-```text
-request → auth check → logging → actual handler → response
-```
+If you have two handlers and they share nothing, middleware is overhead. You're adding complexity for theoretical future flexibility that never arrives.
 
-In grammy, you register handlers in order. When a message comes in, it goes through each one. If a handler matches, it runs. If it calls `next()`, the chain continues. If it doesn't, the chain stops.
+I've built middleware systems for apps with three routes. Waste of time. The indirection cost more than the duplication would have.
 
-### The Bug I Hit
+### This Bot
 
-I registered handlers in the wrong order.
+The bot has:
 
-```text
-message handler (catches EVERYTHING)
-command handlers (never reached, sad)
-```
+- 5 command handlers (`/start`, `/list`, `/get`, `/edit`, `/del`)
+- 1 message handler (catch-all for creating blips)
 
-The message handler caught `/start` before the command handler could see it. Bot received messages. Bot did nothing useful. Bot was technically working but functionally useless.
+Shared logic: auth check. That's it. Every handler checks if the user ID is whitelisted.
 
-Like hiring a receptionist who answers every question with "I don't know" before the specialist can respond.
-
-Fixed it by putting commands first:
+Could I use middleware for this? Yes. Grammy supports it:
 
 ```text
-/start handler
-/list handler  
-/edit handler
-message handler (catch-all at the end, where it belongs)
+bot.use(authMiddleware)
+bot.command('start', handler)
+bot.on('message', handler)
 ```
 
-Order matters. Specific before generic. Obvious in hindsight. Learned by breaking it first.
+Did I? No. I put the check in each handler. Five lines, repeated six times.
+
+Why? Because the bot is small. The auth check is one line. If it grows to ten handlers, I'll extract it. Until then, explicit is fine. The duplication is visible. The abstraction would hide it.
+
+### The Real Lesson
+
+Middleware isn't good or bad. It's a tradeoff.
+
+**Pros:** DRY, centralized logic, easy to add new cross-cutting concerns.
+**Cons:** Indirection, harder to trace execution, overkill for small apps.
+
+My instinct now: wait for the third duplication. First time: just write it. Second time: copy it. Third time: maybe extract. Often the third time never comes.
+
+### The Order Bug
+
+One more thing. Grammy's middleware runs in registration order.
+
+I registered handlers wrong:
+
+```text
+bot.on('message', catchAllHandler)// catches EVERYTHING
+bot.command('start', startHandler)  // never reached
+```
+
+The catch-all matched first. Commands never ran.
+
+Fixed:
+
+```text
+bot.command('start', startHandler)  // specific first
+bot.command('list', listHandler)
+bot.on('message', catchAllHandler)  // generic last
+```
+
+Order matters. Specific before generic. This isn't a middleware thing, it's a "things run in order" thing. But I learned it by breaking it.
 
 ---
 
