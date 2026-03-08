@@ -1,0 +1,258 @@
+---
+title: "Orchestrating Agents"
+publishedAt: "2026-03-08"
+summary: "What happens when you stop asking one AI to do everything and start treating agents like a team of specialists instead."
+slug: "orchestrating-agents"
+tags:
+  - ai
+  - architecture
+  - debugging
+  - reflections
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: true
+featured: false
+---
+
+## The One-Agent Problem
+
+> "When your only tool is a hammer, every problem looks like a nail. When your only agent is a generalist, every task looks like a chat."
+
+I used to treat AI agents like a single omniscient developer. One conversation, one context, one agent doing everything from architecture decisions to debugging typos. It worked, mostly. But the context would bloat, the focus would drift, and by the time we got to the third subtask, the agent had forgotten what the first one was about.
+
+The problem wasn't the model. The problem was the pattern.
+
+---
+
+## What Is Agent Orchestration?
+
+Agent orchestration is the practice of coordinating multiple AI agents to work together on complex tasks. Instead of one agent doing everything, you have specialized agents handling different parts of the work, with an orchestrator coordinating the flow.
+
+Think of it like a development team. You wouldn't ask your frontend specialist to architect the database schema, or your DevOps engineer to write React components. You'd match the task to the expertise.
+
+```text
+Traditional (Single Agent)
+┌─────────────────────────────────────┐
+│  User Request                       │
+│       ↓                             │
+│  ┌─────────────────────────────┐    │
+│  │     One Giant Context       │    │
+│  │  (design + code + debug)    │    │
+│  └─────────────────────────────┘    │
+│       ↓                             │
+│  Result (maybe correct)             │
+└─────────────────────────────────────┘
+
+Orchestrated (Multiple Agents)
+┌─────────────────────────────────────┐
+│  User Request                       │
+│       ↓                             │
+│  ┌─────────────┐                    │
+│  │ Orchestrator│ ← Plans & routes   │
+│  └──────┬──────┘                    │
+│    ┌────┼────┬────────┐             │
+│    ↓    ↓    ↓        ↓             │
+│ ┌────┐┌────┐┌────┐ ┌────┐           │
+│ │Arch││Code││Test│ │Docs│           │
+│ └────┘└────┘└────┘ └────┘           │
+│    └────┴────┴────────┘             │
+│           ↓                         │
+│  Synthesized Result                 │
+└─────────────────────────────────────┘
+```
+
+---
+
+## The Orchestration Patterns
+
+Anthropic's engineering team published a breakdown of common patterns they've seen work in production. Here's what they found:
+
+### Prompt Chaining
+
+Break a task into sequential steps, where each LLM call processes the output of the previous one.
+
+```text
+Input → [Step 1] → [Step 2] → [Step 3] → Output
+           ↓           ↓           ↓
+        (gate)      (gate)      (gate)
+```
+
+Good for: Tasks that cleanly decompose into fixed subtasks. Write an outline, validate it, then write the document.
+
+### Routing
+
+Classify the input and direct it to a specialized handler.
+
+```text
+           ┌────────────→ [General Questions Handler]
+Input → [Classifier] ───→ [Refund Handler]
+           └────────────→ [Technical Support Handler]
+```
+
+Good for: Different input types that need different expertise. Route easy queries to smaller models, hard ones to larger models.
+
+### Parallelization
+
+Run multiple agents simultaneously and aggregate results.
+
+```text
+           ┌──────────→ [Agent A] ───┐
+Input → [Splitter] ───→ [Agent B] ───|──→ [Aggregator] → Output
+           └──────────→ [Agent C] ───┘
+```
+
+Good for: Independent subtasks or when you want multiple perspectives (voting/review).
+
+### Orchestrator-Workers
+
+A central agent dynamically breaks down tasks, delegates to workers, and synthesizes results.
+
+```text
+┌─────────────┐
+│ Orchestrator│ ← Analyzes, plans, delegates
+└──────┬──────┘
+   ┌───┼───┬───────┐
+   ↓   ↓   ↓       ↓
+[W1] [W2] [W3] ... [Wn]  ← Workers execute subtasks
+   └───┴───┴───────┘
+         ↓
+   [Synthesis]
+```
+
+Good for: Complex tasks where you can't predict the subtasks ahead of time. Like coding agents that need to modify an unknown number of files.
+
+### Evaluator-Optimizer
+
+One agent generates, another evaluates in a loop.
+
+```text
+┌────────────────────────────────────┐
+│                                    │
+│   ┌──────────┐     ┌──────────┐    │
+│   │ Generator│ ──→ │ Evaluator│    │
+│   └────┬─────┘     └────┬─────┘    │
+│        ↑                │          │
+│        └────────────────┘          │
+│           (iterate)                │
+└────────────────────────────────────┘
+```
+
+Good for: Tasks with clear evaluation criteria where iteration improves quality. Translation, complex search, code review.
+
+---
+
+## How Kilo Code Does It
+
+I've been using Kilo Code's Orchestrator Mode, and it implements the orchestrator-workers pattern with some interesting twists.
+
+When you give it a complex task, it can:
+
+1. **Analyze and decompose** the request into subtasks
+2. **Delegate to specialized modes** (code, architect, debug, ask)
+3. **Run subtasks in isolation** with their own context
+4. **Resume with summaries** so the parent doesn't get cluttered
+
+The key insight: each subtask operates in complete isolation. It doesn't inherit the parent's bloated conversation history. Information flows down through explicit instructions and flows up through concise summaries.
+
+```text
+Parent Task (Orchestrator)
+│
+├── Subtask 1: "Design the API schema"
+│   └── Runs in Architect Mode
+│   └── Returns: "Schema defined with 3 endpoints..."
+│
+├── Subtask 2: "Implement the endpoints"
+│   └── Runs in Code Mode
+│   └── Returns: "Created handlers for /users, /posts, /comments..."
+│
+└── Subtask 3: "Write tests"
+    └── Runs in Code Mode
+    └── Returns: "12 tests passing, 2 edge cases noted..."
+```
+
+There's also **Parallel Mode** which runs agents in isolated Git worktrees. Your main branch stays clean while the agent experiments in `.kilocode/worktrees/feature-branch-abc123/`. When it's done, you review and merge.
+
+---
+
+## The Trade-offs
+
+Orchestration isn't always the answer. Here's when it helps and when it hurts:
+
+### Pros
+
+- **Specialization**: Each agent focuses on what it's good at
+- **Context isolation**: No conversation bloat, no drift
+- **Parallelism**: Independent tasks run simultaneously
+- **Resilience**: One agent's failure doesn't corrupt the whole context
+- **Auditability**: You can see what each agent contributed
+
+### Cons
+
+- **Latency**: More agents means more LLM calls
+- **Cost**: Each subtask consumes tokens
+- **Complexity**: More moving parts to debug
+- **Context transfer**: Information must be explicitly passed between agents
+- **Coordination overhead**: The orchestrator itself can become a bottleneck
+
+---
+
+## When to Orchestrate
+
+I've found orchestration valuable when:
+
+1. **The task spans multiple domains** (architecture + implementation + testing)
+2. **Subtasks are genuinely independent** (can run in parallel or any order)
+3. **Context bloat is killing quality** (the agent forgets early decisions)
+4. **You want specialized behavior** (strict code review vs exploratory coding)
+
+I avoid orchestration when:
+
+1. **A single prompt with good context is enough**
+2. **The task is simple enough to hold in one conversation**
+3. **Latency matters more than thoroughness**
+4. **The subtasks are tightly coupled** (constant back-and-forth needed)
+
+---
+
+## A Practical Example
+
+Last week I needed to add an RSS feed to this site. A single agent could have done it. But I was curious what orchestration would look like.
+
+```text
+Orchestrator: "Add RSS feed support"
+│
+├── Architect Subtask: "Design the feed structure"
+│   └── Output: RSS 2.0 spec, route design, caching strategy
+│
+├── Code Subtask: "Implement /feed.xml route"
+│   └── Output: Next.js route handler, XML generation
+│
+├── Code Subtask: "Add feed discovery to layout"
+│   └── Output: <link rel="alternate"> in head
+│
+└── Debug Subtask: "Validate feed with W3C validator"
+    └── Output: 2 warnings fixed, feed valid
+```
+
+The whole thing took longer than doing it in one chat. But each subtask was focused, the context stayed clean, and when I needed to debug the XML escaping issue, the debug agent had fresh eyes on the problem.
+
+Was it worth the overhead? For a simple feature, probably not. For a complex feature touching multiple systems, absolutely.
+
+---
+
+## What I Took Away
+
+- **Start simple.** One agent, one conversation. Add orchestration when complexity demands it.
+- **Context is the enemy.** The more you stuff into a single conversation, the more the agent forgets.
+- **Explicit is better.** Orchestration forces you to define what each piece does. That clarity is valuable even if you don't use multiple agents.
+- **The orchestrator matters.** A bad orchestrator creates more chaos than it solves. Design the coordination carefully.
+- **Summaries are an art.** What gets passed between agents determines success. Too little context, the next agent is lost. Too much, you've recreated the bloat problem.
+
+---
+
+## Further Reading
+
+- [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents) - Anthropic's engineering team on patterns they've seen work
+- [Kilo Code Orchestrator Mode](https://kilo.ai/docs/code-with-ai/agents/orchestrator-mode) - Documentation for Kilo's implementation
+- [Model Context Protocol](https://modelcontextprotocol.io/) - Anthropic's protocol for connecting agents to tools
