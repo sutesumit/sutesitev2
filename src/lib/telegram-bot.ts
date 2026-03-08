@@ -225,20 +225,3 @@ export async function initBot() {
 
   return bot;
 }
-
-export async function startBot() {
-  const bot = await initBot();
-  
-  bot.catch((err) => {
-    console.error("Bot error:", err);
-  });
-  
-  console.log("Starting Telegram bot (polling)...");
-  await bot.start({
-    onStart: (botInfo) => {
-      console.log(`Bot @${botInfo.username} is running!`);
-    },
-  });
-  console.log("Telegram bot stopped");
-  return bot;
-}
