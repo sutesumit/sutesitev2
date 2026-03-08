@@ -80,7 +80,17 @@ But: your URL needs to be public. Telegram can't POST to `localhost`. So you nee
 
 Webhooks in production. The bot lives at `/api/telegram/webhook`. Telegram POSTs there, the handler does its thing.
 
-Polling exists in the codebase but I don't use it anymore. It was useful for testing before I had the server set up. Now it's just... there. Might remove it eventually.
+### Dev Setup
+
+Polling exists for local testing. Run `npm run bot` and it starts polling Telegram's API. Useful for development before you have a production server with HTTPS.
+
+I don't use it anymore. But it's there if I need to debug something locally.
+
+**Why keep it?** Zero-config testing. No ngrok, no tunnel, no public URL. Just run the script.
+
+**Why remove it?** Dead code if you never use it. Adds dotenv as a dependency. Confuses the architecture (two ways to do the same thing).
+
+For now, it stays. Might not forever.
 
 ---
 
@@ -203,6 +213,18 @@ src/lib/telegram-bot.ts    # Bot logic, handlers
 src/app/api/telegram/webhook/route.ts  # Webhook endpoint
 ```
 
-The bot is small. Maybe 200 lines. Does one thing, does it well.
+The bot is small. Maybe 150 lines. Does one thing, does it well.
 
-Send `/start` to @bliplivebot if you want to try it. Though unless you're me, you'll just get "Unauthorized."
+---
+
+## Why This Matters
+
+The whole point: I can post a thought the moment I form it.
+
+Before: idea strikes → remember it → find terminal → craft curl command → post. By step 3, the idea might be gone. Or diluted. Or I'm doing something else.
+
+Now: idea strikes → open Telegram → type → done. Three seconds. The thought is captured before I can second-guess it.
+
+This is what good tools do. They get out of the way. The bot isn't the point. The blips aren't the point. Capturing thoughts while they're fresh is the point. The bot just makes that frictionless.
+
+That's it. That's the whole thing.
