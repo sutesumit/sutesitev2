@@ -1,7 +1,7 @@
 ---
 title: "The Bot That Talks to My Database"
 publishedAt: "2026-03-08"
-summary: "I built a Telegram bot that CRUDs blips from my phone. Polling, webhooks, middleware, the whole thing. Here's what I learned."
+summary: "I built two interfaces for posting blips: terminal commands and a Telegram bot. This is about the bot. Polling, webhooks, middleware, the whole thing."
 slug: "the-bot-that-talks-to-my-database"
 tags:
   - typescript
@@ -21,13 +21,11 @@ featured: false
 
 So I have these [blips](/blip). Short posts, 280 characters. Like tweets, but mine.
 
-Posting one meant curl. Terminal. API key. Fine for a robot, annoying for a human on a phone.
+Posting one used to mean curl. Terminal. API key. Fine for a robot, annoying for a human on a phone.
 
-I wanted: open Telegram, type words, done.
+Now there are two interfaces. Terminal commands for when I'm working. Telegram bot for when I'm not. Same database, same blips, different entry points depending on where I am.
 
-So I built a bot. It works. You send it a message, it creates a blip. `/list` shows recent ones. `/del a3` deletes blip a3. `/edit a3 new text` updates it. Simple.
-
-But the interesting part isn't what it does. It's how it works.
+This article is about the Telegram bot. How it works, what I learned building it.
 
 ---
 
@@ -206,14 +204,17 @@ All single-message. No conversations. Stateless.
 
 ---
 
-## The Code
+## Two Interfaces
 
-```text
-src/lib/telegram-bot.ts    # Bot logic, handlers
-src/app/api/telegram/webhook/route.ts  # Webhook endpoint
-```
+There are two ways to post a blip now.
 
-The bot is small. Maybe 150 lines. Does one thing, does it well.
+**Terminal.** Curl commands hitting the API directly. `blip "content=thought"` creates one. `blips` lists them. Fast when I'm already in a terminal, which is most of the time when working.
+
+**Telegram.** The bot. Open the app, type, done. Fast when I'm not at a computer. Walking, in bed, at a cafe.
+
+Both hit the same database. Both are instant. No switching contexts, no waiting, no friction.
+
+The curl commands live in a separate file. Shell aliases. `blip`, `blips`, `blip-get`, `blip-edit`, `blip-del`. Not in this article because they're not interesting. Just HTTP calls with an auth header.
 
 ---
 
@@ -223,8 +224,18 @@ The whole point: I can post a thought the moment I form it.
 
 Before: idea strikes → remember it → find terminal → craft curl command → post. By step 3, the idea might be gone. Or diluted. Or I'm doing something else.
 
-Now: idea strikes → open Telegram → type → done. Three seconds. The thought is captured before I can second-guess it.
+Now: idea strikes → open Telegram (or terminal) → type → done. Three seconds. The thought is captured before I can second-guess it.
 
-This is what good tools do. They get out of the way. The bot isn't the point. The blips aren't the point. Capturing thoughts while they're fresh is the point. The bot just makes that frictionless.
+This is what good tools do. They get out of the way. The bot isn't the point. The blips aren't the point. Capturing thoughts while they're fresh is the point. The interfaces just make that frictionless.
+
+---
+
+## A Note on Security
+
+Both interfaces require auth. The API uses a secret key in a header. The bot uses a whitelist of Telegram user IDs.
+
+The security model is simple: if you have my phone or my laptop, you can post blips. If you have neither, you can't.
+
+Pallavi, if you're reading this: please don't troll my blips. I know you have my phone PIN.
 
 That's it. That's the whole thing.
