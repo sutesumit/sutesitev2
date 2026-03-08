@@ -7,6 +7,7 @@ import { IoIosMail } from 'react-icons/io'
 import { CheckCheck } from 'lucide-react'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { useCurrentVisitorLocation } from '@/hooks/useCurrentVisitorLocation'
+import CopyLink from '../shared/CopyLink';
 import {
   Tooltip,
   TooltipContent,
@@ -35,7 +36,7 @@ const Footer = () => {
             <Link className='social-tab' target='_blank' href='https://github.com/sutesumit'><FaGithub /></Link> 
             <Link className='social-tab' target='_blank' href='https://www.linkedin.com/in/sumitsute/'><FaLinkedin /></Link> 
             <Link className='social-tab' target='_blank' href='mailto:sumitsute@alumni.iitm.ac.in'><IoIosMail /></Link>
-            <Link className='social-tab' href='/feed.xml'><MdOutlineRssFeed /></Link>
+            <CopyLink className='social-tab' href='/feed.xml'><MdOutlineRssFeed /></CopyLink>
           </div>
           <TooltipProvider>
             <Tooltip>

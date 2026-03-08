@@ -1,8 +1,9 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { getBlips } from "@/lib/blip";
 import BlipCard from "./components/BlipCard";
 import IntroCard from "./components/IntroCard";
 import IntroText from "./components/IntroText";
+import BlipModal from "./components/BlipModal";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,7 @@ const BlipPage = async () => {
 
   return (
     <div className="container flex flex-col pb-12 p-10 font-roboto-mono lowercase">
-      <div className='page-title mb-2'>
+      <div className='page-title my-2'>
         <p className="font-bold">blip</p>
       </div>
       <IntroCard>
@@ -31,6 +32,11 @@ const BlipPage = async () => {
           </div>
         )}
       </div>
+
+      {/* Modal — must be wrapped in Suspense because it uses useSearchParams */}
+      <Suspense fallback={null}>
+        <BlipModal blips={blips} />
+      </Suspense>
     </div>
   );
 };

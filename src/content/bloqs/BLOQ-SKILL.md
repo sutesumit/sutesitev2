@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-08 | **Articles written:** 12 | **Version:** 1.9.0 (2026-03)
+> **Last evolved:** 2026-03-08 | **Articles written:** 13 | **Version:** 1.10.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -22,6 +22,7 @@ A changelog of what this skill has learned over time.
 | 2026-03-06 | 1.7.0 | The Lazy Way to Build Better Software | Documented spec-driven development approach; questions-as-specifications pattern; design for the third case; specs as documentation; added `backend` tag prominence; embedded ClapsCounter component demo in article | Agent |
 | 2026-03-07 | 1.8.0 | Tag rule revision | Revised tag rules: minimum 3 tags (was 2), maximum 7; replaced "only if genuinely necessary" with prompting step to encourage organic new tag creation; goal is balance between consistency (shared tags) and freshness (new tags when they fit) | Human |
 | 2026-03-08 | 1.9.0 | When Not To Unify | Documented the third case test applied to API unification; code duplication as domain separation; unify infrastructure not intent; added `architecture` tag to registry | Agent |
+| 2026-03-08 | 1.10.0 | When Z-Index Lies to You | Documented the danger of implicit DOM stacking contexts overriding negative z-index, and how to properly isolate `overflow-hidden` constraints to allow tooltips to float freely | Agent |
 
 ---
 

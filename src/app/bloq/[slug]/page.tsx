@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MDXRemote } from 'next-mdx-remote/rsc';
+import Link from 'next/link';
 import { getBloqPostBySlug, getBloqPosts, getRelatedPosts } from '@/lib/bloq';
 import DryKeysQuest from '@/app/bloq/components/DryKeysQuest';
 import BloqCard from '@/app/bloq/components/BloqCard';
@@ -14,6 +15,8 @@ import { SeedingPlantWrapped } from '@/content/bloqs/2025/2025-12-12-sharing-int
 import ClapsCounter from '@/components/shared/ClapsCounter';
 import ViewCounter from '../components/ViewCounter';
 import TrackView from '../components/TrackView';
+import { MdOutlineRssFeed } from 'react-icons/md';
+import CopyLink from '@/components/shared/CopyLink';
 
 const SITE_URL = 'https://sumitsute.com';
 
@@ -131,7 +134,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <TrackView slug={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
       <div className="px-4">
-        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, ClapsCounter, ViewCounter }} />
+        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, ClapsCounter, ViewCounter, Link, MdOutlineRssFeed, CopyLink }} />
       </div>
       <div className="px-4">
         <RelatedPosts posts={relatedPosts} />

@@ -35,7 +35,7 @@ const MDXComponents = {
     const href = props.href || '';
     if (href.startsWith('/')) {
       return (
-        <Link href={href} className="text-blue-600 dark:text-blue-400 hover:underline" {...props}>
+        <Link href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline" {...props}>
           {props.children}
         </Link>
       );

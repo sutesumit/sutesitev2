@@ -44,10 +44,10 @@ function bloqToFeedItem(post: BloqPost): FeedItem {
 function blipToFeedItem(blip: Blip): FeedItem {
   return {
     title: `Blip: ${blip.content.substring(0, 50)}${blip.content.length > 50 ? "..." : ""}`,
-    link: `${SITE_URL}/#blip-${blip.id}`,
+    link: `${SITE_URL}/blip?blip=${blip.blip_serial}`,
     description: blip.content,
     pubDate: formatDateToRFC822(blip.created_at),
-    guid: `${SITE_URL}/blip/${blip.id}`,
+    guid: `${SITE_URL}/blip?blip=${blip.blip_serial}`,
   };
 }
 

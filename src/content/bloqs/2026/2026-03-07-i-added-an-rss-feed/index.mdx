@@ -26,7 +26,6 @@ It's an RSS feed. I added it last week.
 The strange thing is, I almost didn't. RSS has been declared dead so many times that even the obituaries have obituaries. Google Reader shut down in 2013. Twitter killed the blogroll. Instagram killed the personal website. TikTok killed attention spans. Why would anyone subscribe to a feed in 2026?
 
 But then I kept thinking about Marc's post, [Why I Still Use RSS](https://atthis.link/blog/2021/rss.html):
-
 > "Having only the content I want to see only be shown when I want to see it with the freedom to jump between readers as I please, all with no ads? For me, no other service comes close to the flexibility, robustness, and overall ease-of-use that RSS offers."
 
 That's not nostalgia. That's a design philosophy.
@@ -41,7 +40,8 @@ The technical side is almost comically simple. An RSS feed is just an XML file s
 
 That's it. No OAuth. No API keys. No rate limits. No platform lock-in. A static file that anyone can parse.
 
-The IndieWeb community [puts it well](https://indieweb.org/RSS): "Having an RSS feed makes your content more discoverable to your target audience because visitors do not need to manually check your site for new posts."
+The IndieWeb community [puts it well](https://indieweb.org/RSS): 
+> "Having an RSS feed makes your content more discoverable to your target audience because visitors do not need to manually check your site for new posts."
 
 ---
 
@@ -171,11 +171,11 @@ That's why I added the icon to my footer. Not because I expect traffic. Because 
 
 If you've never used an RSS reader, here's how to start:
 
-1. Download a reader. [NetNewsWire](https://netnewswire.com/) for Mac/iOS. [Feedly](https://feedly.com/) for web. [Newsboat](https://newsboat.org/) for terminal enthusiasts.
+1. Download a reader. [NetNewsWire](https://netnewswire.com/) for Mac/iOS. [Feedly](https://feedly.com/) for web. [Newsboat](https://newsboat.org/) for terminal enthusiasts. I use [Feeder](https://feeder.co/).
 2. Add some feeds. Start with your favorite blogs. Most sites have one, even if they don't advertise it.
 3. Check it when you want. Not when an algorithm pushes you.
 
-And if you want to subscribe to this site, the feed is at [sumitsute.com/feed.xml](/feed.xml). The orange icon in the footer will take you there.
+And if you want to subscribe to this site, the feed is at <CopyLink className='social-tab inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-orange-500 hover:bg-orange-500/10 cursor-pointer' href='/feed.xml'><MdOutlineRssFeed /></CopyLink>. The radio icon in the footer will also take you there.
 
 No algorithm will ever recommend this article to you. But if you're reading it in your RSS reader right now, you didn't need one.
 

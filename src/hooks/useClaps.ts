@@ -43,11 +43,13 @@ export const useClaps = (postId: string, postType: PostType) => {
     });
 
     const fingerprintRef = useRef<string>('');
-    const hasFetched = useRef(false);
+    const lastFetchedId = useRef<string | null>(null);
 
     useEffect(() => {
-        if (hasFetched.current) return;
-        hasFetched.current = true;
+        if (lastFetchedId.current === postId) return;
+        lastFetchedId.current = postId;
+        
+        setState(prev => ({ ...prev, isLoading: true }));
 
         fingerprintRef.current = getOrCreateFingerprint();
 
