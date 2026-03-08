@@ -168,15 +168,33 @@ export async function initBot() {
       return;
     }
 
-    const serial = ctx.match?.trim();
-    if (!serial) {
-      await ctx.reply("Usage: /edit <serial>");
+    const args = ctx.match?.trim();
+    if (!args) {
+      await ctx.reply("Usage: /edit <serial> [new content]\nOr just /edit <serial> to see current content first");
       return;
     }
+
+    const firstSpace = args.indexOf(" ");
+    const serial = firstSpace === -1 ? args : args.slice(0, firstSpace);
+    const newContent = firstSpace === -1 ? null : args.slice(firstSpace + 1).trim();
 
     const blip = await getBlipBySerial(serial);
     if (!blip) {
       await ctx.reply("Blip not found");
+      return;
+    }
+
+    if (newContent) {
+      if (newContent.length > MAX_CONTENT_LENGTH) {
+        await ctx.reply(`Content must be ${MAX_CONTENT_LENGTH} characters or less`);
+        return;
+      }
+      try {
+        const updated = await updateBlip(serial, newContent);
+        await ctx.reply(`Updated blip <code>${updated.blip_serial}</code>`, { parse_mode: "HTML" });
+      } catch {
+        await ctx.reply("Failed to update blip");
+      }
       return;
     }
 
