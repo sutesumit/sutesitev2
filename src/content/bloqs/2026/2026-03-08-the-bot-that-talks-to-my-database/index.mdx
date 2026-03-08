@@ -253,19 +253,47 @@ This is simpler. Whether it's better depends on what you're building. For a CRUD
 
 ## Auth
 
-Telegram sends the user's ID with every message. Can't be faked.
+The bot is public. Anyone can find @bliplivebot on Telegram. Anyone can send it a message.
 
-I check it against a whitelist:
+But only whitelisted users get a response.
+
+Telegram sends the user's ID with every message. Can't be faked. I check it against a list:
 
 ```text
-TELEGRAM_ALLOWED_USER_IDS=123456789
+TELEGRAM_ALLOWED_USER_IDS=123456789,987654321
 ```
 
-If your ID matches, you're in. Or if I add your ID to the whitelist, we have a shared custody of the blips. If not, "Unauthorized."
+If your ID matches, you're in. If not, "Unauthorized."
 
 No JWT. No OAuth. No login flow. Just: is this number in the list?
 
-For a personal bot, this is the right amount of security. If you don't have my phone, you can't. (Pallavi, if you're reading this: please don't keep trolling my blips. I know you have my phone PIN.)
+For a personal bot, this is enough. The bot is public, the API is private.
+
+### Wait, Aren't Webhooks Public Too?
+
+Yes. The webhook URL (`/api/telegram/webhook`) is public. Anyone could POST to it.
+
+But here's the thing: Telegram signs every webhook request with a secret. You verify the signature before processing.
+
+```text
+POST /api/telegram/webhook
+Header: X-Telegram-Bot-Api-Secret-Token: <secret>
+Body: { "message": { ... } }
+```
+
+You set the secret when you register the webhook. Telegram includes it in every request. You check it on your end. If it doesn't match, you reject the request.
+
+This is how production webhooks work:
+
+- **Stripe:** Signs requests with your webhook secret. You verify the signature.
+- **GitHub:** Sends a hash of the payload with your secret. You verify the hash.
+- **Slack:** Includes a timestamp and signature. You verify both.
+
+The pattern: public URL, private verification. Anyone can knock. Only the right key opens the door.
+
+For this bot, I skipped signature verification. Lazy? Maybe. But the user ID whitelist already gates access. Even if someone forged a Telegram request, they'd need a whitelisted user ID to do anything useful.
+
+Pallavi, if you're reading this: please don't troll my blips. I know you have my phone PIN. The whitelist won't save me from you.
 
 ---
 
