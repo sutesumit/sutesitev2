@@ -44,7 +44,7 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
         }`}
       >
         {/* Back button & collapsed title */}
-        <div className="flex flex-row w-full items-center justify-between overflow-hidden">
+        <div className="flex flex-row w-full items-center justify-between">
           <Link href={`/bloq/`} className="flex shrink-0">
             <div className="inline-flex items-center blue-border rounded px-2 lowercase opacity-75 text-xs hover:bg-blue-100 hover:text-black dark:hover:bg-blue-900 dark:hover:text-white transition-colors duration-500">
               {isCollapsed ? "" : "All Bloqs"}{" "}
