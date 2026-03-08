@@ -1,12 +1,7 @@
-import { Bot, Context, session, SessionFlavor } from "grammy";
+import { Bot, Context } from "grammy";
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 
-interface SessionData {
-  mode?: "edit" | "delete";
-  editingSerial?: string;
-}
-
-type MyContext = Context & SessionFlavor<SessionData>;
+type MyContext = Context;
 
 const MAX_CONTENT_LENGTH = 280;
 
@@ -93,30 +88,22 @@ export async function initBot() {
 
   const bot = new Bot<MyContext>(token);
 
-  bot.use(
-    session({
-      initial: (): SessionData => ({}),
-    })
-  );
-
   bot.command("start", async (ctx) => {
-    console.log("/start command from:", ctx.from?.id);
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
     }
     await ctx.reply(
-      "Blip Bot - Post short updates\n\n" +
-      "Just send a message to create a blip\n" +
-      "/list - Show recent blips\n" +
-      "/get <serial> - Show specific blip\n" +
-      "/edit <serial> - Edit a blip\n" +
+      "Blip Bot\n\n" +
+      "Send any message to create a blip\n" +
+      "/list - Recent blips\n" +
+      "/get <serial> - Show a blip\n" +
+      "/edit <serial> <text> - Update a blip\n" +
       "/del <serial> - Delete a blip"
     );
   });
 
   bot.command("list", async (ctx) => {
-    console.log("/list command from:", ctx.from?.id);
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -137,7 +124,6 @@ export async function initBot() {
   });
 
   bot.command("get", async (ctx) => {
-    console.log("/get command from:", ctx.from?.id);
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -162,7 +148,6 @@ export async function initBot() {
   });
 
   bot.command("edit", async (ctx) => {
-    console.log("/edit command from:", ctx.from?.id);
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -170,41 +155,33 @@ export async function initBot() {
 
     const args = ctx.match?.trim();
     if (!args) {
-      await ctx.reply("Usage: /edit <serial> [new content]\nOr just /edit <serial> to see current content first");
+      await ctx.reply("Usage: /edit <serial> <new content>");
       return;
     }
 
     const firstSpace = args.indexOf(" ");
-    const serial = firstSpace === -1 ? args : args.slice(0, firstSpace);
-    const newContent = firstSpace === -1 ? null : args.slice(firstSpace + 1).trim();
-
-    const blip = await getBlipBySerial(serial);
-    if (!blip) {
-      await ctx.reply("Blip not found");
+    if (firstSpace === -1) {
+      await ctx.reply("Usage: /edit <serial> <new content>");
       return;
     }
 
-    if (newContent) {
-      if (newContent.length > MAX_CONTENT_LENGTH) {
-        await ctx.reply(`Content must be ${MAX_CONTENT_LENGTH} characters or less`);
-        return;
-      }
-      try {
-        const updated = await updateBlip(serial, newContent);
-        await ctx.reply(`Updated blip <code>${updated.blip_serial}</code>`, { parse_mode: "HTML" });
-      } catch {
-        await ctx.reply("Failed to update blip");
-      }
+    const serial = args.slice(0, firstSpace);
+    const newContent = args.slice(firstSpace + 1).trim();
+
+    if (newContent.length > MAX_CONTENT_LENGTH) {
+      await ctx.reply(`Content must be ${MAX_CONTENT_LENGTH} characters or less`);
       return;
     }
 
-    ctx.session.mode = "edit";
-    ctx.session.editingSerial = serial;
-    await ctx.reply(`Editing blip <code>${serial}</code>:\n\n${blip.content}\n\nSend new content:`, { parse_mode: "HTML" });
+    try {
+      const updated = await updateBlip(serial, newContent);
+      await ctx.reply(`Updated blip <code>${updated.blip_serial}</code>`, { parse_mode: "HTML" });
+    } catch {
+      await ctx.reply("Failed to update blip (not found?)");
+    }
   });
 
   bot.command("del", async (ctx) => {
-    console.log("/del command from:", ctx.from?.id);
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
@@ -225,46 +202,13 @@ export async function initBot() {
   });
 
   bot.on("message", async (ctx) => {
-    console.log("Message from:", ctx.from?.id, "Text:", ctx.message.text);
-    
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply("Unauthorized");
       return;
     }
 
     const text = ctx.message.text;
-    if (!text) return;
-
-    if (ctx.session.mode === "edit" && ctx.session.editingSerial) {
-      if (text.length > MAX_CONTENT_LENGTH) {
-        await ctx.reply(`Content must be ${MAX_CONTENT_LENGTH} characters or less`);
-        return;
-      }
-
-      try {
-        const updated = await updateBlip(ctx.session.editingSerial, text);
-        ctx.session.mode = undefined;
-        ctx.session.editingSerial = undefined;
-        await ctx.reply(`Updated blip <code>${updated.blip_serial}</code>`, { parse_mode: "HTML" });
-      } catch {
-        await ctx.reply("Failed to update blip");
-      }
-      return;
-    }
-
-    if (ctx.session.mode === "delete") {
-      const serial = text.trim();
-      try {
-        await deleteBlip(serial);
-        ctx.session.mode = undefined;
-        await ctx.reply(`Deleted blip <code>${serial}</code>`, { parse_mode: "HTML" });
-      } catch {
-        await ctx.reply("Failed to delete blip (not found?)");
-      }
-      return;
-    }
-
-    if (text.startsWith("/")) return;
+    if (!text || text.startsWith("/")) return;
 
     if (text.length > MAX_CONTENT_LENGTH) {
       await ctx.reply(`Content must be ${MAX_CONTENT_LENGTH} characters or less`);
