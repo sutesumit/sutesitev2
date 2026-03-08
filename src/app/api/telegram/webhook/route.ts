@@ -4,20 +4,9 @@ import type { Update } from "grammy/types";
 
 const noStoreHeaders = { 'Cache-Control': 'no-store' };
 
-let botInstance: Awaited<ReturnType<typeof initBot>> | null = null;
-let botInfoCache: Awaited<ReturnType<typeof initBot>>['botInfo'] | null = null;
-
-async function getBot() {
-  if (!botInstance || !botInfoCache) {
-    botInstance = await initBot();
-    botInfoCache = botInstance.botInfo;
-  }
-  return botInstance;
-}
-
 export async function POST(req: Request) {
   try {
-    const bot = await getBot();
+    const bot = await initBot();
     const update: Update = await req.json();
     await bot.handleUpdate(update);
     
