@@ -37,7 +37,7 @@ That token is your bot's password. Lose it and the bot is orphaned forever. Tele
 
 With the token, you call Telegram's API. `sendMessage` to reply. `getUpdates` to fetch messages. It's HTTP. JSON in, JSON out. Nothing fancy, just REST API.
 
-Bots are peculiar accounts. They won’t message you first, they speak only so fast (rate limits), and they mostly listen for commands (the / kind). Otherwise, they’re just code talking to Telegram’s servers and masquerading as a user.
+Bots are peculiar accounts. They won’t message you first, they speak only so fast (rate limits), and they mostly listen for commands (the `/` kind). Otherwise, they’re just code talking to Telegram’s servers and masquerading as a user.
 
 ---
 
@@ -158,26 +158,55 @@ My instinct now: wait for the third duplication. First time: just write it. Seco
 
 ### The Order Bug
 
-One more thing. Grammy's middleware runs in registration order.
+Grammy runs handlers in registration order. First match wins.
 
-I registered handlers wrong:
+I wrote this:
 
-```text
-bot.on('message', catchAllHandler)// catches EVERYTHING
-bot.command('start', startHandler)  // never reached
+```typescript
+// Wrong order
+bot.on('message', async (ctx) => {
+  // This catches EVERY message, including /start, /list, etc.
+  const text = ctx.message.text
+  await createBlip(text)
+})
+
+bot.command('start', async (ctx) => {
+  // Never reached. The message handler already matched.
+  await ctx.reply('Hello!')
+})
 ```
 
-The catch-all matched first. Commands never ran.
+Sent `/start` to the bot. It created a blip with content "/start".
+
+Not what I wanted.
+
+The `bot.on('message')` handler matches any message. Commands are messages. So `/start` hit the message handler first, got treated as blip content, done. The command handler never saw it.
 
 Fixed:
 
-```text
-bot.command('start', startHandler)  // specific first
-bot.command('list', listHandler)
-bot.on('message', catchAllHandler)  // generic last
+```typescript
+// Right order
+bot.command('start', async (ctx) => {
+  await ctx.reply('Hello!')
+})
+
+bot.command('list', async (ctx) => {
+  const blips = await getBlips()
+  await ctx.reply(formatBlips(blips))
+})
+
+// ... other commands ...
+
+bot.on('message', async (ctx) => {
+  // Now this only catches non-command messages
+  const text = ctx.message.text
+  await createBlip(text)
+})
 ```
 
-Order matters. Specific before generic. This isn't a middleware thing, it's a "things run in order" thing. But I learned it by breaking it.
+Specific first. Generic last. The catch-all only runs if nothing else matched.
+
+This isn't specific to grammy. Express routes work the same way. So do Redux reducers. So does any system where you register handlers that match patterns. Order matters when multiple patterns could match the same input.
 
 ---
 
@@ -221,26 +250,26 @@ I check it against a whitelist:
 TELEGRAM_ALLOWED_USER_IDS=123456789
 ```
 
-If your ID matches, you're in. If not, "Unauthorized."
+If your ID matches, you're in. Or if I add your ID to the whitelist, we have a shared custody of the blips. If not, "Unauthorized."
 
 No JWT. No OAuth. No login flow. Just: is this number in the list?
 
-For a personal bot, this is the right amount of security. If you have my phone, you can post blips. If you don't, you can't.
-
-Pallavi, if you're reading this: please don't troll my blips. I know you have my phone PIN.
+For a personal bot, this is the right amount of security. If you don't have my phone, you can't. (Pallavi, if you're reading this: please don't keep trolling my blips. I know you have my phone PIN.)
 
 ---
 
 ## The Commands
 
-| Command | What it does |
-|---------|--------------|
-| `/start` | Help text |
-| `/list` | Recent blips |
-| `/get a3` | Show blip a3 |
-| `/edit a3 new text` | Update blip a3 |
-| `/del a3` | Delete blip a3 |
-| any text | Create new blip |
+```text
+| Command             | What it does    |
+|---------------------|-----------------|
+| `/start`            | Help text       |
+| `/list`             | Recent blips    |
+| `/get a3`           | Show blip a3    |
+| `/edit a3 new text` | Update blip a3  |
+| `/del a3`           | Delete blip a3  |
+| any text            | Create new blip |
+```
 
 All single-message. No conversations. Stateless.
 
@@ -268,11 +297,7 @@ There are two ways to post a blip now.
 
 Both hit the same database. Both are instant. No switching contexts, no waiting, no friction.
 
-The curl commands live in a separate file. Shell aliases. `blip`, `blips`, `blip-get`, `blip-edit`, `blip-del`. I'm not putting them in this article for two reasons:
-
-1. They're not interesting. Just HTTP calls with an auth header. `curl -X POST -H "K: secret" -d "content=hello"`. That's it. That's the whole thing.
-
-2. Security. Okay fine, the real reason is security. I don't want my API key floating around in a blog post. The aliases file is in a private repo. You understand.
+The curl commands live in a separate file. Shell aliases. `blip`, `blips`, `blip-get`, `blip-edit`, `blip-del`. I'm not putting them in this article because they're not interesting. Just HTTP calls with an auth header. That's it. That's the whole thing. Okay fine, the real reason is security.
 
 ---
 
