@@ -4,9 +4,12 @@ import Table from 'cli-table3'
 import type { Blip } from './api.js'
 
 export const ASCII_LOGO = `
-${chalk.cyan('╔╗  ╦  ╦╔═╗╦╔╗╔╔═╗╦  ╦')}
-${chalk.cyan('╠╩╗ ║  ║╠═╝║║║║║  ║  ║')}
-${chalk.cyan('╚═╝ ╩═╝╩╩  ╩╝╚╝╚═╝╩═╝╩')}
+${chalk.yellow('██████╗ ')}${chalk.yellow('██╗     ')}${chalk.red('██╗')}${chalk.red('██████╗ ')}
+${chalk.yellow('██╔══██╗')}${chalk.yellowBright('██║     ')}${chalk.red('██║')}${chalk.redBright('██╔══██╗')}
+${chalk.yellowBright('██████╔╝')}${chalk.yellowBright('██║     ')}${chalk.redBright('██║')}${chalk.redBright('██████╔╝')}
+${chalk.whiteBright('██╔══██╗')}${chalk.yellowBright('██║     ')}${chalk.redBright('██║')}${chalk.red('██╔═══╝ ')}
+${chalk.whiteBright('╚█████╔╝')}${chalk.white('███████╗')}${chalk.red('██║')}${chalk.red('██║     ')}
+${chalk.gray(' ╚════╝ ')}${chalk.gray('╚══════╝')}${chalk.red('╚═╝')}${chalk.red('╚═╝     ')}
 `
 
 export function showBanner(): void {

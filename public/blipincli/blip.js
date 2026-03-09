@@ -20139,6 +20139,13 @@ if (showHelp || showVersion || noArgs) {
 }
 var program2 = new Command();
 program2.name("blip").description("CLI for managing blips").version("1.0.0");
+program2.command("add <content...>").description("Create a new blip").alias("new").action(async (contentParts) => {
+  if (!hasApiKey()) {
+    renderErrorBox("API key not configured", "Run: blip config set key <your-key>");
+    process.exit(1);
+  }
+  await newCommand(contentParts.join(" "));
+});
 program2.command("ls").description("List all blips").option("--json", "Output as JSON").action(async (options) => {
   await listCommand(options);
 });

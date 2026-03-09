@@ -28,6 +28,18 @@ program
   .version('1.0.0')
 
 program
+  .command('add <content...>')
+  .description('Create a new blip')
+  .alias('new')
+  .action(async (contentParts: string[]) => {
+    if (!hasApiKey()) {
+      renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+      process.exit(1)
+    }
+    await newCommand(contentParts.join(' '))
+  })
+
+program
   .command('ls')
   .description('List all blips')
   .option('--json', 'Output as JSON')
