@@ -85,6 +85,14 @@ function formatBlip(blip: { blip_serial: string; content: string; created_at: st
 
 export async function initBot(): Promise<Bot<MyContext>> {
   if (botInstance) {
+    await botInstance.api.setMyCommands([
+      { command: "start", description: "Show help" },
+      { command: "subscribe", description: "Get updates" },
+      { command: "list", description: "List recent blips" },
+      { command: "get", description: "Get a specific blip" },
+      { command: "edit", description: "Edit a blip" },
+      { command: "del", description: "Delete a blip" },
+    ]);
     return botInstance;
   }
 
