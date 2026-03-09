@@ -1,0 +1,246 @@
+---
+title: "blipincli: A CLI for My Microblog"
+publishedAt: "2026-03-09"
+summary: "I built a command-line tool for posting blips. It has ASCII art, interactive mode, and taught me about bundling Node.js CLIs for distribution."
+slug: "blipincli"
+tags:
+  - typescript
+  - nodejs
+  - cli
+  - experiments
+  - ai
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: true
+featured: false
+---
+
+## The Curl Alias Problem
+
+> "Every great CLI starts with someone tired of typing the same curl command."
+
+I had shell aliases. They worked. `blip "content=hello"` would POST to my API. But they were fragile, scattered across `.zshrc` and `.bashrc`, and I could never remember the exact syntax. Was it `content=` or just the raw string? Did I need quotes? What was the header name again?
+
+```bash
+alias blip='curl -s -H "K: $BLIP_KEY" -d'
+alias blips='curl -s $BLIP_URL'
+alias blip-get='curl -s $BLIP_URL'
+```
+
+Technically functional. Emotionally unsatisfying.
+
+---
+
+## What I Wanted
+
+I wanted a proper CLI. Something that felt like a real tool, not a curl wrapper wearing a trench coat. Specifically:
+
+1. **Unix-style commands** - `blip "hello"` to create, `blip ls` to list, `blip rm a3` to delete
+2. **Pretty output** - Tables, colors, boxes, not raw JSON
+3. **Interactive mode** - Sometimes I want a menu, not a man page
+4. **ASCII art** - Because why not
+5. **Single-file distribution** - Download and run, no npm install required
+
+---
+
+## The Design
+
+### Command Structure
+
+I decided on Unix-style commands that would feel natural:
+
+```text
+blip "content"      → Create new blip (implicit)
+blip                → List all blips (default)
+blip <serial>       → View specific blip
+blip ls             → List all (explicit)
+blip edit <serial>  → Edit blip
+blip rm <serial>    → Delete blip
+blip i              → Interactive mode
+```
+
+The key insight: if the argument looks like a serial (alphanumeric, short), treat it as a lookup. Otherwise, treat it as content to create.
+
+```typescript
+const SERIAL_PATTERN = /^[a-zA-Z0-9]{1,6}$/
+
+if (args.length === 1 && SERIAL_PATTERN.test(args[0])) {
+  await getCommand(args[0], {})
+} else {
+  await newCommand(args.join(' '))
+}
+```
+
+This meant `blip a3` would fetch, but `blip hello world` would create. Natural.
+
+---
+
+## The Build
+
+### Dependencies
+
+I chose five packages, each solving a specific problem:
+
+```text
+| Package       | Purpose                                    |
+|---------------|--------------------------------------------|
+| `commander`   | CLI argument parsing and command structure |
+| `chalk`       | Terminal colors                            |
+| `ora`         | Loading spinners                           |
+| `inquirer`    | Interactive prompts                        |
+| `conf`        | Persistent config storage                  |
+| `boxen`       | Boxed output                               |
+| `cli-table3`  | Table formatting                           |
+```
+
+### File Structure
+
+```text
+blipincli/
+├── package.json
+├── tsconfig.json
+├── src/
+│   ├── index.ts           # Entry point, commander setup
+│   ├── commands/
+│   │   ├── new.ts         # Create blip
+│   │   ├── list.ts        # List blips
+│   │   ├── get.ts         # Get single blip
+│   │   ├── edit.ts        # Edit blip
+│   │   └── delete.ts      # Delete blip
+│   └── lib/
+│       ├── api.ts         # API client
+│       ├── config.ts      # Config management
+│       └── ui.ts          # ASCII art, formatting
+└── dist/
+    └── index.js           # Bundled output
+```
+
+Nine files total. Clean separation between commands, API, and UI.
+
+### The API Client
+
+The API client was straightforward, with one gotcha. Initially I sent raw text with `Content-Type: application/json`, which confused my API:
+
+```typescript
+// Wrong - sends raw text with JSON content-type
+body: content
+
+// Right - sends actual JSON
+body: JSON.stringify({ content })
+```
+
+The API expected either JSON with a `content` field, form-urlencoded, or raw text. Mixing JSON content-type with raw text body returned "Content is required" every time.
+
+### The UI Layer
+
+This is where the fun happened. I wanted:
+
+1. **ASCII logo** - Something that said "blip" without being obnoxious
+2. **Boxed output** - For single blip views
+3. **Table formatting** - For list views
+4. **Colored feedback** - Success in green, errors in red
+
+```typescript
+export const ASCII_LOGO = `
+${chalk.cyan('╔╗  ╦  ╦╔═╗╦╔╗╔╔═╗╦  ╦')}
+${chalk.cyan('╠╩╗ ║  ║╠═╝║║║║║  ║  ║')}
+${chalk.cyan('╚═╝ ╩═╝╩╩  ╩╝╚╝╚═╝╩═╝╩')}
+`
+```
+
+The box-drawing characters felt right. Clean, technical, not trying too hard.
+
+For tables, `cli-table3` gave me aligned columns with minimal configuration:
+
+```typescript
+const table = new Table({
+  head: [chalk.gray('serial'), chalk.gray('content'), chalk.gray('ago')],
+  colWidths: [8, 50, 8],
+  chars: { top: '─', left: '│', ... }
+})
+```
+
+---
+
+## The Bundle
+
+I wanted a single file someone could download and run. No `npm install`, no `node_modules`, just:
+
+```bash
+curl -o blip https://sumitsute.com/blipincli/blip.js
+chmod +x blip
+./blip "hello from anywhere"
+```
+
+`esbuild` made this trivial:
+
+```bash
+esbuild src/index.ts \
+  --bundle \
+  --platform=node \
+  --format=esm \
+  --outfile=dist/index.js \
+  --external:inquirer
+```
+
+The `--external:inquirer` flag is important. Inquirer uses dynamic requires that esbuild can't bundle, but since it's only needed for interactive mode, it's a reasonable trade-off. The bundled file is 754KB, which includes all of chalk, boxen, cli-table3, and commander.
+
+---
+
+## Interactive Mode
+
+Sometimes you don't remember the command. Sometimes you just want a menu:
+
+```text
+? What would you like to do?
+❯ Create a new blip
+  View all blips
+  View a specific blip
+  Edit a blip
+  Delete a blip
+  Configure settings
+  ──────────────
+  Exit
+```
+
+`inquirer` handles the arrow-key navigation and prompts. For editing, I even added an editor mode that opens your `$EDITOR`:
+
+```typescript
+{
+  type: 'editor',
+  name: 'content',
+  message: 'Edit blip:'
+}
+```
+
+---
+
+## What I Took Away
+
+- **CLI UX is about reducing friction.** The difference between `blip "hello"` and `curl -X POST -H "K: $KEY" -d "content=hello" $URL` is the difference between using a tool and fighting it.
+
+- **Bundling matters for distribution.** A single file you can curl and run beats a repo you have to clone and npm install.
+
+- **ASCII art is underrated.** It costs nothing, adds personality, and makes the tool feel intentional rather than thrown together.
+
+- **The Unix philosophy holds.** Small commands that do one thing well, composable, with sensible defaults.
+
+- **Agent collaboration accelerated this.** I described what I wanted, the agent wrote the initial code, I refined the design. What would have been a weekend project took an evening.
+
+---
+
+## Try It
+
+```bash
+# From the repo
+cd blipincli
+npm install
+npm link
+
+# Now use anywhere
+blip config set key your-api-key
+blip "First blip from the CLI"
+```
+
+The CLI is now part of my workflow. I use it more than the web interface. Sometimes the best UI is no UI at all.

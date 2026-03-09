@@ -1,7 +1,7 @@
 ---
 title: "The Bot That Talks to My Database"
 publishedAt: "2026-03-08"
-summary: "I built two interfaces for posting blips: terminal commands and a Telegram bot. This is about the bot. Polling, webhooks, middleware, the whole thing."
+summary: "I built two interfaces for posting blips: terminal commands and a Telegram bot. Polling, webhooks, middleware, and now a public channel that broadcasts every new blip."
 slug: "the-bot-that-talks-to-my-database"
 tags:
   - typescript
@@ -303,6 +303,7 @@ Pallavi, if you're reading this: please don't keep trolling my blips. I know you
 | Command             | What it does    |
 |---------------------|-----------------|
 | `/start`            | Help text       |
+| `/subscribe`        | Channel link    |
 | `/list`             | Recent blips    |
 | `/get a3`           | Show blip a3    |
 | `/edit a3 new text` | Update blip a3  |
@@ -311,6 +312,65 @@ Pallavi, if you're reading this: please don't keep trolling my blips. I know you
 ```
 
 All single-message. No conversations. Stateless.
+
+The `/subscribe` command is different. No auth check. Anyone can use it. It just sends a link to the [@blipbotlive](https://t.me/blipbotlive) channel where all new blips get broadcast.
+
+---
+
+## The Menu
+
+Telegram bots can register a command menu. Type `/` and suggestions appear.
+
+```typescript
+await bot.api.setMyCommands([
+  { command: "start", description: "Show help" },
+  { command: "subscribe", description: "Get updates" },
+  { command: "list", description: "List recent blips" },
+  { command: "get", description: "Get a specific blip" },
+  { command: "edit", description: "Edit a blip" },
+  { command: "del", description: "Delete a blip" },
+])
+```
+
+One catch: the bot instance is cached across webhook calls. `setMyCommands` only ran on first init. After deploying, the menu didn't appear.
+
+Fixed by calling it on every webhook, cached or not:
+
+```typescript
+if (botInstance) {
+  await botInstance.api.setMyCommands([...])
+  return botInstance
+}
+```
+
+It's idempotent. No harm in calling it repeatedly.
+
+---
+
+## Channel Broadcast
+
+Every new blip gets posted to [@blipbotlive](https://t.me/blipbotlive). A public channel. Anyone can follow.
+
+The broadcast happens right after the blip is created:
+
+```typescript
+const blip = await createBlip(text)
+await ctx.reply(replies.blipCreated(blip.blip_serial))
+
+const channelId = process.env.TELEGRAM_CHANNEL_ID
+if (channelId) {
+  await bot.api.sendMessage(channelId, formatBlip(blip), { parse_mode: "HTML" })
+}
+```
+
+Two entry points, one broadcast:
+
+1. **Telegram bot.** Message handler creates blip, then broadcasts.
+2. **CLI.** API route creates blip, then broadcasts.
+
+Same channel. Same format. Doesn't matter how the blip was created.
+
+The bot needs to be a channel admin with "Post Messages" permission. I learned this the hard way. Blips weren't showing up. Checked logs. Nothing. Turns out Telegram silently drops messages from non-admin bots. No error. Just silence.
 
 ---
 
@@ -324,6 +384,8 @@ All single-message. No conversations. Stateless.
 
 **User ID is free auth.** Telegram sends it. Use it. Keep your JWTs for something else.
 
+**Bot admins need permissions.** A bot can't post to a channel unless it's an admin with post permissions. Telegram doesn't error. It just drops the message. Check permissions first.
+
 ---
 
 ## Two Interfaces
@@ -334,7 +396,7 @@ There are two ways to post a blip now.
 
 **Telegram.** The bot. Open the app, type, done. Fast when I'm not at a computer. Walking, in bed, at a cafe.
 
-Both hit the same database. Both are instant. No switching contexts, no waiting, no friction.
+Both hit the same database. Both broadcast to the channel. Both are instant. No switching contexts, no waiting, no friction.
 
 The curl commands live in a separate file. Shell aliases. `blip`, `blips`, `blip-get`, `blip-edit`, `blip-del`. I'm not putting them in this article because they're not interesting. Just HTTP calls with an auth header. That's it. That's the whole thing. Okay fine, the real reason is security.
 
