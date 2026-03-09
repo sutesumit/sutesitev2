@@ -25,5 +25,5 @@ export const replies = {
     "Join the channel: @blipbotlive\n\n" +
     "All new blips get broadcast there instantly.",
   channelBlip: (serial: string, content: string) =>
-    `<code>${serial}.</code> ${content}`,
+    `<a href="https://sutesite.com/blip/${serial}"><code>${serial}.</code> ${content}</a>`,
 } as const;
