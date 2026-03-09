@@ -10,6 +10,11 @@
 !.yarn/releases
 !.yarn/versions
 
+# blipincli
+/blipincli/node_modules
+/blipincli/dist
+/blipincli/*.lock
+
 # testing
 /coverage
 
