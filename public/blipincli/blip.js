@@ -19860,9 +19860,12 @@ function boxen(text, options) {
 // src/lib/ui.ts
 var import_cli_table3 = __toESM(require_cli_table3(), 1);
 var ASCII_LOGO = `
-${source_default.cyan("\u2554\u2557  \u2566  \u2566\u2554\u2550\u2557\u2566\u2554\u2557\u2554\u2554\u2550\u2557\u2566  \u2566")}
-${source_default.cyan("\u2560\u2569\u2557 \u2551  \u2551\u2560\u2550\u255D\u2551\u2551\u2551\u2551\u2551  \u2551  \u2551")}
-${source_default.cyan("\u255A\u2550\u255D \u2569\u2550\u255D\u2569\u2569  \u2569\u255D\u255A\u255D\u255A\u2550\u255D\u2569\u2550\u255D\u2569")}
+${source_default.yellow("\u2588\u2588\u2588\u2588\u2588\u2588\u2557 ")}${source_default.yellow("\u2588\u2588\u2557     ")}${source_default.red("\u2588\u2588\u2557")}${source_default.red("\u2588\u2588\u2588\u2588\u2588\u2588\u2557 ")}
+${source_default.yellow("\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557")}${source_default.yellowBright("\u2588\u2588\u2551     ")}${source_default.red("\u2588\u2588\u2551")}${source_default.redBright("\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557")}
+${source_default.yellowBright("\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D")}${source_default.yellowBright("\u2588\u2588\u2551     ")}${source_default.redBright("\u2588\u2588\u2551")}${source_default.redBright("\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D")}
+${source_default.whiteBright("\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557")}${source_default.yellowBright("\u2588\u2588\u2551     ")}${source_default.redBright("\u2588\u2588\u2551")}${source_default.red("\u2588\u2588\u2554\u2550\u2550\u2550\u255D ")}
+${source_default.whiteBright("\u255A\u2588\u2588\u2588\u2588\u2588\u2554\u255D")}${source_default.white("\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557")}${source_default.red("\u2588\u2588\u2551")}${source_default.red("\u2588\u2588\u2551     ")}
+${source_default.gray(" \u255A\u2550\u2550\u2550\u2550\u255D ")}${source_default.gray("\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D")}${source_default.red("\u255A\u2550\u255D")}${source_default.red("\u255A\u2550\u255D     ")}
 `;
 function showBanner() {
   console.log(ASCII_LOGO);
