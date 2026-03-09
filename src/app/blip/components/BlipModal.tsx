@@ -94,7 +94,7 @@ const BlipModal = ({ blips }: BlipModalProps) => {
             onClick={(e) => e.stopPropagation()}
             onMouseEnter={() => setIsModalHovered(true)}
             onMouseLeave={() => setIsModalHovered(false)}
-            className="relative w-full max-w-[65ch] rounded-md border-l-[2px] border-l-blue-500 !border-l-solid bg-white dark:bg-[#0a0a0a] shadow-2xl font-roboto-mono lowercase"
+            className="relative w-full max-w-[65ch] overflow-hidden rounded-md border-l-[2px] border-l-blue-500 !border-l-solid bg-white dark:bg-[#0a0a0a] shadow-2xl font-roboto-mono lowercase"
           >
             <BlipCardContent
               blip={activeBlip}
