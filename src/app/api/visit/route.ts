@@ -41,26 +41,28 @@ export async function POST(request: Request) {
             .order('created_at', { ascending: false })
             .limit(1);
 
-        if (fetchError) {
+if (fetchError) {
             console.error(fetchError);
             return NextResponse.json({
                 error: fetchError.message
-            }, { status: 500 });
+            }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
         }
 
         const { data: uniqueCount } = await queryClient.rpc('get_unique_visitor_count');
 
         const lastVisitor = prevVisits?.[0] ?? null;
 
-        return NextResponse.json({ 
+return NextResponse.json({ 
             lastVisitorLocation: lastVisitor 
                 ? `${lastVisitor.city}, ${lastVisitor.country}` 
                 : null,
             visitorCount: uniqueCount ?? null
+        }, {
+            headers: { 'Cache-Control': 'no-store' }
         });
-    } catch (error) {
+} catch (error) {
         return NextResponse.json({ 
             error: error instanceof Error ? error.message : 'Unknown error'
-        }, { status: 500 });
+        }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
     }
 }

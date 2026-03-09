@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-08 | **Articles written:** 14 | **Version:** 1.11.0 (2026-03)
+> **Last evolved:** 2026-03-09 | **Articles written:** 15 | **Version:** 1.12.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -24,6 +24,7 @@ A changelog of what this skill has learned over time.
 | 2026-03-08 | 1.9.0 | When Not To Unify | Documented the third case test applied to API unification; code duplication as domain separation; unify infrastructure not intent; added `architecture` tag to registry | Agent |
 | 2026-03-08 | 1.10.0 | When Z-Index Lies to You | Documented the danger of implicit DOM stacking contexts overriding negative z-index, and how to properly isolate `overflow-hidden` constraints to allow tooltips to float freely | Agent |
 | 2026-03-08 | 1.11.0 | Orchestrating Agents | Documented agent orchestration patterns (chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer); Kilo Code's Orchestrator Mode; trade-offs of multi-agent systems; when to orchestrate vs single-agent | Agent |
+| 2026-03-09 | 1.12.0 | Orchestrating Agents (revision) | Added real-world performance optimization example with 6 parallel measurement agents, 6 optimization agents, verification phase; 421KB to 160KB bundle reduction; lessons on parallelism, isolation, and verification closing the loop | Agent |
 
 ---
 
@@ -295,6 +296,8 @@ Patterns that have emerged across multiple articles. These are observations that
 | Duplication as domain separation | When Not To Unify | Pending (1/3) — code that looks duplicated may be serving different intents; unify infrastructure, not domain |
 | Unify infrastructure, not intent | When Not To Unify | Pending (1/3) — extract shared utilities (error handling, validation) but keep semantically different APIs separate |
 | Orchestrate when context bloats | Orchestrating Agents | Pending (1/3) — use multi-agent orchestration when single-context quality degrades; isolation preserves focus at cost of latency |
+| Parallelism compounds | Orchestrating Agents (revision) | Pending (1/3) — N agents measuring simultaneously beats one agent measuring N things sequentially; time savings compound |
+| Verification closes the loop | Orchestrating Agents (revision) | Pending (1/3) — orchestration isn't complete until changes are proven; build output, lint, tests provide objective evidence |
 
 ---
 

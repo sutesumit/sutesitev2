@@ -1,0 +1,10 @@
+"use client";
+import React from 'react';
+import dynamic from 'next/dynamic';
+
+const MarathiClock = dynamic(
+  () => import("@/content/bloqs/2026/2026-02-18-vibe-shift-hackathon/MarathiClock"),
+  { ssr: false, loading: () => <div className="h-48 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" /> }
+);
+
+export default MarathiClock;

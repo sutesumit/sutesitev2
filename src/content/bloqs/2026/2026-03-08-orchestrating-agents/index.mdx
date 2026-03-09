@@ -215,29 +215,102 @@ I avoid orchestration when:
 
 ---
 
-## A Practical Example
+## A Real Example: The Performance Pass
 
-Last week I needed to add an RSS feed to this site. A single agent could have done it. But I was curious what orchestration would look like.
+I wanted to see what orchestration looked like on a real task, not a toy problem. So I pointed Kilo at this very codebase with a simple request: run a performance optimization pass.
+
+The orchestrator proposed a three-phase approach. Measure first, then optimize, then verify. Each phase would run multiple agents in parallel.
+
+### Phase 1: Measurement
+
+Six agents launched simultaneously, each analyzing a different dimension:
 
 ```text
-Orchestrator: "Add RSS feed support"
-│
-├── Architect Subtask: "Design the feed structure"
-│   └── Output: RSS 2.0 spec, route design, caching strategy
-│
-├── Code Subtask: "Implement /feed.xml route"
-│   └── Output: Next.js route handler, XML generation
-│
-├── Code Subtask: "Add feed discovery to layout"
-│   └── Output: <link rel="alternate"> in head
-│
-└── Debug Subtask: "Validate feed with W3C validator"
-    └── Output: 2 warnings fixed, feed valid
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         PHASE 1: MEASURE                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
+│  │    Agent A1     │  │    Agent A2     │  │    Agent A3     │         │
+│  │ Bundle Analysis │  │ API Profiling   │  │ Component Audit │         │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
+│                                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
+│  │    Agent A4     │  │    Agent A5     │  │    Agent A6     │         │
+│  │ Font Audit      │  │ MDX Analysis    │  │ Image Audit     │         │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-The whole thing took longer than doing it in one chat. But each subtask was focused, the context stayed clean, and when I needed to debug the XML escaping issue, the debug agent had fresh eyes on the problem.
+The bundle agent ran `npm run build` and parsed the output. The API agent profiled every route in `src/app/api/`. The component agent hunted for `'use client'` directives that shouldn't be there. And so on.
 
-Was it worth the overhead? For a simple feature, probably not. For a complex feature touching multiple systems, absolutely.
+Each agent worked in isolation. They didn't see each other's progress or pollute each other's context. When they finished, each returned a structured report.
+
+### What They Found
+
+The reports converged on a clear picture:
+
+| Area | Finding | Impact |
+|------|---------|--------|
+| **Bundle** | `/bloq/[slug]` page was 421 KB, 4x heavier than others | Critical |
+| **API** | GitHub activity route had zero caching | Medium |
+| **Fonts** | Geist and Geist_Mono loaded but never used | Medium |
+| **MDX** | Heavy components loaded for every post, used in 1 | Critical |
+| **Images** | 8.6 MB of GIF screenshots | Critical |
+
+The blog post page was the smoking gun. Every MDX post was loading DitherShader, DryKeysQuest, and other heavy components whether it needed them or not. Sixty-five to ninety kilobytes of wasted JavaScript per page load.
+
+### Phase 2: Optimization
+
+Six new agents launched, each tasked with fixing one area:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        PHASE 2: OPTIMIZE                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
+│  │    Agent O1     │  │    Agent O2     │  │    Agent O3     │         │
+│  │ Bundle Opt      │  │ API Caching     │  │ Server Comps    │         │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
+│                                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
+│  │    Agent O4     │  │    Agent O5     │  │    Agent O6     │         │
+│  │ Font Opt        │  │ MDX Opt         │  │ Image Opt       │         │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+The bundle agent created dynamic import wrappers for CodeBlock and the heavy MDX components. The API agent added `revalidate: 3600` to the GitHub route. The font agent removed Geist and Geist_Mono from layout.tsx entirely.
+
+Each agent made changes independently. They created new files, modified existing ones, and followed the project's code style without being told. When one agent needed to know how another's work affected its task, it read the files directly.
+
+### Phase 3: Verification
+
+One final command: `npm run build`.
+
+```text
+Route (app)                              Size     First Load JS
+┌ ○ /                                    3.49 kB      148 kB
+├ ● /bloq/[slug]                         1.86 kB      160 kB    ← was 421 kB
+└ ○ /work                                5.58 kB      153 kB
+```
+
+The blog post page dropped from 421 KB to 160 KB. A 62% reduction. The heavy components now load on demand, only when a post actually uses them.
+
+Lint passed. No errors. The orchestrator synthesized a summary of what changed and what still needed manual attention (the 8.6 MB of GIFs, which require video conversion, not code changes).
+
+### What This Taught Me
+
+The whole thing took about ten minutes of wall-clock time. A single agent could have done the same analysis, but it would have been one long, meandering conversation. By the time it got to the fifth optimization, it would have forgotten what the first one found.
+
+Instead, each agent had fresh context. The bundle agent didn't need to know about fonts. The font agent didn't need to know about APIs. They focused, delivered, and got out of the way.
+
+Was it worth the overhead? For this task, absolutely. The parallelism meant six measurements happened in the time of one. The isolation meant no context pollution. The structure meant I could see exactly what each agent contributed.
+
+For a simpler task, adding a single feature, I'd stick with one agent. But for a cross-cutting concern like performance, where multiple systems need simultaneous attention, orchestration is the right tool.
 
 ---
 
@@ -248,6 +321,9 @@ Was it worth the overhead? For a simple feature, probably not. For a complex fea
 - **Explicit is better.** Orchestration forces you to define what each piece does. That clarity is valuable even if you don't use multiple agents.
 - **The orchestrator matters.** A bad orchestrator creates more chaos than it solves. Design the coordination carefully.
 - **Summaries are an art.** What gets passed between agents determines success. Too little context, the next agent is lost. Too much, you've recreated the bloat problem.
+- **Parallelism is real.** Six agents measuring simultaneously beats one agent measuring six things sequentially. The time savings compound.
+- **Isolation enables focus.** The font agent never saw the bundle analysis. It didn't need to. Fresh context, clean decisions.
+- **Verification closes the loop.** The build output doesn't lie. Numbers before, numbers after. The orchestrator's job isn't done until the changes are proven.
 
 ---
 

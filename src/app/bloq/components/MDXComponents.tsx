@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { CodeBlock } from '@/components/ui/code-block';
+import { CodeBlock } from '@/components/ui/code-block-dynamic';
 import { cn } from '@/lib/utils';
 
 const MDXComponents = {

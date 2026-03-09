@@ -56,6 +56,8 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
                     src={project.screenshot}
                     alt={`${project.title} preview`}
                     fill
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                     className="absolute inset-0 object-cover"
                   />
                 )}

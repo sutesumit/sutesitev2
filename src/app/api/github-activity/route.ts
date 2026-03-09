@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GITHUB_PROFILES } from '@/data/github';
 
+export const revalidate = 3600;
+
 const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
 
 /**

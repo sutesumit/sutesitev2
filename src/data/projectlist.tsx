@@ -50,6 +50,8 @@ export interface ProjectProps {
   }
   
 
+// TODO: Convert GIF screenshots to MP4/WebM video for ~90% size reduction
+// Current GIFs total ~8.6MB - video formats would significantly improve load performance
 export const projects: ProjectProps[] = [
     {
         slug: 'art',

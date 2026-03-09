@@ -3,20 +3,20 @@ import type { Metadata } from 'next';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import Link from 'next/link';
 import { getBloqPostBySlug, getBloqPosts, getRelatedPosts } from '@/lib/bloq';
-import DryKeysQuest from '@/app/bloq/components/DryKeysQuest';
 import BloqCard from '@/app/bloq/components/BloqCard';
 import MDXComponents from '@/app/bloq/components/MDXComponents';
 import RelatedPosts from '@/app/bloq/components/RelatedPosts';
-import DitherShader from '@/components/ui/dither-shader';
 import SeedingPlant from "@/components/specific/SeedingPlant";
-import SeedingPlantASCII from "@/content/bloqs/2026/2026-02-18-vibe-shift-hackathon/SeedingPlantASCII";
-import MarathiClock from "@/content/bloqs/2026/2026-02-18-vibe-shift-hackathon/MarathiClock";
-import { SeedingPlantWrapped } from '@/content/bloqs/2025/2025-12-12-sharing-intro-art-component/SeedingPlantWrapped';
 import ClapsCounter from '@/components/shared/ClapsCounter';
 import ViewCounter from '../components/ViewCounter';
 import TrackView from '../components/TrackView';
 import { MdOutlineRssFeed } from 'react-icons/md';
 import CopyLink from '@/components/shared/CopyLink';
+import DryKeysQuest from '@/components/bloq/DryKeysQuestWrapper';
+import DitherShader from '@/components/bloq/DitherShaderWrapper';
+import SeedingPlantASCII from '@/components/bloq/SeedingPlantASCIIWrapper';
+import MarathiClock from '@/components/bloq/MarathiClockWrapper';
+import { SeedingPlantWrapped } from '@/components/bloq/SeedingPlantWrappedWrapper';
 
 const SITE_URL = 'https://sumitsute.com';
 
