@@ -97,12 +97,25 @@ export async function initBot(): Promise<Bot<MyContext>> {
 
   await botInstance.init();
 
+  await botInstance.api.setMyCommands([
+    { command: "start", description: "Show help" },
+    { command: "subscribe", description: "Get updates" },
+    { command: "list", description: "List recent blips" },
+    { command: "get", description: "Get a specific blip" },
+    { command: "edit", description: "Edit a blip" },
+    { command: "del", description: "Delete a blip" },
+  ]);
+
   botInstance.command("start", async (ctx) => {
     if (!isAllowed(ctx.from?.id ?? 0)) {
       await ctx.reply(replies.unauthorized);
       return;
     }
     await ctx.reply(replies.startIntro);
+  });
+
+  botInstance.command("subscribe", async (ctx) => {
+    await ctx.reply(replies.subscribeIntro);
   });
 
   botInstance.command("list", async (ctx) => {
@@ -220,6 +233,19 @@ export async function initBot(): Promise<Bot<MyContext>> {
     try {
       const blip = await createBlip(text);
       await ctx.reply(replies.blipCreated(blip.blip_serial), { parse_mode: "HTML" });
+
+      const channelId = process.env.TELEGRAM_CHANNEL_ID;
+      if (channelId) {
+        try {
+          await botInstance!.api.sendMessage(
+            channelId,
+            replies.channelBlip(blip.blip_serial, blip.content),
+            { parse_mode: "HTML" }
+          );
+        } catch (broadcastError) {
+          console.error("Failed to broadcast to channel:", broadcastError);
+        }
+      }
     } catch {
       await ctx.reply(replies.createFailed);
     }

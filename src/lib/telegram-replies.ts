@@ -20,4 +20,10 @@ export const replies = {
     "/get <serial> – Pull up a specific blip\n" +
     "/edit <serial> <text> – Rewrite history\n" +
     "/del <serial> – Erase the evidence",
+  subscribeIntro:
+    "Want to catch every blip as it drops?\n\n" +
+    "Join the channel: @blipbotlive\n\n" +
+    "All new blips get broadcast there instantly.",
+  channelBlip: (serial: string, content: string) =>
+    `<code>${serial}.</code> ${content}`,
 } as const;
