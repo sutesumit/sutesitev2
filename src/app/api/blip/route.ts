@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { initBot } from "@/lib/telegram-bot";
+import { replies } from "@/lib/telegram-replies";
 import type { Blip } from "@/types/blip";
 
 const noStoreHeaders = { 'Cache-Control': 'no-store' };
@@ -87,6 +89,20 @@ export async function POST(req: Request) {
         { error: "Failed to create blip" },
         { status: 500, headers: noStoreHeaders }
       );
+    }
+
+    const channelId = process.env.TELEGRAM_CHANNEL_ID;
+    if (channelId) {
+      try {
+        const bot = await initBot();
+        await bot.api.sendMessage(
+          channelId,
+          replies.channelBlip(data.blip_serial, data.content),
+          { parse_mode: "HTML" }
+        );
+      } catch (broadcastError) {
+        console.error("Failed to broadcast to channel:", broadcastError);
+      }
     }
 
     return NextResponse.json(
