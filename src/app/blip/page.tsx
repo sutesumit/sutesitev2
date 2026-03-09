@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import type { Metadata } from "next";
 import { getBlips } from "@/lib/blip";
 import BlipCard from "./components/BlipCard";
 import IntroCard from "./components/IntroCard";
@@ -6,6 +7,14 @@ import IntroText from "./components/IntroText";
 import BlipModal from "./components/BlipModal";
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'blip',
+  description: 'short thoughts, updates, and quick notes from sumit sute',
+  alternates: {
+    canonical: 'https://sumitsute.com/blip',
+  },
+};
 
 const BlipPage = async () => {
   const blips = await getBlips();
