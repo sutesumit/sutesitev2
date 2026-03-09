@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-09 | **Articles written:** 15 | **Version:** 1.12.0 (2026-03)
+> **Last evolved:** 2026-03-09 | **Articles written:** 16 | **Version:** 1.13.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -25,6 +25,7 @@ A changelog of what this skill has learned over time.
 | 2026-03-08 | 1.10.0 | When Z-Index Lies to You | Documented the danger of implicit DOM stacking contexts overriding negative z-index, and how to properly isolate `overflow-hidden` constraints to allow tooltips to float freely | Agent |
 | 2026-03-08 | 1.11.0 | Orchestrating Agents | Documented agent orchestration patterns (chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer); Kilo Code's Orchestrator Mode; trade-offs of multi-agent systems; when to orchestrate vs single-agent | Agent |
 | 2026-03-09 | 1.12.0 | Orchestrating Agents (revision) | Added real-world performance optimization example with 6 parallel measurement agents, 6 optimization agents, verification phase; 421KB to 160KB bundle reduction; lessons on parallelism, isolation, and verification closing the loop | Agent |
+| 2026-03-09 | 1.13.0 | blipincli: A CLI for My Microblog | Added `cli` and `nodejs` tags to registry; documented CLI UX patterns, Unix-style commands, esbuild bundling for distribution; ASCII art as personality; agent collaboration accelerating development | Agent |
 
 ---
 
@@ -47,6 +48,8 @@ Tags serve discoverability and related-post suggestions. Every article must have
 | `reflections` | 2+ | Low | Personal learning arcs, events |
 | `seo` | 1+ | High | Metadata, OpenGraph, JSON-LD, search optimization |
 | `architecture` | 2+ | Medium | System design, trade-offs, layer separation, patterns |
+| `cli` | 1+ | Medium | Command-line tools, terminal apps, CLI UX |
+| `nodejs` | 1+ | Medium | Node.js runtime, server-side JavaScript, bundling |
 
 ### Tag rules
 
@@ -298,6 +301,9 @@ Patterns that have emerged across multiple articles. These are observations that
 | Orchestrate when context bloats | Orchestrating Agents | Pending (1/3) — use multi-agent orchestration when single-context quality degrades; isolation preserves focus at cost of latency |
 | Parallelism compounds | Orchestrating Agents (revision) | Pending (1/3) — N agents measuring simultaneously beats one agent measuring N things sequentially; time savings compound |
 | Verification closes the loop | Orchestrating Agents (revision) | Pending (1/3) — orchestration isn't complete until changes are proven; build output, lint, tests provide objective evidence |
+| CLI UX is reducing friction | blipincli | Pending (1/3) — the difference between a well-designed CLI and raw curl commands is the difference between using a tool and fighting it |
+| Bundle for portability | blipincli | Pending (1/3) — a single file you can curl and run beats a repo they have to clone and npm install; distribution matters for adoption |
+| ASCII art as personality | blipincli | Pending (1/3) — costs nothing, adds personality, makes the tool feel intentional rather than thrown together |
 
 ---
 
