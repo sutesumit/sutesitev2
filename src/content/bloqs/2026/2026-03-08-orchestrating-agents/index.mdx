@@ -1,7 +1,7 @@
 ---
-title: "Orchestrating Agents"
+title: "From Soloist to Symphony"
 publishedAt: "2026-03-08"
-summary: "What happens when you stop asking one AI to do everything and start treating agents like a team of specialists instead."
+summary: "Lessons learned from coordinating 25+ agent sessions: solving context bloat with isolation and specialization."
 slug: "orchestrating-agents"
 tags:
   - ai
@@ -11,17 +11,17 @@ tags:
 authors:
   - Sumit Sute
 category: "Engineering"
-draft: true
+draft: false
 featured: false
 ---
 
 ## The One-Agent Problem
 
-> "When your only tool is a hammer, every problem looks like a nail. When your only agent is a generalist, every task looks like a chat."
+> "Context bloat is the 'forget-me-not' of the LLM world. Treat your agent like a generalist, and by line 500, they'll be confidently hallucinating your own API."
 
 I used to treat AI agents like a single omniscient developer. One conversation, one context, one agent doing everything from architecture decisions to debugging typos. It worked, mostly. But the context would bloat, the focus would drift, and by the time we got to the third subtask, the agent had forgotten what the first one was about.
 
-The problem wasn't the model. The problem was the pattern.
+Sometimes it *is* the model. But more often, it's the impossible expectation of asking a single brain to be its own architect, coder, and critic all at once without losing the thread.
 
 ---
 
@@ -66,7 +66,9 @@ Orchestrated (Multiple Agents)
 
 ## The Orchestration Patterns
 
-Anthropic's engineering team published a breakdown of common patterns they've seen work in production. Here's what they found:
+In [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents), Anthropic's engineering team provides a brilliant taxonomy for this. They distinguish between **Workflows** (predefined, predictable paths) and **Agents** (dynamic decision-makers), while emphasizing the **"Simplest is Best"** principle: only add orchestration complexity when single-prompt performance benchmarks start to plateau.
+
+Here are the core patterns they identified:
 
 ### Prompt Chaining
 
@@ -139,6 +141,12 @@ One agent generates, another evaluates in a loop.
 ```
 
 Good for: Tasks with clear evaluation criteria where iteration improves quality. Translation, complex search, code review.
+
+### Handoffs
+
+OpenAI's [Swarm framework](https://github.com/openai/swarm) emphasizes this: agents don't just complete tasks; they explicitly hand off control to other specialized agents when needed.
+
+Good for: Dynamic workflows where the next step's expert is only known after the current step is done.
 
 ---
 
@@ -215,6 +223,32 @@ I avoid orchestration when:
 
 ---
 
+## What About Long-Horizon Agents?
+
+A fair question: if "Long-Horizon Agents" (LHAs) are becoming more capable, do we still need orchestration? 
+
+Think of LHAs as a **Virtuoso Multi-Instrumentalist**. They have the reasoning capacity to play a long, complex solo without losing the beat. OpenAI's o1, for example, uses **Internalized Reasoning** (RL-based chain-of-thought) to let the model solve multi-step problems *within* a single turn.
+
+But even a virtuoso needs a backing band for a massive symphony. Orchestration is a *strategy*, whereas LHA is a *capability*. Most modern LHAs (like Devin or Kilo’s own Orchestrator) use orchestration under the hood to manage context and prevent the inevitable drift that comes with long-running sessions.
+
+## Towards Self-Driving Codebases
+
+We're moving from "AI as a tool" to something more akin to [Cursor's vision of Self-Driving Codebases](https://cursor.com/blog/self-driving-codebases). This shift relies on three key principles:
+
+1.  **Planner-Executor-Judge**: A triad of roles ensuring every change is proposed with intent, executed with precision, and verified for correctness.
+2.  **Anti-fragility**: Orchestration makes the process resilient. If one agent fails or loops, the orchestrator can break the loop or retry with a different specialist. The symphony plays on.
+3.  **Quantity as Signal**: Setting the ambition. Instead of asking for "a fix," we ask for an analysis that might generate 20-100 tasks. That scale is only manageable through orchestration.
+
+## Git Worktrees: The Secret Sauce
+
+If isolation is the heart of orchestration, **Git Worktrees** are the secret sauce. 
+
+Rather than the "stash dance" (stashing work, switching branches, forgetting where you were), worktrees allow each agent to live in its own literal folder on your machine. This pattern, seen in [Kilo Code](https://kilo.ai/docs/code-with-ai/agents/orchestrator-mode) and cognitive architectures like [Devin's](https://www.cognition.ai/blog/introducing-devin), prevents "context hijacking." 
+
+While an agent works in `.kilocode/worktrees/refactor-wave-1/`, your main working directory stays exactly as you left it. I'm looking forward to trying this out more—it feels like the final hurdle to truly parallel AI development.
+
+---
+
 ## A Real Example: The Performance Pass
 
 I wanted to see what orchestration looked like on a real task, not a toy problem. So I pointed Kilo at this very codebase with a simple request: run a performance optimization pass.
@@ -226,21 +260,21 @@ The orchestrator proposed a three-phase approach. Measure first, then optimize, 
 Six agents launched simultaneously, each analyzing a different dimension:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         PHASE 1: MEASURE                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
-│  │    Agent A1     │  │    Agent A2     │  │    Agent A3     │         │
-│  │ Bundle Analysis │  │ API Profiling   │  │ Component Audit │         │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
-│                                                                          │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
-│  │    Agent A4     │  │    Agent A5     │  │    Agent A6     │         │
-│  │ Font Audit      │  │ MDX Analysis    │  │ Image Audit     │         │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                         PHASE 1: MEASURE                         │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐   │
+│  │    Agent A1     │  │    Agent A2     │  │    Agent A3     │   │
+│  │ Bundle Analysis │  │ API Profiling   │  │ Component Audit │   │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘   │
+│                                                                  │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐   │
+│  │    Agent A4     │  │    Agent A5     │  │    Agent A6     │   │
+│  │ Font Audit      │  │ MDX Analysis    │  │ Image Audit     │   │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘   │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 The bundle agent ran `npm run build` and parsed the output. The API agent profiled every route in `src/app/api/`. The component agent hunted for `'use client'` directives that shouldn't be there. And so on.
@@ -251,13 +285,15 @@ Each agent worked in isolation. They didn't see each other's progress or pollute
 
 The reports converged on a clear picture:
 
-| Area | Finding | Impact |
-|------|---------|--------|
+```text
+| Area       | Finding                                                | Impact   |
+|------------|--------------------------------------------------------|----------|
 | **Bundle** | `/bloq/[slug]` page was 421 KB, 4x heavier than others | Critical |
-| **API** | GitHub activity route had zero caching | Medium |
-| **Fonts** | Geist and Geist_Mono loaded but never used | Medium |
-| **MDX** | Heavy components loaded for every post, used in 1 | Critical |
-| **Images** | 8.6 MB of GIF screenshots | Critical |
+| **API**    | GitHub activity route had zero caching                 | Medium   |
+| **Fonts**  | Geist and Geist_Mono loaded but never used             | Medium   |
+| **MDX**    | Heavy components loaded for every post, used in 1      | Critical |
+| **Images** | 8.6 MB of GIF screenshots                              | Critical |
+```
 
 The blog post page was the smoking gun. Every MDX post was loading DitherShader, DryKeysQuest, and other heavy components whether it needed them or not. Sixty-five to ninety kilobytes of wasted JavaScript per page load.
 
@@ -266,21 +302,21 @@ The blog post page was the smoking gun. Every MDX post was loading DitherShader,
 Six new agents launched, each tasked with fixing one area:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        PHASE 2: OPTIMIZE                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
-│  │    Agent O1     │  │    Agent O2     │  │    Agent O3     │         │
-│  │ Bundle Opt      │  │ API Caching     │  │ Server Comps    │         │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
-│                                                                          │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
-│  │    Agent O4     │  │    Agent O5     │  │    Agent O6     │         │
-│  │ Font Opt        │  │ MDX Opt         │  │ Image Opt       │         │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        PHASE 2: OPTIMIZE                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐│
+││    Agent O1     │  │    Agent O2     │  │    Agent O3     ││
+││   Bundle Opt    │  │   API Caching   │  │  Server Comps   ││
+│└─────────────────┘  └─────────────────┘  └─────────────────┘│
+│                                                             │
+│┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐│
+││    Agent O4     │  │    Agent O5     │  │    Agent O6     ││
+││    Font Opt     │  │     MDX Opt     │  │   Image Opt     ││
+│└─────────────────┘  └─────────────────┘  └─────────────────┘│
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 The bundle agent created dynamic import wrappers for CodeBlock and the heavy MDX components. The API agent added `revalidate: 3600` to the GitHub route. The font agent removed Geist and Geist_Mono from layout.tsx entirely.
@@ -337,41 +373,41 @@ The biggest offenders:
 The orchestrator proposed a seven-wave approach, each wave building on the previous:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    SOLID REFACTORING: 7 WAVES                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  Wave 1: Foundation                                                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │ API Utils   │ │ Fingerprint │ │ Location    │ │ Claps       │           │
-│  │ (lib/api/)  │ │ Utility     │ │ Service     │ │ Service     │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-│                                                                              │
-│  Wave 2: Lib Reorganization                                                  │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │ Split bloq  │ │ Split bot   │ │ Reorg blip  │ │ Reorg feed  │           │
-│  │ → 7 modules │ │ → 6 modules │ │ → 3 modules │ │ → 3 modules │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-│                                                                              │
-│  Wave 3: API Routes                                                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │ /api/blip   │ │ /api/visit  │ │ /api/github │ │ /api/claps  │           │
-│  │ routes      │ │ route       │ │ route       │ │ route       │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-│                                                                              │
-│  Wave 4: Components                                                          │
-│  ┌─────────────────────────────┐ ┌─────────────────────────────┐           │
-│  │ DitherShader                │ │ Footer                      │           │
-│  │ (Strategy Pattern)          │ │ (Split presentation/logic)   │           │
-│  └─────────────────────────────┘ └─────────────────────────────┘           │
-│                                                                              │
-│  Wave 5: Hooks         Wave 6: Data          Wave 7: Folders                │
-│  ┌──────────────┐     ┌──────────────┐      ┌──────────────┐              │
-│  │ useClaps     │     │ projectlist  │      │ Component    │              │
-│  │ useLocation  │     │ skilllist    │      │ structure    │              │
-│  └──────────────┘     └──────────────┘      └──────────────┘              │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                    SOLID REFACTORING: 7 WAVES                 │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│ Wave 1: Foundation                                            │
+│┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
+││ API Utils   │ │ Fingerprint │ │ Location    │ │ Claps       ││
+││ (lib/api/)  │ │ Utility     │ │ Service     │ │ Service     ││
+│└─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘│
+│                                                               │
+│ Wave 2: Lib Reorganization                                    │
+│┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
+││ Split bloq  │ │ Split bot   │ │ Reorg blip  │ │ Reorg feed  ││
+││ → 7 modules │ │ → 6 modules │ │ → 3 modules │ │ → 3 modules ││
+│└─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘│
+│                                                               │
+│ Wave 3: API Routes                                            │
+│┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
+││ /api/blip   │ │ /api/visit  │ │ /api/github │ │ /api/claps  ││
+││ routes      │ │ route       │ │ route       │ │ route       ││
+│└─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘│
+│                                                               │
+│ Wave 4: Components                                            │
+│┌─────────────────────────────┐ ┌─────────────────────────────┐│
+││ DitherShader                │ │ Footer                      ││
+││ (Strategy Pattern)          │ │ (Split presentation/logic)  ││
+│└─────────────────────────────┘ └─────────────────────────────┘│
+│                                                               │
+│ Wave 5: Hooks         Wave 6: Data          Wave 7: Folders   │
+│┌──────────────┐     ┌──────────────┐      ┌──────────────┐    │
+││ useClaps     │     │ projectlist  │      │ Component    │    │
+││ useLocation  │     │ skilllist    │      │ structure    │    │
+│└──────────────┘     └──────────────┘      └──────────────┘    │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ### Wave 1: Foundation (5 agents in parallel)
@@ -594,6 +630,12 @@ After:
 └── components/ui/dither-shader/ (16 files)
 ```
 
+### The Messy Middle
+
+It wasn't a smooth ride. The orchestrator broke twice—the build check failed, and it spiraled into "stupid loops" that I had to manually break. I actually got frustrated and took a day-long break, worried that it might somehow commit broken code directly to `main`. 
+
+When I returned, it was still broken with an obscure import reference that the build error didn't clearly explain. But then, I tried something simple: I fed that raw, messy error message directly back into the orchestrator's context. Magically, it clicked. The orchestrator identified the drift, fixed the reference, and the entire refactor finally succeeded. I couldn't be happier.
+
 Build passed. Lint passed. All original import paths still work via re-exports.
 
 ### What This Orchestration Achieved
@@ -625,5 +667,11 @@ Could a single agent have done this? Eventually. But it would have been one 8-ho
 ## Further Reading
 
 - [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents) - Anthropic's engineering team on patterns they've seen work
+- [Self-Driving Codebases](https://cursor.com/blog/self-driving-codebases) - Cursor's research into autonomous agent loops
+- [Swarm](https://github.com/openai/swarm) - OpenAI's lightweight multi-agent orchestration framework
+- [Learning to Reason with LLMs](https://openai.com/index/learning-to-reason-with-llms/) - OpenAI's research into internal chain-of-thought (o1)
 - [Kilo Code Orchestrator Mode](https://kilo.ai/docs/code-with-ai/agents/orchestrator-mode) - Documentation for Kilo's implementation
-- [Model Context Protocol](https://modelcontextprotocol.io/) - Anthropic's protocol for connecting agents to tools
+
+---
+
+> In the spirit of the topic, this entire article was drafted and refined by the very orchestrator it describes. If you've enjoyed the flow, credit the patterns, not just the model.
