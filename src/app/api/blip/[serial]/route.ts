@@ -1,46 +1,7 @@
-import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import type { Blip } from "@/types/blip";
-
-const noStoreHeaders = { 'Cache-Control': 'no-store' };
-const MAX_CONTENT_LENGTH = 280;
-
-function validateApiKey(authHeader: string | null): boolean {
-  const key = process.env.BLIP_SECRET_KEY;
-  if (!key) {
-    console.error("BLIP_SECRET_KEY not configured");
-    return false;
-  }
-  if (!authHeader) return false;
-  return authHeader === key;
-}
-
-async function parseContent(req: Request): Promise<string> {
-  const contentType = req.headers.get("content-type") || "";
-  
-  if (contentType.includes("application/x-www-form-urlencoded")) {
-    const text = await req.text();
-    const params = new URLSearchParams(text);
-    const content = params.get("content") || params.get("") || text.replace(/^content=/, "");
-    return content.trim();
-  }
-  
-  if (contentType.includes("application/json")) {
-    try {
-      const body = await req.json();
-      return typeof body?.content === 'string' ? body.content.trim() : "";
-    } catch {
-      return "";
-    }
-  }
-  
-  try {
-    const text = await req.text();
-    return text.trim();
-  } catch {
-    return "";
-  }
-}
+import { validateApiKey, parseContent, validateContentLength } from "@/lib/api/validation";
+import { jsonError, jsonSuccess, unauthorizedResponse, notFoundResponse } from "@/lib/api/responses";
 
 export async function GET(
   req: Request,
@@ -57,23 +18,14 @@ export async function GET(
       .single();
 
     if (error || !data) {
-      return NextResponse.json(
-        { error: "Blip not found" },
-        { status: 404, headers: noStoreHeaders }
-      );
+      return notFoundResponse("Blip not found");
     }
 
-    return NextResponse.json(
-      { blip: data as Blip },
-      { status: 200, headers: noStoreHeaders }
-    );
+    return jsonSuccess({ blip: data as Blip });
   } catch (error: unknown) {
     console.error("Error in blip GET by serial:", error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { error: message },
-      { status: 500, headers: noStoreHeaders }
-    );
+    return jsonError(message, 500);
   }
 }
 
@@ -85,27 +37,15 @@ export async function PUT(
     const authHeader = req.headers.get("K") || req.headers.get("X-Key");
     
     if (!validateApiKey(authHeader)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401, headers: noStoreHeaders }
-      );
+      return unauthorizedResponse();
     }
 
     const { serial } = await params;
     const content = await parseContent(req);
-
-    if (!content) {
-      return NextResponse.json(
-        { error: "Content is required" },
-        { status: 400, headers: noStoreHeaders }
-      );
-    }
-
-    if (content.length > MAX_CONTENT_LENGTH) {
-      return NextResponse.json(
-        { error: `Content must be ${MAX_CONTENT_LENGTH} characters or less` },
-        { status: 400, headers: noStoreHeaders }
-      );
+    const validation = validateContentLength(content);
+    
+    if (!validation.valid) {
+      return jsonError(validation.error!, 400);
     }
 
     const supabase = getSupabaseServerClient();
@@ -117,23 +57,14 @@ export async function PUT(
       .single();
 
     if (error || !data) {
-      return NextResponse.json(
-        { error: "Blip not found or update failed" },
-        { status: 404, headers: noStoreHeaders }
-      );
+      return notFoundResponse("Blip not found or update failed");
     }
 
-    return NextResponse.json(
-      { blip: data as Blip },
-      { status: 200, headers: noStoreHeaders }
-    );
+    return jsonSuccess({ blip: data as Blip });
   } catch (error: unknown) {
     console.error("Error in blip PUT:", error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { error: message },
-      { status: 500, headers: noStoreHeaders }
-    );
+    return jsonError(message, 500);
   }
 }
 
@@ -145,10 +76,7 @@ export async function DELETE(
     const authHeader = req.headers.get("K") || req.headers.get("X-Key");
     
     if (!validateApiKey(authHeader)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401, headers: noStoreHeaders }
-      );
+      return unauthorizedResponse();
     }
 
     const { serial } = await params;
@@ -160,22 +88,13 @@ export async function DELETE(
       .eq("blip_serial", serial);
 
     if (error) {
-      return NextResponse.json(
-        { error: "Failed to delete blip" },
-        { status: 500, headers: noStoreHeaders }
-      );
+      return jsonError("Failed to delete blip", 500);
     }
 
-    return NextResponse.json(
-      { success: true },
-      { status: 200, headers: noStoreHeaders }
-    );
+    return jsonSuccess({ success: true });
   } catch (error: unknown) {
     console.error("Error in blip DELETE:", error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { error: message },
-      { status: 500, headers: noStoreHeaders }
-    );
+    return jsonError(message, 500);
   }
 }
