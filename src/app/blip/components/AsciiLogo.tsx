@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion as m } from "framer-motion";
 
 const ROWS = [
   [
@@ -41,13 +42,53 @@ const ROWS = [
   ],
 ];
 
+function getRandomTrap(): string {
+  const r = Math.floor(Math.random() * ROWS.length);
+  const c = Math.floor(Math.random() * ROWS[r].length);
+  return `${r}-${c}`;
+}
+
 export default function ASCII_LOGO() {
   const [flipped, setFlipped] = useState<Record<string, boolean>>({});
   const [animating, setAnimating] = useState<Record<string, "to-color" | "to-blue">>({});
+  const [trapCell, setTrapCell] = useState<string>("");
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [showingEmoji, setShowingEmoji] = useState<Record<string, "sparkle" | "explosion">>({});
+
+  useEffect(() => {
+    setTrapCell(getRandomTrap());
+  }, []);
+
+  const restartGame = () => {
+    setFlipped({});
+    setAnimating({});
+    setRevealed(new Set());
+    setIsGameOver(false);
+    setShowingEmoji({});
+    setTrapCell(getRandomTrap());
+  };
 
   const handleClick = (id: string) => {
-    if (flipped[id] || animating[id]) return;
-    setAnimating(prev => ({ ...prev, [id]: 'to-color' }));
+    if (isGameOver || revealed.has(id) || flipped[id] || animating[id]) return;
+
+    if (id === trapCell) {
+      setShowingEmoji(prev => ({ ...prev, [id]: "explosion" }));
+      setTimeout(() => {
+        setIsGameOver(true);
+      }, 600);
+    } else {
+      setRevealed(prev => new Set(prev).add(id));
+      setShowingEmoji(prev => ({ ...prev, [id]: "sparkle" }));
+      setTimeout(() => {
+        setShowingEmoji(prev => {
+          const n = { ...prev };
+          delete n[id];
+          return n;
+        });
+        setAnimating(prev => ({ ...prev, [id]: 'to-color' }));
+      }, 400);
+    }
   };
 
   const handleAnimationEnd = (id: string) => {
@@ -87,6 +128,7 @@ export default function ASCII_LOGO() {
           color: #3b82f6;
           user-select: none;
           text-align: center;
+          position: relative;
         }
         .cell:hover { opacity: 0.7; }
         .cell.flipped { color: var(--tc); cursor: default; }
@@ -94,34 +136,79 @@ export default function ASCII_LOGO() {
         .cell.anim-to-color { animation: flipToColor 0.35s ease-in-out forwards; }
         .cell.anim-to-blue  { animation: flipToBlue  0.35s ease-in-out forwards; }
       `}</style>
-      <pre style={{ fontFamily: 'monospace', lineHeight: 1.4, padding: '1rem', margin: 0 }}>
-        {ROWS.map((row, r) => (
-          <span key={r} style={{ display: 'block' }}>
-            {row.map((cell, c) => {
-              const id = `${r}-${c}`;
-              const anim = animating[id];
-              const isFlipped = !!flipped[id];
-              const cls = [
-                'cell',
-                isFlipped && !anim ? 'flipped' : '',
-                anim === 'to-color' ? 'anim-to-color' : '',
-                anim === 'to-blue' ? 'anim-to-blue' : ''
-              ].filter(Boolean).join(' ');
-              return (
-                <span
-                  key={id}
-                  className={cls}
-                  style={{ '--tc': cell.color } as React.CSSProperties}
-                  onClick={() => handleClick(id)}
-                  onAnimationEnd={() => handleAnimationEnd(id)}
-                >
-                  {cell.text}
-                </span>
-              );
-            })}
-          </span>
-        ))}
-      </pre>
+      <div style={{ position: 'relative' }}>
+        <pre style={{ fontFamily: 'monospace', lineHeight: 1.4, padding: '1rem', margin: 0 }}>
+          {ROWS.map((row, r) => (
+            <span key={r} style={{ display: 'block' }}>
+              {row.map((cell, c) => {
+                const id = `${r}-${c}`;
+                const anim = animating[id];
+                const isFlipped = !!flipped[id];
+                const emoji = showingEmoji[id];
+                const cls = [
+                  'cell',
+                  isFlipped && !anim ? 'flipped' : '',
+                  anim === 'to-color' ? 'anim-to-color' : '',
+                  anim === 'to-blue' ? 'anim-to-blue' : ''
+                ].filter(Boolean).join(' ');
+                return (
+                  <span
+                    key={id}
+                    className={cls}
+                    style={{ '--tc': cell.color } as React.CSSProperties}
+                    onClick={() => handleClick(id)}
+                    onAnimationEnd={() => handleAnimationEnd(id)}
+                  >
+                    {emoji === "sparkle" ? (
+                      <m.span
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+                      >
+                        ✨
+                      </m.span>
+                    ) : emoji === "explosion" ? (
+                      <m.span
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: [1, 1.5, 1], opacity: 1 }}
+                        transition={{ duration: 0.5, times: [0, 0.5, 1] }}
+                      >
+                        💥
+                      </m.span>
+                    ) : (
+                      cell.text
+                    )}
+                  </span>
+                );
+              })}
+            </span>
+          ))}
+        </pre>
+
+        {isGameOver && (
+          <m.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 flex flex-col items-center justify-center z-20"
+            style={{ background: 'rgba(0,0,0,0.7)' }}
+          >
+            <m.div 
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-slate-900 border border-slate-600 p-8 flex flex-col items-center"
+            >
+              <span className="text-4xl mb-6 animate-bounce">💥</span>
+              <button 
+                onClick={restartGame}
+                className="px-6 py-2 bg-slate-900 border border-slate-600 text-slate-300 font-mono text-[10px] tracking-widest uppercase hover:bg-blue-950 transition-colors cursor-pointer"
+              >
+                [ Try Again ]
+              </button>
+            </m.div>
+          </m.div>
+        )}
+      </div>
     </div>
   );
 }
