@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { noStoreHeaders } from "@/lib/api/constants";
+import { jsonError } from "@/lib/api/responses";
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        // Only insert if we have valid location data
         if (body.city || body.country_code) {
             await supabase
                 .from('visits')
@@ -24,13 +25,7 @@ export async function POST(request: Request) {
                         timezone: body.timezone,
                     }
                 ]);
-                
-            // Silently continue even if insert fails - still fetch previous visitor
         }
-        
-
-        // Always fetch previous visitor using Service Role key if available to bypass RLS
-        // // This is crucial because "anonymous" users usually can't see *other* users' data
 
         const queryClient = await getSupabaseServerClient();
 
@@ -41,28 +36,25 @@ export async function POST(request: Request) {
             .order('created_at', { ascending: false })
             .limit(1);
 
-if (fetchError) {
+        if (fetchError) {
             console.error(fetchError);
-            return NextResponse.json({
-                error: fetchError.message
-            }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
+            return jsonError(fetchError.message, 500);
         }
 
         const { data: uniqueCount } = await queryClient.rpc('get_unique_visitor_count');
 
         const lastVisitor = prevVisits?.[0] ?? null;
 
-return NextResponse.json({ 
+        return NextResponse.json({ 
             lastVisitorLocation: lastVisitor 
                 ? `${lastVisitor.city}, ${lastVisitor.country}` 
                 : null,
             visitorCount: uniqueCount ?? null
         }, {
-            headers: { 'Cache-Control': 'no-store' }
+            headers: noStoreHeaders
         });
-} catch (error) {
-        return NextResponse.json({ 
-            error: error instanceof Error ? error.message : 'Unknown error'
-        }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return jsonError(message, 500);
     }
 }

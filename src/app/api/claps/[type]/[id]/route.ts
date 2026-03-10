@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { getBloqPostBySlug } from "@/lib/bloq";
-
-const noStoreHeaders = { 'Cache-Control': 'no-store' };
+import { jsonError, jsonSuccess } from "@/lib/api/responses";
 
 interface RouteParams {
     params: Promise<{ type: string; id: string }>
@@ -23,20 +22,13 @@ export async function POST(
         const { type, id } = await params;
 
         if (!validatePostType(type)) {
-            return NextResponse.json(
-                { error: "Invalid post type. Must be 'bloq' or 'blip'" },
-                { status: 400, headers: noStoreHeaders }
-            );
+            return jsonError("Invalid post type. Must be 'bloq' or 'blip'", 400);
         }
 
-        // Validate post exists
         if (type === 'bloq') {
             const post = getBloqPostBySlug(id);
             if (!post) {
-                return NextResponse.json(
-                    { error: "Post not found" },
-                    { status: 404, headers: noStoreHeaders }
-                );
+                return jsonError("Post not found", 404);
             }
         }
 
@@ -44,10 +36,7 @@ export async function POST(
         const fingerprint = body.fingerprint;
 
         if (!fingerprint || typeof fingerprint !== 'string') {
-            return NextResponse.json(
-                { error: "Fingerprint required" },
-                { status: 400, headers: noStoreHeaders }
-            );
+            return jsonError("Fingerprint required", 400);
         }
 
         const supabase = getSupabaseServerClient();
@@ -60,23 +49,18 @@ export async function POST(
 
         if (error) {
             console.error("Error upserting clap", error);
-            return NextResponse.json(
-                { error: error.message },
-                { status: 500, headers: noStoreHeaders }
-            );
+            return jsonError(error.message, 500);
         }
 
-        return NextResponse.json({
+        return jsonSuccess({
             userClaps: data.user_claps,
             totalClaps: data.total_claps,
             maxReached: data.max_reached
-        }, { status: 200, headers: noStoreHeaders });
-    } catch (error) {
+        });
+    } catch (error: unknown) {
         console.error("Error incrementing clap count", error);
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Unknown error' },
-            { status: 500, headers: noStoreHeaders }
-        );
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return jsonError(message, 500);
     }
 }
 
@@ -88,20 +72,13 @@ export async function GET(
         const { type, id } = await params;
 
         if (!validatePostType(type)) {
-            return NextResponse.json(
-                { error: "Invalid post type. Must be 'bloq' or 'blip'" },
-                { status: 400, headers: noStoreHeaders }
-            );
+            return jsonError("Invalid post type. Must be 'bloq' or 'blip'", 400);
         }
 
-        // Validate post exists
         if (type === 'bloq') {
             const post = getBloqPostBySlug(id);
             if (!post) {
-                return NextResponse.json(
-                    { error: "Post not found" },
-                    { status: 404, headers: noStoreHeaders }
-                );
+                return jsonError("Post not found", 404);
             }
         }
 
@@ -119,16 +96,13 @@ export async function GET(
 
             if (error) {
                 console.error("Error getting user claps", error);
-                return NextResponse.json(
-                    { error: error.message },
-                    { status: 500, headers: noStoreHeaders }
-                );
+                return jsonError(error.message, 500);
             }
 
-            return NextResponse.json({
+            return jsonSuccess({
                 claps: data.total_claps,
                 userClaps: data.user_claps
-            }, { status: 200, headers: noStoreHeaders });
+            });
         } else {
             const { data, error } = await supabase.rpc("get_claps", {
                 p_post_type: type,
@@ -137,22 +111,17 @@ export async function GET(
 
             if (error) {
                 console.error("Error getting claps", error);
-                return NextResponse.json(
-                    { error: error.message },
-                    { status: 500, headers: noStoreHeaders }
-                );
+                return jsonError(error.message, 500);
             }
 
-            return NextResponse.json({
+            return jsonSuccess({
                 claps: data.claps,
                 userClaps: 0
-            }, { status: 200, headers: noStoreHeaders });
+            });
         }
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Error getting clap count", error);
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Unknown error' },
-            { status: 500, headers: noStoreHeaders }
-        );
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return jsonError(message, 500);
     }
 }

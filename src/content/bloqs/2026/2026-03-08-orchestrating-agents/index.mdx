@@ -314,6 +314,301 @@ For a simpler task, adding a single feature, I'd stick with one agent. But for a
 
 ---
 
+## Another Example: The SOLID Refactoring Pass
+
+A few weeks after the performance pass, I wanted to tackle something more ambitious: refactoring the entire codebase to follow SOLID principles. This wasn't about fixing one thing—it was about restructuring dozens of files across multiple domains.
+
+### The Scope
+
+I asked Kilo to analyze the codebase and create a plan for SOLID refactoring. The analysis identified:
+
+- **15 Single Responsibility violations** (files doing too many things)
+- **8 Open/Closed violations** (hard-coded algorithms, switch statements)
+- **4 Interface Segregation violations** (bloated interfaces)
+- **12 Dependency Inversion violations** (tight coupling to external services)
+
+The biggest offenders:
+- `telegram-bot.ts` (263 lines): bot init + 7 command handlers + database operations + formatting
+- `bloq.ts` (350 lines): filesystem I/O + parsing + filtering + statistics
+- `dither-shader.tsx` (484 lines): 4 dithering algorithms + 4 color modes + image loading + canvas rendering
+
+### The Orchestration Plan
+
+The orchestrator proposed a seven-wave approach, each wave building on the previous:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SOLID REFACTORING: 7 WAVES                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Wave 1: Foundation                                                          │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │ API Utils   │ │ Fingerprint │ │ Location    │ │ Claps       │           │
+│  │ (lib/api/)  │ │ Utility     │ │ Service     │ │ Service     │           │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
+│                                                                              │
+│  Wave 2: Lib Reorganization                                                  │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │ Split bloq  │ │ Split bot   │ │ Reorg blip  │ │ Reorg feed  │           │
+│  │ → 7 modules │ │ → 6 modules │ │ → 3 modules │ │ → 3 modules │           │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
+│                                                                              │
+│  Wave 3: API Routes                                                          │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │ /api/blip   │ │ /api/visit  │ │ /api/github │ │ /api/claps  │           │
+│  │ routes      │ │ route       │ │ route       │ │ route       │           │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
+│                                                                              │
+│  Wave 4: Components                                                          │
+│  ┌─────────────────────────────┐ ┌─────────────────────────────┐           │
+│  │ DitherShader                │ │ Footer                      │           │
+│  │ (Strategy Pattern)          │ │ (Split presentation/logic)   │           │
+│  └─────────────────────────────┘ └─────────────────────────────┘           │
+│                                                                              │
+│  Wave 5: Hooks         Wave 6: Data          Wave 7: Folders                │
+│  ┌──────────────┐     ┌──────────────┐      ┌──────────────┐              │
+│  │ useClaps     │     │ projectlist  │      │ Component    │              │
+│  │ useLocation  │     │ skilllist    │      │ structure    │              │
+│  └──────────────┘     └──────────────┘      └──────────────┘              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Wave 1: Foundation (5 agents in parallel)
+
+Five agents launched simultaneously to create the foundation:
+
+```text
+Agent F1: Create src/lib/api/
+├── constants.ts    (noStoreHeaders, MAX_CONTENT_LENGTH)
+├── validation.ts   (validateApiKey, parseContent)
+├── responses.ts    (jsonError, jsonSuccess)
+└── index.ts
+
+Agent F2: Create src/lib/utils/fingerprint.ts
+└── Extract fingerprint logic from useClaps hook
+
+Agent F3: Create src/services/location/
+├── LocationService.interface.ts
+├── IpApiLocationService.ts
+└── index.ts
+
+Agent F4: Create src/services/claps/
+├── ClapsService.interface.ts
+├── ApiClapsService.ts
+└── index.ts
+
+Agent F5: Create src/services/github/
+├── GitHubService.interface.ts
+├── GitHubGraphQLService.ts
+└── index.ts
+```
+
+Each agent worked in isolation. The API utilities agent didn't know about the location service. The fingerprint agent didn't know about GitHub. They focused, delivered, and returned structured summaries.
+
+### Wave 2: Lib Reorganization (5 agents in parallel)
+
+With the foundation in place, five agents tackled the large lib files:
+
+```text
+Agent L1: Split src/lib/bloq.ts (350 lines → 7 files)
+├── types.ts        (BloqPost type)
+├── reader.ts       (filesystem I/O)
+├── parser.ts       (MDX/frontmatter parsing)
+├── filters.ts      (tag, category, author filters)
+├── statistics.ts   (aggregation functions)
+├── related.ts      (related posts logic)
+└── index.ts        (public exports)
+
+Agent L2: Split src/lib/telegram-bot.ts (263 lines → 8 files)
+├── bot.ts              (initialization)
+├── commands/handlers.ts (all command handlers)
+├── middleware/auth.ts  (authorization)
+├── formatters.ts       (message formatting)
+├── repository.ts       (database operations)
+├── replies.ts          (message templates)
+└── index.ts
+
+Agent L3: Reorganize src/lib/blip.ts → src/lib/blip/
+├── types.ts
+├── repository.ts
+└── index.ts
+
+Agent L4: Reorganize src/lib/feed.ts → src/lib/feed/
+├── types.ts
+├── formatters.ts
+├── generator.ts
+└── index.ts
+
+Agent L5: Move src/lib/supabase*.ts → src/lib/supabase/
+├── client.ts
+├── server.ts
+└── index.ts
+```
+
+The key insight: each agent read the original file, understood its structure, and created a modular replacement. The original files became thin re-export shells for backward compatibility:
+
+```typescript
+// src/lib/bloq.ts (after refactoring)
+export * from './bloq';  // Re-export from new modular structure
+```
+
+### Wave 3: API Routes (4 agents in parallel)
+
+Four agents refactored API routes to use the new shared utilities:
+
+```text
+Agent A1: Refactor /api/blip routes
+├── Remove duplicated validateApiKey, parseContent
+├── Import from @/lib/api
+└── Use jsonError, jsonSuccess
+
+Agent A2: Refactor /api/visit route
+├── Use noStoreHeaders from constants
+└── Use jsonError for responses
+
+Agent A3: Refactor /api/github-activity route
+├── Import defaultGitHubService
+└── Replace direct fetch with service call
+
+Agent A4: Refactor /api/claps route
+├── Remove local noStoreHeaders
+└── Use shared response utilities
+```
+
+### Wave 4: Components (2 agents in parallel)
+
+Two agents tackled the component violations:
+
+```text
+Agent C1: Refactor DitherShader (Strategy Pattern)
+Before: 484 lines with switch statements for dither/color modes
+After:  src/components/ui/dither-shader/
+        ├── types.ts
+        ├── DitherShader.tsx (main component)
+        ├── utils/colorUtils.ts
+        ├── strategies/
+        │   ├── DitherStrategy.interface.ts
+        │   ├── BayerStrategy.ts
+        │   ├── HalftoneStrategy.ts
+        │   ├── NoiseStrategy.ts
+        │   ├── CrosshatchStrategy.ts
+        │   └── index.ts (getDitherStrategy factory)
+        └── processors/
+            ├── ColorProcessor.interface.ts
+            ├── GrayscaleProcessor.ts
+            ├── DuotoneProcessor.ts
+            ├── CustomPaletteProcessor.ts
+            ├── OriginalProcessor.ts
+            └── index.ts (getColorProcessor factory)
+
+Agent C2: Split Footer component
+Before: Analytics + presentation mixed
+After:  src/components/layout/footer/
+        ├── VisitorAnalytics.tsx (tracking logic)
+        ├── Footer.tsx (presentation only)
+        └── index.ts
+```
+
+The DitherShader refactor is worth examining. Before:
+
+```typescript
+// Old: Switch statement (Open/Closed violation)
+switch (ditherMode) {
+  case "bayer": ditherThreshold = bayerMatrix[matrixY][matrixX] / matrixScale; break;
+  case "halftone": /* 15 lines of math */ break;
+  case "noise": /* 5 lines of math */ break;
+  case "crosshatch": /* 8 lines of math */ break;
+}
+```
+
+After:
+
+```typescript
+// New: Strategy pattern (Open/Closed compliant)
+const strategies: Record<DitheringMode, DitherStrategy> = {
+  bayer: new BayerStrategy(),
+  halftone: new HalftoneStrategy(),
+  noise: new NoiseStrategy(),
+  crosshatch: new CrosshatchStrategy(),
+};
+
+const strategy = getDitherStrategy(ditherMode);
+const threshold = strategy.getThreshold(x, y, time, gridSize);
+```
+
+Adding a new dither mode now means creating a new class, not modifying existing code.
+
+### Wave 5: Hooks (2 agents in parallel)
+
+```text
+Agent H1: Refactor useClaps hook
+├── Import getOrCreateFingerprint from @/lib/utils/fingerprint
+├── Import defaultClapsService from @/services/claps
+└── Remove local implementations
+
+Agent H2: Create useLocation hook
+├── Use LocationService abstraction
+├── Rename from useCurrentVisitorLocation
+└── Old hook re-exports for backward compatibility
+```
+
+### Wave 6: Data Files (2 agents in parallel)
+
+```text
+Agent D1: Split projectlist.tsx
+├── src/data/projects/types.ts
+├── src/data/projects/helpers.tsx
+├── src/data/projects/projectData.tsx
+└── src/data/projects/index.ts
+
+Agent D2: Fix file extensions and naming
+├── Rename skilllist.tsx → skills.tsx
+├── Rename education.tsx → education.ts (no JSX)
+└── Create src/data/index.ts (barrel exports)
+```
+
+### Wave 7: Component Folder Structure
+
+Final cleanup to organize components into consistent folder structure with index.ts exports.
+
+### The Results
+
+```text
+Files Changed:     20 modified
+Files Created:     50+ new files
+Lines Refactored:  ~3,500 lines
+
+Before:
+├── lib/bloq.ts           (350 lines)
+├── lib/telegram-bot.ts   (263 lines)
+├── lib/blip.ts           (35 lines)
+└── components/ui/dither-shader.tsx (484 lines)
+
+After:
+├── lib/bloq/             (7 files, ~50 lines each)
+├── lib/telegram/         (8 files, ~30 lines each)
+├── lib/blip/             (3 files)
+├── lib/api/              (4 files)
+├── services/             (12 files across 4 services)
+└── components/ui/dither-shader/ (16 files)
+```
+
+Build passed. Lint passed. All original import paths still work via re-exports.
+
+### What This Orchestration Achieved
+
+1. **Single Responsibility**: Each file now has one reason to change
+2. **Open/Closed**: Strategy pattern for algorithms, easy to extend
+3. **Interface Segregation**: Small, focused interfaces
+4. **Dependency Inversion**: Services abstract external dependencies
+
+The parallelism was key. Wave 1's five agents created the foundation in parallel. Wave 2's five agents refactored lib files in parallel. Each wave built on the previous, but within each wave, agents worked independently.
+
+Could a single agent have done this? Eventually. But it would have been one 8-hour conversation with constant context switching. Instead, 25+ focused agent sessions, each with fresh context, each delivering a specific piece.
+
+---
+
 ## What I Took Away
 
 - **Start simple.** One agent, one conversation. Add orchestration when complexity demands it.

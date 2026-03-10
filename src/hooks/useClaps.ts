@@ -1,31 +1,11 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { getOrCreateFingerprint } from '@/lib/utils/fingerprint';
+import { defaultClapsService } from '@/services/claps';
+import type { PostType } from '@/services/claps';
 
-const FINGERPRINT_KEY = 'clap_fingerprint';
 const MAX_CLAPS = 50;
-
-type PostType = 'bloq' | 'blip';
-
-/**
- * Get or create a persistent fingerprint for this browser
- */
-function getOrCreateFingerprint(): string {
-    if (typeof window === 'undefined') return '';
-
-    let fingerprint = localStorage.getItem(FINGERPRINT_KEY);
-
-    if (!fingerprint) {
-        fingerprint = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-        localStorage.setItem(FINGERPRINT_KEY, fingerprint);
-    }
-
-    return fingerprint;
-}
 
 interface ClapsState {
     totalClaps: number;
@@ -50,28 +30,21 @@ export const useClaps = (postId: string, postType: PostType) => {
         lastFetchedId.current = postId;
         
         setState(prev => ({ ...prev, isLoading: true }));
-
         fingerprintRef.current = getOrCreateFingerprint();
 
         const fetchClaps = async () => {
             try {
-                const res = await fetch(
-                    `/api/claps/${postType}/${postId}?fingerprint=${fingerprintRef.current}`,
-                    { method: 'GET', cache: 'no-store' }
+                const result = await defaultClapsService.getClaps(
+                    postType, 
+                    postId, 
+                    fingerprintRef.current
                 );
-
-                if (res.ok) {
-                    const data = await res.json();
-                    setState(prev => ({
-                        ...prev,
-                        totalClaps: data.claps ?? 0,
-                        userClaps: data.userClaps ?? 0,
-                        maxReached: (data.userClaps ?? 0) >= MAX_CLAPS,
-                        isLoading: false
-                    }));
-                } else {
-                    setState(prev => ({ ...prev, isLoading: false }));
-                }
+                setState({
+                    totalClaps: result.totalClaps,
+                    userClaps: result.userClaps,
+                    maxReached: result.maxReached,
+                    isLoading: false
+                });
             } catch (error) {
                 console.error('Error fetching claps:', error);
                 setState(prev => ({ ...prev, isLoading: false }));
@@ -95,37 +68,25 @@ export const useClaps = (postId: string, postType: PostType) => {
         }));
 
         try {
-            const res = await fetch(`/api/claps/${postType}/${postId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fingerprint: fingerprintRef.current }),
-                cache: 'no-store'
+            const result = await defaultClapsService.incrementClap(
+                postType, 
+                postId, 
+                fingerprintRef.current
+            );
+            setState({
+                totalClaps: result.totalClaps,
+                userClaps: result.userClaps,
+                maxReached: result.maxReached,
+                isLoading: false
             });
-
-            if (res.ok) {
-                const data = await res.json();
-                setState(prev => ({
-                    ...prev,
-                    totalClaps: data.totalClaps,
-                    userClaps: data.userClaps,
-                    maxReached: data.maxReached
-                }));
-            } else {
-                setState(prev => ({
-                    ...prev,
-                    userClaps: prevUserClaps,
-                    totalClaps: prevTotalClaps,
-                    maxReached: prevUserClaps >= MAX_CLAPS
-                }));
-            }
         } catch (error) {
             console.error('Error sending clap:', error);
-            setState(prev => ({
-                ...prev,
+            setState({
                 userClaps: prevUserClaps,
                 totalClaps: prevTotalClaps,
-                maxReached: prevUserClaps >= MAX_CLAPS
-            }));
+                maxReached: prevUserClaps >= MAX_CLAPS,
+                isLoading: false
+            });
         }
     }, [postId, postType, state.maxReached, state.isLoading, state.userClaps, state.totalClaps]);
 
