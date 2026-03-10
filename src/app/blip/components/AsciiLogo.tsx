@@ -1,213 +1,216 @@
 "use client";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { cn } from "@/lib/utils";
 
-import { useState, useEffect } from "react";
-import { motion as m } from "framer-motion";
+type ColorKey = "blue" | "yellow" | "yellowBright" | "red" | "redBright" | "white" | "gray";
 
-const ROWS = [
-  [
-    { text: '█', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '╗', color: '#eab308' }, { text: ' ', color: '#eab308' },
-    { text: '█', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '╗', color: '#eab308' }, { text: ' ', color: '#eab308' },
-    { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '╗', color: '#ef4444' },
-    { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '╗', color: '#ef4444' }, { text: ' ', color: '#ef4444' },
-  ],
-  [
-    { text: '█', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '╔', color: '#eab308' }, { text: '═', color: '#eab308' }, { text: '═', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '█', color: '#eab308' }, { text: '╗', color: '#eab308' },
-    { text: '█', color: '#fde047' }, { text: '█', color: '#fde047' }, { text: '║', color: '#fde047' }, { text: ' ', color: '#fde047' },
-    { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '║', color: '#ef4444' },
-    { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '╔', color: '#f87171' }, { text: '═', color: '#f87171' }, { text: '═', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '╗', color: '#f87171' },
-  ],
-  [
-    { text: '█', color: '#fde047' }, { text: '█', color: '#fde047' }, { text: '█', color: '#fde047' }, { text: '█', color: '#fde047' }, { text: '█', color: '#fde047' }, { text: '█', color: '#fde047' }, { text: '╔', color: '#fde047' }, { text: '╝', color: '#fde047' },
-    { text: '█', color: '#fde047' }, { text: '█', color: '#fde047' }, { text: '║', color: '#fde047' }, { text: ' ', color: '#fde047' },
-    { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '║', color: '#f87171' },
-    { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '╔', color: '#f87171' }, { text: '╝', color: '#f87171' },
-  ],
-  [
-    { text: '█', color: '#ffffff' }, { text: '█', color: '#ffffff' }, { text: '╔', color: '#ffffff' }, { text: '═', color: '#ffffff' }, { text: '═', color: '#ffffff' }, { text: '█', color: '#ffffff' }, { text: '█', color: '#ffffff' }, { text: '╗', color: '#ffffff' },
-    { text: '█', color: '#fde047' }, { text: '█', color: '#fde047' }, { text: '║', color: '#fde047' }, { text: ' ', color: '#fde047' },
-    { text: '█', color: '#f87171' }, { text: '█', color: '#f87171' }, { text: '║', color: '#f87171' },
-    { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '╔', color: '#ef4444' }, { text: '═', color: '#ef4444' }, { text: '═', color: '#ef4444' }, { text: '═', color: '#ef4444' }, { text: '╝', color: '#ef4444' }, { text: ' ', color: '#ef4444' },
-  ],
-  [
-    { text: '╚', color: '#ffffff' }, { text: '█', color: '#ffffff' }, { text: '█', color: '#ffffff' }, { text: '█', color: '#ffffff' }, { text: '█', color: '#ffffff' }, { text: '█', color: '#ffffff' }, { text: '╔', color: '#ffffff' }, { text: '╝', color: '#ffffff' },
-    { text: '█', color: '#e5e7eb' }, { text: '█', color: '#e5e7eb' }, { text: '║', color: '#e5e7eb' }, { text: ' ', color: '#e5e7eb' },
-    { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '║', color: '#ef4444' },
-    { text: '█', color: '#ef4444' }, { text: '█', color: '#ef4444' }, { text: '║', color: '#ef4444' }, { text: ' ', color: '#ef4444' }, { text: ' ', color: '#ef4444' }, { text: ' ', color: '#ef4444' }, { text: ' ', color: '#ef4444' }, { text: ' ', color: '#ef4444' },
-  ],
-  [
-    { text: ' ', color: '#6b7280' }, { text: '╚', color: '#6b7280' }, { text: '═', color: '#6b7280' }, { text: '═', color: '#6b7280' }, { text: '═', color: '#6b7280' }, { text: '═', color: '#6b7280' }, { text: '╝', color: '#6b7280' }, { text: ' ', color: '#6b7280' },
-    { text: '╚', color: '#6b7280' }, { text: '═', color: '#6b7280' }, { text: '╝', color: '#6b7280' }, { text: ' ', color: '#6b7280' },
-    { text: '╚', color: '#ef4444' }, { text: '═', color: '#ef4444' }, { text: '╝', color: '#ef4444' },
-    { text: '╚', color: '#ef4444' }, { text: '═', color: '#ef4444' }, { text: '╝', color: '#ef4444' }, { text: ' ', color: '#ef4444' }, { text: ' ', color: '#ef4444' }, { text: ' ', color: '#ef4444' }, { text: ' ', color: '#ef4444' }, { text: ' ', color: '#ef4444' },
-  ],
+const COLORS: Record<ColorKey, { hex: string; tw: string }> = {
+  blue: { hex: "#3B82F6", tw: "text-blue-500" },
+  yellow: { hex: "#EAB308", tw: "text-yellow-500" },
+  yellowBright: { hex: "#FDE047", tw: "text-yellow-300" },
+  red: { hex: "#EF4444", tw: "text-red-500" },
+  redBright: { hex: "#F87171", tw: "text-red-400" },
+  white: { hex: "#F9FAFB", tw: "text-slate-50" },
+  gray: { hex: "#9CA3AF", tw: "text-slate-400" },
+};
+
+const LOGO: [string, ColorKey][][] = [
+  [["██████╗ ", "yellow"], ["██╗     ", "yellow"], ["██╗ ", "red"], ["██████╗ ", "red"]],
+  [["██╔══██╗", "yellow"], ["██║     ", "yellowBright"], ["██║ ", "red"], ["██╔══██╗", "redBright"]],
+  [["██████╔╝", "yellowBright"], ["██║     ", "yellowBright"], ["██║ ", "redBright"], ["██████╔╝", "redBright"]],
+  [["██╔══██╗", "white"], ["██║     ", "yellowBright"], ["██║ ", "redBright"], ["██╔═══╝ ", "red"]],
+  [["╚█████╔╝", "white"], ["███████╗", "white"], ["██║ ", "red"], ["██║     ", "red"]],
+  [[" ╚════╝ ", "gray"], ["╚══════╝", "gray"], ["╚═╝ ", "red"], ["╚═╝     ", "red"]],
 ];
 
-function getRandomTrap(): string {
-  const r = Math.floor(Math.random() * ROWS.length);
-  const c = Math.floor(Math.random() * ROWS[r].length);
-  return `${r}-${c}`;
+interface Cell {
+  ch: string;
+  correct: ColorKey;
+  revealed: boolean;
 }
 
-export default function ASCII_LOGO() {
-  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
-  const [animating, setAnimating] = useState<Record<string, "to-color" | "to-blue">>({});
-  const [trapCell, setTrapCell] = useState<string>("");
-  const [revealed, setRevealed] = useState<Set<string>>(new Set());
-  const [isGameOver, setIsGameOver] = useState(false);
-  const [showingEmoji, setShowingEmoji] = useState<Record<string, "sparkle" | "explosion">>({});
+const buildGrid = (): Cell[][] =>
+  LOGO.map((segs) => {
+    const row: Cell[] = [];
+    for (const [text, ck] of segs)
+      for (const ch of text) row.push({ ch, correct: ck, revealed: false });
+    return row;
+  });
+
+const TOTAL_CELLS = LOGO.reduce(
+  (sum, segs) => sum + segs.reduce((s, [t]) => s + t.length, 0),
+  0
+);
+
+interface ParticleProps {
+  x: number;
+  y: number;
+  color: string;
+  onDone: () => void;
+}
+
+function Particle({ x, y, color, onDone }: ParticleProps) {
+  const [style, setStyle] = useState<React.CSSProperties>({
+    position: "fixed",
+    left: x,
+    top: y,
+    width: 3,
+    height: 3,
+    borderRadius: "50%",
+    background: color,
+    pointerEvents: "none",
+    zIndex: 9999,
+    transform: "translate(-50%,-50%)",
+    opacity: 1,
+  });
 
   useEffect(() => {
-    setTrapCell(getRandomTrap());
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 10 + Math.random() * 20;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+
+    const t1 = setTimeout(() => {
+      setStyle((s) => ({
+        ...s,
+        transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`,
+        opacity: 0,
+        transition: "transform 0.5s ease-out, opacity 0.5s ease-in 0.15s",
+      }));
+    }, 10);
+
+    const t2 = setTimeout(onDone, 600);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [onDone]);
+
+  return <div style={style} />;
+}
+
+interface ParticleData {
+  id: number;
+  x: number;
+  y: number;
+  color: string;
+}
+
+export default function App() {
+  const [grid, setGrid] = useState<Cell[][]>(buildGrid);
+  const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(1);
+  const [comboDisplay, setComboDisplay] = useState<number | null>(null);
+  const [particles, setParticles] = useState<ParticleData[]>([]);
+  const [elapsed, setElapsed] = useState(0);
+  const [started, setStarted] = useState(false);
+  const [finished, setFinished] = useState(false);
+
+  const comboTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const particleId = useRef(0);
+
+  useEffect(() => {
+    if (started && !finished) {
+      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [started, finished]);
+
+  const revealedCount = useMemo(() => grid.flat().filter((c) => c.revealed).length, [grid]);
+  const pct = Math.round((revealedCount / TOTAL_CELLS) * 100);
+
+  useEffect(() => {
+    if (revealedCount >= TOTAL_CELLS && !finished) {
+      setFinished(true);
+    }
+  }, [revealedCount, finished]);
+
+  const resetCombo = useCallback(() => {
+    setCombo(1);
+    setComboDisplay(null);
   }, []);
 
-  const restartGame = () => {
-    setFlipped({});
-    setAnimating({});
-    setRevealed(new Set());
-    setIsGameOver(false);
-    setShowingEmoji({});
-    setTrapCell(getRandomTrap());
-  };
+  const handleClick = useCallback(
+    (r: number, c: number, e: React.MouseEvent) => {
+      if (grid[r][c].revealed) return;
 
-  const handleClick = (id: string) => {
-    if (isGameOver || revealed.has(id) || flipped[id] || animating[id]) return;
+      if (!started) setStarted(true);
 
-    if (id === trapCell) {
-      setShowingEmoji(prev => ({ ...prev, [id]: "explosion" }));
-      setTimeout(() => {
-        setIsGameOver(true);
-      }, 600);
-    } else {
-      setRevealed(prev => new Set(prev).add(id));
-      setShowingEmoji(prev => ({ ...prev, [id]: "sparkle" }));
-      setTimeout(() => {
-        setShowingEmoji(prev => {
-          const n = { ...prev };
-          delete n[id];
-          return n;
-        });
-        setAnimating(prev => ({ ...prev, [id]: 'to-color' }));
-      }, 400);
-    }
-  };
+      const cell = grid[r][c];
+      const clientX = e.clientX;
+      const clientY = e.clientY;
 
-  const handleAnimationEnd = (id: string) => {
-    const dir = animating[id];
-    setAnimating(prev => {
-      const n = { ...prev };
-      delete n[id];
-      return n;
-    });
-    setFlipped(prev => {
-      const n = { ...prev };
-      if (dir === 'to-color') n[id] = true;
-      else delete n[id];
-      return n;
-    });
-  };
+      setGrid((prev) => {
+        const newGrid = [...prev];
+        newGrid[r] = [...prev[r]];
+        newGrid[r][c] = { ...prev[r][c], revealed: true };
+        return newGrid;
+      });
+
+      setParticles((p) => [
+        ...p,
+        ...Array.from({ length: 7 }, () => ({
+          id: ++particleId.current,
+          x: clientX,
+          y: clientY,
+          color: COLORS[cell.correct].hex,
+        })),
+      ]);
+
+      if (comboTimer.current) clearTimeout(comboTimer.current);
+      setCombo((cb) => {
+        const next = Math.min(cb + 1, 10);
+        setScore((s) => s + 10 * next);
+        if (next >= 3) setComboDisplay(next);
+        return next;
+      });
+      comboTimer.current = setTimeout(resetCombo, 800);
+    },
+    [grid, started, resetCombo]
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2rem' }}>
-      <style>{`
-        @keyframes flipToColor {
-          0%   { transform: scaleX(1); color: #3b82f6; }
-          49%  { transform: scaleX(0); color: #3b82f6; }
-          50%  { transform: scaleX(0); color: var(--tc); }
-          100% { transform: scaleX(1); color: var(--tc); }
-        }
-        @keyframes flipToBlue {
-          0%   { transform: scaleX(1); color: var(--tc); }
-          49%  { transform: scaleX(0); color: var(--tc); }
-          50%  { transform: scaleX(0); color: #3b82f6; }
-          100% { transform: scaleX(1); color: #3b82f6; }
-        }
-        .cell {
-          display: inline-block;
-          width: 1ch;
-          cursor: pointer;
-          color: #3b82f6;
-          user-select: none;
-          text-align: center;
-          position: relative;
-        }
-        .cell:hover { opacity: 0.7; }
-        .cell.flipped { color: var(--tc); cursor: default; }
-        .cell.flipped:hover { opacity: 1; }
-        .cell.anim-to-color { animation: flipToColor 0.35s ease-in-out forwards; }
-        .cell.anim-to-blue  { animation: flipToBlue  0.35s ease-in-out forwards; }
-      `}</style>
-      <div style={{ position: 'relative' }}>
-        <pre style={{ fontFamily: 'monospace', lineHeight: 1.4, padding: '1rem', margin: 0 }}>
-          {ROWS.map((row, r) => (
-            <span key={r} style={{ display: 'block' }}>
-              {row.map((cell, c) => {
-                const id = `${r}-${c}`;
-                const anim = animating[id];
-                const isFlipped = !!flipped[id];
-                const emoji = showingEmoji[id];
-                const cls = [
-                  'cell',
-                  isFlipped && !anim ? 'flipped' : '',
-                  anim === 'to-color' ? 'anim-to-color' : '',
-                  anim === 'to-blue' ? 'anim-to-blue' : ''
-                ].filter(Boolean).join(' ');
-                return (
-                  <span
-                    key={id}
-                    className={cls}
-                    style={{ '--tc': cell.color } as React.CSSProperties}
-                    onClick={() => handleClick(id)}
-                    onAnimationEnd={() => handleAnimationEnd(id)}
-                  >
-                    {emoji === "sparkle" ? (
-                      <m.span
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-                      >
-                        ✨
-                      </m.span>
-                    ) : emoji === "explosion" ? (
-                      <m.span
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: [1, 1.5, 1], opacity: 1 }}
-                        transition={{ duration: 0.5, times: [0, 0.5, 1] }}
-                      >
-                        💥
-                      </m.span>
-                    ) : (
-                      cell.text
-                    )}
-                  </span>
-                );
-              })}
-            </span>
-          ))}
-        </pre>
+    <div className="flex container mx-auto flex-col items-center justify-center select-none font-mono">
+      {particles.map((p) => (
+        <Particle
+          key={p.id}
+          x={p.x}
+          y={p.y}
+          color={p.color}
+          onDone={() => setParticles((ps) => ps.filter((x) => x.id !== p.id))}
+        />
+      ))}
 
-        {isGameOver && (
-          <m.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 flex flex-col items-center justify-center z-20"
-            style={{ background: 'rgba(0,0,0,0.7)' }}
-          >
-            <m.div 
-              initial={{ scale: 0.8, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-slate-900 border border-slate-600 p-8 flex flex-col items-center"
-            >
-              <span className="text-4xl mb-6 animate-bounce">💥</span>
-              <button 
-                onClick={restartGame}
-                className="px-6 py-2 bg-slate-900 border border-slate-600 text-slate-300 font-mono text-[10px] tracking-widest uppercase hover:bg-blue-950 transition-colors cursor-pointer"
+      <div className="flex flex-col gap-0 leading-none">
+        {grid.map((row, r) => (
+          <div key={r} className="flex">
+            {row.map((cell, c) => (
+              <span
+                key={c}
+                className={cn(
+                  "inline-flex items-center justify-center w-[1ch] h-[1.2em] whitespace-pre cursor-pointer text-sm transition-all duration-1000 ease-in-out",
+                  cell.revealed
+                    ? cn(COLORS[cell.correct].tw, "hover:drop-shadow-[0_0_8px_currentColor]")
+                    : "text-blue-500 hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.6)] hover:scale-125 hover:brightness-125"
+                )}
+                onMouseOver={cell.revealed ? undefined : (e) => handleClick(r, c, e)}
               >
-                [ Try Again ]
-              </button>
-            </m.div>
-          </m.div>
-        )}
+                {cell.ch}
+              </span>
+
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="w-full h-[1px] bg-white/10 mt-4 overflow-hidden">
+        <div
+          className="h-full bg-blue-500 transition-[width] duration-200"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
