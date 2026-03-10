@@ -1,7 +1,7 @@
 // Fuse.js search wrapper for blog posts
 import Fuse from 'fuse.js';
 import type { IFuseOptions } from 'fuse.js';
-import { BloqPost } from './bloq';
+import type { BloqPost } from './bloq';
 
 // Configure Fuse.js options
 const fuseOptions: IFuseOptions<BloqPost> = {
