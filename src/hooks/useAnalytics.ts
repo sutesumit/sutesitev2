@@ -79,9 +79,35 @@ export const useAnalytics = () => {
         }
     }, []);
 
+    /**
+     * Tracks a specific blip view.
+     * Intended for use in individual blip pages.
+     */
+    const trackBlipView = useCallback(async (serial: string) => {
+        // 1. Development Mode Protection
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Analytics] Blip view tracking skipped for "${serial}" (Development Mode)`);
+            return;
+        }
+
+        // 2. Strict Mode / Duplicate Protection
+        if (hasTrackedView.current) return;
+        hasTrackedView.current = true;
+
+        try {
+            await fetch(`/api/blip/views/${serial}`, {
+                method: 'POST',
+                cache: 'no-store',
+            });
+        } catch (error) {
+            console.warn(`Unable to track view for blip ${serial}:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+    }, []);
+
     return {
         visitorData: { lastVisitorLocation, visitorCount },
         trackSiteVisit,
-        trackBloqView
+        trackBloqView,
+        trackBlipView
     };
 };
