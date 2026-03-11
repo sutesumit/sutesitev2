@@ -20,10 +20,10 @@ const BlipPage = async () => {
   const blips = await getBlips();
 
   return (
-    <div className="container flex flex-col pb-12 p-10 font-roboto-mono lowercase">
-      <div className='page-title my-2'>
+    <div className="container flex flex-col py-10 px-2 sm:px-0 font-roboto-mono lowercase">
+      {/* <div className='page-title my-2'>
         <p className="font-bold">blip</p>
-      </div>
+      </div> */}
       <IntroCard>
         <IntroText />
       </IntroCard>

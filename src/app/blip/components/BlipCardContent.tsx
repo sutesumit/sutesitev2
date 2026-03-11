@@ -110,7 +110,7 @@ const BlipCardContent = ({
         <BloqBackground />
       </m.div>
 
-      <div className="relative z-10 flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="relative z-10 flex flex-wrap items-center justify-around sm:justify-between px-4 py-2 gap-2 border-b border-slate-200 dark:border-slate-800">
         <AnimatePresence mode="popLayout" custom={direction}>
           <m.div
             key={blip.id}
@@ -127,7 +127,7 @@ const BlipCardContent = ({
             </div>
             <div className="px-2 py-0.5 flex items-center gap-1 bg-white dark:bg-[#0a0a0a]">
               <span className="text-slate-400 dark:text-slate-500 font-sans">#</span>
-              <span className="font-mono text-slate-600 dark:text-slate-400 tracking-wider">
+              <span className="font-mono !normal-case text-slate-600 dark:text-slate-400 tracking-wider">
                 {blip.blip_serial}
               </span>
             </div>
@@ -172,8 +172,8 @@ const BlipCardContent = ({
         </div>
       </div>
 
-      <div className="relative z-10 flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800">
-        <div className="relative overflow-hidden flex items-center h-5">
+      <div className="relative z-10 flex flex-wrap items-center justify-around sm:justify-between gap-2 px-4 py-3 border-t border-slate-200 dark:border-slate-800">
+        <div className="relative overflow-hidden flex items-center">
           <AnimatePresence mode="popLayout" custom={direction}>
             <m.time
               key={blip.id}
@@ -183,7 +183,7 @@ const BlipCardContent = ({
               animate="center"
               exit="exit"
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="text-xs text-slate-400 dark:text-slate-600 block"
+              className="text-xs text-left text-slate-400 dark:text-slate-600 block"
             >
               <Link 
                 href={`/blip/${blip.blip_serial}`}

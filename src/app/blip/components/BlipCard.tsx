@@ -58,7 +58,7 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
       
       <m.div layout className="flex items-start gap-2">
         <div className="flex items-center justify-end w-10 h-6 pr-2 shrink-0 border-r-[1px] border-r-blue-500 !border-l-solid opacity-50">
-          <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">
+          <span className="text-xs !normal-case font-mono font-bold text-slate-500 dark:text-slate-400">
             {blip.blip_serial}
           </span>
         </div>

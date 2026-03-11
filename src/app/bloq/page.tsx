@@ -11,7 +11,7 @@ const page = () => {
   const tags = getAllTags();
 
   return (
-    <div className="container flex flex-col pb-12">
+    <div className="container flex flex-col pb-10 px-2 sm:px-0">
       <IntroCard>
         <DryKeysQuest />
         <IntroText />

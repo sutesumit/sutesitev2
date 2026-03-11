@@ -182,7 +182,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
         <CardBackground />
         
         {/* Header */}
-        <div className="flex justify-between items-center text-[10px] text-slate-500 tracking-wider mb-4">
+        <div className="flex justify-between items-center text-[10px] text-slate-500 tracking-wider pb-1">
           {/* <span className="project-item">Across following profiles</span> */}
           {/* <span className="flex gap-2 items-center"> */}
             {GITHUB_PROFILES.map((profile) => (
@@ -243,7 +243,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
             className="flex flex-col items-center w-full"
           >
             {/* Nav */}
-            <div className="flex justify-between items-center w-full max-w-sm mb-4 border-b border-slate-200/50 dark:border-slate-800/50 pb-2">
+            <div className="flex justify-between items-center w-full max-w-sm border-b border-slate-200/50 dark:border-slate-800/50">
               <button
                 onClick={prevMonth}
                 className="w-8 h-8 flex items-center justify-center hover:bg-slate-100/80 dark:hover:bg-slate-900/80 transition-colors cursor-pointer text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
@@ -267,12 +267,12 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
             {/* Grid */}
             <div className="relative">
               <m.div 
-                className="grid grid-cols-7 grid-rows-6 gap-0.5 md:gap-1 mx-auto"
+                className="grid grid-cols-7 grid-rows-6 gap-0.5 md:gap-1 my-1 mx-auto"
                 animate={isGameOver ? { y: 300, opacity: 0, rotate: 5 } : { y: 0, opacity: 1, rotate: 0 }}
                 transition={{ duration: 1.2, ease: "backIn" }}
               >
                 {weeks.flat().map((day, idx) => {
-                  if (!day) return <div key={idx} className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10" />;
+                  if (!day) return <div key={idx} className="w-8 h-8 border border-slate-200/30 dark:border-slate-800/30" />;
                   const dateKey = toKey(year, month, day);
                   const count = data[dateKey] ?? 0;
                   const lv = densityLevel(count);
@@ -283,7 +283,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                   return (
                     <div
                       key={idx}
-                      className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 relative flex items-center justify-center text-[10px] sm:text-xs md:text-sm cursor-crosshair select-none transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-900/80 group ${
+                      className={`w-8 h-8 border border-slate-200/30 dark:border-slate-800/30 relative flex items-center justify-center text-[10px] sm:text-xs md:text-sm cursor-crosshair select-none transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-900/80 group ${
                         isToday ? "ring-1 ring-blue-500/50" : ""
                       }`}
                       onClick={() => handleDayClick(day)}
@@ -369,18 +369,11 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
               )}
             </div>
 
-            {/* Hint */}
-            {/* {!isGameOver && revealed.size === 0 && (
-              <div className="mt-2 text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] animate-pulse">
-                Find the crystals ❄ &middot; avoid the trap 💀
-              </div>
-            )} */}
-
             {/* Divider */}
-            <hr className="w-full max-w-sm border-t border-slate-200/50 dark:border-slate-800/50 my-4" />
+            <hr className="w-full max-w-sm border-t border-slate-200/50 dark:border-slate-800/50" />
 
             {/* Stats */}
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 tracking-wider text-center leading-relaxed">
+            <div className="text-[10px] pt-2 text-slate-500 dark:text-slate-400 tracking-wider text-center leading-relaxed">
               <span className="text-slate-800 dark:text-slate-200 font-bold">{GITHUB_PROFILES.length}</span>
               <span> profiles </span>
               <span className="opacity-50">&middot; </span>

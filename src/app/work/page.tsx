@@ -7,11 +7,11 @@ import { ContributionHeatmap } from './components/ContributionHeatmap';
 export default function Home() {
 
   return (
-    <article className="px-6 py-12 container h-auto font-roboto-mono lowercase flex flex-col gap-4">
+    <article className="py-10 px-2 sm:px-0 container h-auto font-roboto-mono lowercase flex flex-col gap-4">
       <section className='heatmap'>
-        <div className='page-title mb-2'>
+        {/* <div className='page-title mb-2'>
           <p className="font-bold">Github Activity</p>
-        </div>
+        </div> */}
         <ContributionHeatmap />
       </section>
       {/* Skill List Section */}
