@@ -4,7 +4,7 @@ import { Undo2 } from "lucide-react";
 import { BloqPost } from "@/lib/bloq";
 import { cn } from "@/lib/utils";
 import { useCardCollapse } from "../../hooks/useCardCollapse";
-import { BloqDate, BloqTitle, BloqSummary, BloqBackground } from "./parts";
+import { BloqDate, BloqTitle, BloqSummary, BloqBackground, BloqReadingTime } from "./parts";
 import TagList from "../TagList";
 import ViewCounter from "../ViewCounter";
 import ClapsCounter from "@/components/shared/ClapsCounter";
@@ -96,7 +96,10 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
-              <BloqDate post={post} />
+              <div className="flex items-center sm:justify-start justify-between gap-4 mb-2">
+                <BloqDate post={post} />
+                <BloqReadingTime readingTime={post.readingTime} />
+              </div>
               <BloqTitle post={post} isDetail={true} />
               <BloqSummary post={post} isDetail={true} />
 

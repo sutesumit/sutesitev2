@@ -3,6 +3,7 @@ import path from "path";
 import matter from "gray-matter";
 import type { BloqPost } from './types';
 import { getPostsDirectory, getPostEntries, readPostFile, postFileExists } from './reader';
+import { calculateReadingTime } from './reading-time';
 
 export function toUrlSafeString(text: string): string {
   return text
@@ -69,7 +70,7 @@ function processPostEntry(entry: fs.Dirent, basePath: string): BloqPost | null {
     draft: data.draft || false,
     featured: data.featured || false,
     status: data.status || 'published',
-    readingTime: data.readingTime,
+    readingTime: data.readingTime ?? calculateReadingTime(content),
   };
 }
 

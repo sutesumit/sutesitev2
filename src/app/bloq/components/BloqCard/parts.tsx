@@ -1,10 +1,32 @@
 import { motion as m } from 'framer-motion'
+import { Clock, Calendar } from 'lucide-react'
 import { BloqPost } from '@/lib/bloq'
 
 interface BloqPartProps {
   post: BloqPost;
   className?: string;
 }
+
+interface BloqReadingTimeProps {
+  readingTime?: number;
+  className?: string;
+}
+
+export const BloqReadingTime = ({ readingTime, className }: BloqReadingTimeProps) => {
+  if (!readingTime) return null;
+
+  return (
+    <m.div 
+      layout 
+      initial={{ opacity: 0.5 }}
+      animate={{ opacity: 0.5 }}
+      className={`text-xs flex items-center gap-1 ${className || ''}`}
+    >
+      <Clock className="w-3 h-3" />
+      <span>{readingTime} min read</span>
+    </m.div>
+  );
+};
 
 interface BloqDateProps extends BloqPartProps {
   shouldHide?: boolean;
@@ -20,15 +42,15 @@ export const BloqDate = ({ post, shouldHide = false }: BloqDateProps) => {
   return (
     <m.div 
       layout 
-      initial={{ opacity: 1, height: "auto", marginBottom: 8 }}
+      initial={{ opacity: 1, height: "auto" }}
       animate={{ 
         opacity: shouldHide ? 0 : 0.5, 
         height: shouldHide ? 0 : "auto",
-        marginBottom: shouldHide ? 0 : 8
       }}
-      className="text-xs overflow-hidden"
+      className="text-xs flex items-center gap-1 overflow-hidden"
     >
-      {formattedDate}
+      <Calendar className="w-3 h-3" />
+      <span>{formattedDate}</span>
     </m.div>
   );
 };
