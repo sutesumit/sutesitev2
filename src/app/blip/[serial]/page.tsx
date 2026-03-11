@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getBlipBySerial, getBlips } from '@/lib/blip';
 import BlipDetail from './components/BlipDetail';
+import TrackView from '../components/TrackView';
 
 const SITE_URL = 'https://sumitsute.com';
 
@@ -97,6 +98,7 @@ const BlipPage = async ({ params }: { params: Promise<{ serial: string }> }) => 
   return (
     <div className="container flex flex-col min-h-screen justify-center p-10 font-roboto-mono lowercase">
       <SocialMediaPostingJsonLd blip={blip} />
+      <TrackView serial={blip.blip_serial} />
       <BlipDetail blip={blip} newerBlip={newerBlip} olderBlip={olderBlip} />
     </div>
   );

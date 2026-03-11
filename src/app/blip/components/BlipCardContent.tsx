@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Undo2 } from 'lucide-react';
 import type { Blip } from '@/types/blip';
 import { BloqBackground } from '@/app/bloq/components/BloqCard/parts';
 import ClapsCounter from '@/components/shared/ClapsCounter';
+import ViewCounter from './ViewCounter';
 
 type BlipCardContentProps = {
   blip: Blip;
@@ -195,12 +196,18 @@ const BlipCardContent = ({
             </m.time>
           </AnimatePresence>
         </div>
-        <ClapsCounter
-          postId={blip.id}
-          postType="blip"
-          interactive={true}
-          className="text-xs opacity-80"
-        />
+        <div className="flex items-center gap-3">
+          <ViewCounter
+            serial={blip.blip_serial}
+            className="text-xs opacity-80"
+          />
+          <ClapsCounter
+            postId={blip.id}
+            postType="blip"
+            interactive={true}
+            className="text-xs opacity-80"
+          />
+        </div>
       </div>
     </>
   );
