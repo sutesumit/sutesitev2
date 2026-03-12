@@ -8,33 +8,37 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        if (body.city || body.country_code) {
+        if (body.ip) {
             await supabase
                 .from('visits')
                 .insert([
                     {
                         ip: body.ip,
                         network: body.network,
-                        city: body.city,
-                        region: body.region,
-                        country: body.country_code,
-                        postal: body.postal,
-                        latitude: body.latitude,
-                        longitude: body.longitude,
-                        org: body.org,
-                        timezone: body.timezone,
+                        city: body.city || null,
+                        region: body.region || null,
+                        country: body.country_code || null,
+                        postal: body.postal || null,
+                        latitude: body.latitude || null,
+                        longitude: body.longitude || null,
+                        org: body.org || null,
+                        timezone: body.timezone || null,
                     }
                 ]);
         }
 
         const queryClient = await getSupabaseServerClient();
 
-        const { data: prevVisits, error: fetchError } = await queryClient
+        let query = queryClient
             .from('visits')
-            .select('city, country, created_at')
-            .neq('ip', body.ip)
-            .order('created_at', { ascending: false })
-            .limit(1);
+            .select('ip, city, country, created_at')
+            .order('created_at', { ascending: false });
+
+        if (body.ip) {
+            query = query.neq('ip', body.ip);
+        }
+
+        const { data: prevVisits, error: fetchError } = await query.limit(1);
 
         if (fetchError) {
             console.error(fetchError);

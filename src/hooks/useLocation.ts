@@ -7,10 +7,6 @@ interface UseLocationResult {
   locationData: LocationData | null;
 }
 
-/**
- * Hook for fetching visitor location
- * Uses the LocationService abstraction for dependency injection
- */
 export const useLocation = (): UseLocationResult => {
   const [locationString, setLocationString] = useState('world');
   const [locationData, setLocationData] = useState<LocationData | null>(null);

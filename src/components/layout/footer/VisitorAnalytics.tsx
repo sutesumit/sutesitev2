@@ -35,6 +35,10 @@ export const VisitorAnalytics: React.FC<VisitorAnalyticsProps> = ({ children }) 
       return;
     }
 
+    if (!currentLocation || !currentLocation.ip) {
+      return;
+    }
+
     if (hasTrackedVisit.current) return;
     hasTrackedVisit.current = true;
 
