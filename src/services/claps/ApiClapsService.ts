@@ -1,4 +1,5 @@
 import { ClapsService, ClapsResult, PostType } from './ClapsService.interface';
+import { MAX_CLAPS } from './constants';
 
 /**
  * Claps service implementation using the API
@@ -20,7 +21,7 @@ export class ApiClapsService implements ClapsService {
       return {
         userClaps: data.userClaps ?? 0,
         totalClaps: data.claps ?? data.totalClaps ?? 0,
-        maxReached: (data.userClaps ?? 0) >= 50,
+        maxReached: (data.userClaps ?? 0) >= MAX_CLAPS,
       };
     } catch (error) {
       console.error('Error fetching claps:', error);

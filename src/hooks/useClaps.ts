@@ -2,10 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { getOrCreateFingerprint } from '@/lib/utils/fingerprint';
-import { defaultClapsService } from '@/services/claps';
+import { defaultClapsService, MAX_CLAPS } from '@/services/claps';
 import type { PostType } from '@/services/claps';
-
-const MAX_CLAPS = 50;
 
 interface ClapsState {
     totalClaps: number;
