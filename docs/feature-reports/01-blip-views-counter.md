@@ -20,6 +20,7 @@ Implements view counting for Blips - displays view count with blinking eye icon,
 | `src/app/blip/components/TrackView.tsx` | Created |
 | `src/app/blip/[serial]/page.tsx` | Modified |
 | `src/app/blip/components/BlipCardContent.tsx` | Modified |
+| `src/app/blip/components/BlipModal.tsx` | Modified |
 
 ---
 
@@ -201,3 +202,33 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
    ```sql
    SELECT * FROM blip_views ORDER BY views DESC;
    ```
+
+---
+
+## Enhancement Log
+
+### 2026-03-12: Track Views on Modal Open
+
+**Issue:** Views were only tracked when visiting `/blip/[serial]` page, not when opening blip in modal via `/blip?blip=I`.
+
+**Solution:** Added `TrackView` component to `BlipModal.tsx` so views are tracked when modal opens.
+
+**Files Changed:**
+| File | Action |
+|------|--------|
+| `src/app/blip/components/BlipModal.tsx` | Modified - added TrackView import and render |
+
+**Code Change:**
+```typescript
+// Added import
+import TrackView from './TrackView'
+
+// Added inside modal card (line 152)
+{activeBlip && <TrackView serial={activeBlip.blip_serial} />}
+```
+
+**Decision:** Count both modal open and dedicated page visit as separate views (no deduplication).
+
+**Testing:**
+- API tests passed: GET/POST to `/api/blip/views/[serial]` working
+- Build passed after enhancement

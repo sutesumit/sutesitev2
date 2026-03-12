@@ -6,6 +6,7 @@ import { motion as m, AnimatePresence } from 'framer-motion'
 import { Link, Check, X } from 'lucide-react'
 import type { Blip } from '@/types/blip'
 import BlipCardContent from './BlipCardContent'
+import TrackView from './TrackView'
 
 type BlipModalProps = {
   blips: Blip[]
@@ -148,6 +149,7 @@ const BlipModal = ({ blips }: BlipModalProps) => {
                 </div>
               )}
             />
+            {activeBlip && <TrackView serial={activeBlip.blip_serial} />}
           </m.div>
         </m.div>
       )}
