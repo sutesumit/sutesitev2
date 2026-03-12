@@ -199,7 +199,7 @@ const BlipCardContent = ({
         <div className="flex items-center gap-3">
           <ViewCounter
             serial={blip.blip_serial}
-            className="text-xs opacity-80"
+            className="text-xs flex opacity-80"
           />
           <ClapsCounter
             postId={blip.id}

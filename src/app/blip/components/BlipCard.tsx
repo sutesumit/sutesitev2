@@ -7,6 +7,7 @@ import { motion as m } from "framer-motion";
 import { BloqBackground } from "@/app/bloq/components/BloqCard/parts";
 import ClapsCounter from "@/components/shared/ClapsCounter";
 import { useRouter } from "next/navigation";
+import ViewCounter from "./ViewCounter";
 
 type BlipCardProps = {
   blip: Blip;
@@ -62,12 +63,16 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
             {blip.blip_serial}
           </span>
         </div>
-        <p className="text-slate-800 dark:text-slate-200 leading-relaxed flex-1">
+        <div className="text-slate-800 dark:text-slate-200 leading-relaxed flex-1">
           {blip.content}
           <span className="inline-flex items-center gap-2 ml-2 align-middle">
             <time className="text-xs text-slate-400 dark:text-slate-600 whitespace-nowrap">
               {formatRelativeTime(blip.created_at)}
             </time>
+            <ViewCounter
+              serial={blip.blip_serial}
+              className="text-xs flex opacity-80"
+            />
             <ClapsCounter 
               postId={blip.id} 
               postType="blip" 
@@ -75,7 +80,7 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
               className="text-xs opacity-80"
             />
           </span>
-        </p>
+        </div>
       </m.div>
     </m.article>
   );
