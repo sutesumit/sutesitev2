@@ -5,7 +5,7 @@ import { BloqCardDetail } from './BloqCard/BloqCardDetail'
 
 interface BloqCardProps {
   post: BloqPost;
-  variant?: 'list' | 'detail';
+  variant?: 'list' | 'detail' | 'related-post';
   className?: string;
 }
 
@@ -14,7 +14,7 @@ const BloqCard = ({ post, variant = 'list', className }: BloqCardProps) => {
     return <BloqCardDetail post={post} className={className} />;
   }
   
-  return <BloqCardList post={post} className={className} />;
+  return <BloqCardList variant={variant} post={post} className={className} />;
 }
 
 export default BloqCard

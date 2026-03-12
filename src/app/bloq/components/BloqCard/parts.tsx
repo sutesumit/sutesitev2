@@ -20,7 +20,7 @@ export const BloqReadingTime = ({ readingTime, className }: BloqReadingTimeProps
       layout 
       initial={{ opacity: 0.5 }}
       animate={{ opacity: 0.5 }}
-      className={`text-xs flex items-center gap-1 ${className || ''}`}
+      className={`text-xs flex items-center gap-1 shrink-0 ${className || ''}`}
     >
       <Clock className="w-3 h-3" />
       <span>{readingTime} min read</span>
@@ -47,7 +47,7 @@ export const BloqDate = ({ post, shouldHide = false }: BloqDateProps) => {
         opacity: shouldHide ? 0 : 0.5, 
         height: shouldHide ? 0 : "auto",
       }}
-      className="text-xs flex items-center gap-1 overflow-hidden"
+      className="text-xs flex items-center gap-1 overflow-hidden shrink-0"
     >
       <Calendar className="w-3 h-3" />
       <span>{formattedDate}</span>
@@ -64,11 +64,11 @@ export const BloqTitle = ({ post, shouldHide = false, isDetail = false }: BloqTi
   return (
     <m.div 
       layout 
-      initial={{ opacity: 1, height: "auto", marginBottom: 8 }}
+      initial={{ opacity: 1, height: "auto", marginBottom: 4 }}
       animate={{ 
         opacity: shouldHide ? 0 : 1, 
         height: shouldHide ? 0 : "auto",
-        marginBottom: shouldHide ? 0 : 8
+        marginBottom: shouldHide ? 0 : 4
       }}
       className={`font-medium truncate text-blue-900 dark:text-blue-400 pb-1 ${isDetail ? '' : 'project-item'}`}
     >

@@ -9,10 +9,11 @@ import ClapsCounter from '@/components/shared/ClapsCounter'
 
 interface BloqCardListProps {
   post: BloqPost;
+  variant?: 'list' | 'related-post';
   className?: string;
 }
 
-export const BloqCardList = ({ post, className }: BloqCardListProps) => {
+export const BloqCardList = ({ post, variant = 'list', className }: BloqCardListProps) => {
   const animationProps = {
     initial: "rest",
     whileHover: "hover",
@@ -30,16 +31,22 @@ export const BloqCardList = ({ post, className }: BloqCardListProps) => {
       >
         <BloqBackground />
         
-        <m.div layout className="flex h-full flex-col px-2 justify-between">
+        <m.div layout className="flex h-full flex-col">
           <div className="flex-1">
-            <div className='flex justify-between'>
-              <div className="flex flex-col sm:flex-row items-center sm:gap-4">
+            <div className='flex flex-wrap flex-row items-center justify-between gap-y-2 mb-2'>
+              <div className={cn(
+                "flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4",
+                variant === 'related-post' && "hidden"
+              )}>
                 <BloqDate post={post} />
                 <BloqReadingTime readingTime={post.readingTime} />
               </div>
-              <div className="flex flex-col sm:flex-row items-center sm:gap-3">
+              <div className={cn(
+                "flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 ml-auto",
+                variant === 'related-post' && "w-full flex-row justify-between ml-0"
+              )}>
                 <ViewCounter slug={post.url} className="text-xs flex items-center text-gray-500" />
-                <ClapsCounter postId={post.url} postType="bloq" interactive={false} className="text-xs flex items-center text-gray-500" />
+                <ClapsCounter postId={post.url} postType="bloq" interactive={false} className="text-xs !p-0 flex items-center text-gray-500" />
               </div>
             </div>
             <BloqTitle post={post} />
