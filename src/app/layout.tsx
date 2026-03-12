@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import Footer, { VisitorAnalytics } from "../components/layout/Footer";
 import { ThemeProvider } from "next-themes";
 
 const robotoMono = Roboto_Mono({
@@ -130,8 +130,10 @@ export default function RootLayout({
       <body className="font-roboto-mono dark:text-slate-300 overflow-y-scroll" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Header />
-          <main>{children}</main>
-          <Footer />
+          <VisitorAnalytics>
+            <main>{children}</main>
+            <Footer />
+          </VisitorAnalytics>
         </ThemeProvider>
       </body>
     </html>

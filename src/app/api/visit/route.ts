@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
         const { data: prevVisits, error: fetchError } = await queryClient
             .from('visits')
-            .select('city, country')
+            .select('city, country, created_at')
             .neq('ip', body.ip)
             .order('created_at', { ascending: false })
             .limit(1);
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
             lastVisitorLocation: lastVisitor 
                 ? `${lastVisitor.city}, ${lastVisitor.country}` 
                 : null,
+            lastVisitTime: lastVisitor?.created_at ?? null,
             visitorCount: uniqueCount ?? null
         }, {
             headers: noStoreHeaders

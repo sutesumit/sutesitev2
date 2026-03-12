@@ -7,6 +7,7 @@ import { IoIosMail } from 'react-icons/io';
 import { CheckCheck } from 'lucide-react';
 import { useVisitorData } from './VisitorAnalytics';
 import CopyLink from '@/components/shared/CopyLink';
+import { formatTimeAgo } from '@/lib/formatTimeAgo';
 import {
   Tooltip,
   TooltipContent,
@@ -16,7 +17,13 @@ import {
 import ScrambleText from '@/components/shared/ScrambleText';
 
 const Footer = () => {
-  const { lastVisitorLocation, visitorCount } = useVisitorData();
+  const { lastVisitorLocation, lastVisitTime, visitorCount } = useVisitorData();
+
+  const displayText = lastVisitorLocation 
+    ? (lastVisitTime 
+        ? `${lastVisitorLocation} · ${formatTimeAgo(lastVisitTime)}` 
+        : lastVisitorLocation)
+    : 'Bengaluru, In';
 
   return (
     <footer className="footer fixed w-full bottom-0 z-10">
@@ -31,7 +38,7 @@ const Footer = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="last-visit group flex items-center gap-1 text-xs opacity-50 cursor-pointer hover:opacity-100 transition-all duration-300">
-                      <CheckCheck className='h-4 w-4 group-hover:text-blue-500 dark:group-hover:text-blue-400' /> <ScrambleText text={lastVisitorLocation ? lastVisitorLocation : 'Bengaluru, In'} />
+                       <CheckCheck className='h-4 w-4 group-hover:text-blue-500 dark:group-hover:text-blue-400' /> <ScrambleText text={displayText} />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
