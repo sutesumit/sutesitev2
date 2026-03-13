@@ -1,0 +1,220 @@
+---
+title: "Vibing Your Way Into a Wall"
+publishedAt: "2026-03-09"
+summary: "I told an agent to make a card orange. Two days and six files later, I learned that vibing is not engineering, agents don't question bad specs, and curiosity beats confidence every time."
+slug: "lessons-learned-collaborating-with-ai-agents"
+tags:
+  - ai
+  - debugging
+  - architecture
+  - reflections
+  - frontend
+  - backend
+authors:
+  - Sumit Sute
+category: "Reflections"
+draft: false
+featured: false
+---
+
+## The Vibe Was Immaculate. The Spec Was Not.
+
+> "Confidence without curiosity is just a faster way to be wrong."
+
+I was vibing. You know the feeling. Agent in the terminal, codebase loaded, coffee hot. The task was simple: some cards on a kanban board needed to turn orange. Data already existed in the backend. Read the data, paint the card, maybe high-five yourself. Home by lunch.
+
+Two days later I had touched six files, removed a caching layer I didn't know existed, fixed two silent backend bugs I wasn't looking for, and written a toast notification for users without a particular database field. I'd had lunch twice without going home.
+
+The agent was impeccable the entire time. Fast, thorough, surgically precise. It did everything I asked with the enthusiasm of a golden retriever fetching the wrong stick. The stick I kept throwing.
+
+This is an embarrassing post about what happens when vibing meets production code, why agents are the most dangerous tool a lazy thinker can wield, and how I'm trying to be more curious and less confident when I sit down to build.
+
+---
+
+## The Anatomy of a Spiral
+
+> "I wasn't debugging. I was performing confidence."
+
+Here's the exact loop I got trapped in. I'm writing it out because I think it's embarrassingly common and nobody talks about it.
+
+**Round 1:** "Agent, this card should be orange but it's not." Agent explores, finds a missing flag in the rendering logic, adds it. Card is orange. I feel like a wizard.
+
+**Round 2:** "Agent, now a different card is orange when it shouldn't be." Agent finds a data filtering issue, fixes it. I feel like a wizard with a minor setback.
+
+**Round 3:** "Agent, the orange disappears on page refresh." Agent adds a preservation layer using localStorage. I feel slightly less like a wizard but we're shipping.
+
+**Round 4:** "Agent, the preserved state conflicts with fresh server data." Agent adds a deduplication memo. I am no longer a wizard. I am a project manager for my own workarounds.
+
+**Round 5:** "Agent, why does this only work for some users?" Agent traces the backend and finds a function that catches its own exceptions, sends them to a Slack channel presumably monitored by ghosts, and returns success. There was never any data for those users. Four rounds of frontend origami, all folding air.
+
+At no point did the agent do anything wrong. At every point, I asked the wrong question. I kept saying "fix this symptom" when I should have said "what is actually happening?"
+
+I was vibing. Vibing is what happens when you treat an agent like a autocomplete for your assumptions instead of a collaborator for your curiosity.
+
+---
+
+## Why Vibing Fails (A Love Letter to Thinking)
+
+Vibing works brilliantly for about 80% of software tasks. Scaffold a component, wire up an API route, refactor a function. Tasks where the problem and the solution live in the same postcode. You can describe the output, the agent builds it, everybody's happy.
+
+The remaining 20% is where vibing walks you directly into a wall. These are tasks that *look* simple but sit on top of hidden complexity: legacy workarounds, silent failures, implicit assumptions baked into code nobody's touched in two years. The surface is calm. Underneath, it's all load-bearing duct tape.
+
+The problem with vibing into this territory is that agents are *extremely cooperative*. If you say "the card should be orange," the agent will make the card orange. If it takes five mechanisms to get there, it will build five mechanisms. It will not stop you and say "hey, have you considered that maybe the reason there's no data is because the backend is broken?" Because you didn't ask. And agents are faithful to your framing the way a GPS is faithful to your destination: it will route you straight into a lake if that's where you said you wanted to go.
+
+This is what I'm calling the <span className="text-red-400">**sycophantic local minimum**</span>. The agent keeps solving the problem as you've framed it, and every solution feels like progress because the immediate symptom goes away. But you're descending into a valley of increasing complexity, and the real fix is up on a ridge you can't see because you never climbed high enough to look around.
+
+The way out is not better agents. It's better questions. And better questions come from thinking like an engineer instead of vibing like a DJ.
+
+---
+
+## The Five Smells of a Spec That Will Betray You
+
+I've started keeping a list. These are the things in my own prompts that now make me pause, delete, and rewrite.
+
+### 1. "Make it [visual outcome]"
+
+"Make the card orange." "Add a tooltip here." "Show a badge."
+
+These are screenshots, not specs. They describe pixels, not guarantees. When I write "make it orange," I'm telling the agent what the screen should look like. I'm not telling it where truth lives, what happens when truth is missing, or whether the current system can even produce truth reliably.
+
+What I should write: "If a persistent backend record of type X exists for this entity, the card must be visually distinct. If the record can't be created, surface a warning. Never display state that isn't backed by real data."
+
+The difference is one word: *persistent*. It forces you to think about durability. "Orange" doesn't.
+
+### 2. "Just [thing]"
+
+"Just wire up the Feed data." "Just add a flag."
+
+"Just" is a thought-terminator. It implies the task is trivially simple and discourages the kind of questions that reveal it isn't. I've started a personal rule: every time I type "just" in a prompt, I delete it and replace it with "what could go wrong when we..."
+
+It turns "just add a flag" into "what could go wrong when we add a flag?" which is a much more interesting question. And interesting questions are where engineering lives.
+
+### 3. You're describing one user's happy path
+
+My mental model: one user, one card, one drag, done. What I didn't think about: what if the user has no room assignment? What about recurring events where one action cascades across fifteen instances? What if the backend writes the attendee record but silently fails to write the history record?
+
+**The curiosity move:** before writing any spec, I now write three sentences starting with "What if..." and try to make them as annoying as possible. What if the data doesn't exist? What if it exists twice? What if the write succeeds but the side effect doesn't? These are the sentences that save you days.
+
+### 4. You didn't define failure
+
+My spec said nothing about what should happen when the backend couldn't write a history record. So when it couldn't, nothing happened. Literally nothing. The API returned 200. The frontend high-fived itself. The data wasn't there.
+
+A spec without failure modes is a promise that everything will always work. I've been writing software for long enough to know how that promise ends.
+
+### 5. You started coding before mapping
+
+This is the big one. I jumped from "I want orange cards" to "let's build orange cards" without ever asking "how does this system work right now?" If I'd asked the agent to trace the existing lifecycle first, it would have found the silent failures in ten minutes. Instead, I found them in ten hours by tripping over each one individually.
+
+---
+
+## The Curiosity-First Approach (or: How I'm Trying to Vibe Less)
+
+I'm not anti-vibe. Vibing is fun. Vibing gets things started. But I've started treating the transition from vibing to engineering as a deliberate gear shift, and I've built some rituals around it.
+
+### Ritual 1: The Lifecycle Trace
+
+Before writing any code, before changing a single file, I ask the agent:
+
+> *"Don't change anything. Trace the complete lifecycle of [the thing I'm building on]. From user action, through API call, to database write, to what gets read back on the next page load. Just narrate."*
+
+This is the single move that would have saved my two-day spiral. The narration *is* the diagnosis. When the agent lays out every step in sequence, gaps in the data flow become obvious. You hear the missing beat in the story the way you'd hear a wrong note in a song. "User moves card, API writes attendee record, Feed function is called, Feed function... catches an error and returns silently. Wait, what?"
+
+The trace takes fifteen minutes. The spiral it prevents takes days.
+
+### Ritual 2: The Spec Template
+
+```text
+WHAT: [One sentence. The feature or fix.]
+
+TRUTH: [Where does the authoritative data live?
+        What is the single source of truth?
+        What if it's missing?]
+
+LIFECYCLE: [Ask the agent to trace this before any code.
+  User action → API → database → read-back → UI
+  Map it. Don't skip it. This is where bugs live.]
+
+INVARIANTS:
+  - [Things that must always be true after this change]
+  - [Things that must never happen]
+  - [What should the UI do when the backend fails?]
+
+WHAT-IFS:
+  - [What if a required field is missing on the entity?]
+  - [What if this action applies to N items, not 1?]
+  - [What if the write succeeds but the side-effect doesn't?]
+
+NON-GOALS:
+  - [What am I deliberately not fixing in this pass?]
+  - [What known issues am I choosing to surface, not solve?]
+```
+
+The LIFECYCLE section is the one I never used to write. It's also the one that prevented my most recent two spirals.
+
+The NON-GOALS section is equally critical. Without it, agents fix everything they find. They're thorough like that. Sometimes admirably, sometimes at the cost of a scope that was supposed to be a morning's work. Telling the agent "we are not fixing X in this pass" is an act of engineering discipline, and agents respond to it well.
+
+### Ritual 3: The Mechanism Count
+
+Whenever a solution starts feeling complex, I count the distinct mechanisms involved. Backend data, a localStorage cache, a merge-and-deduplicate memo, a flag-preservation effect, a sort override. That's five mechanisms producing one orange card.
+
+My rule: if you need more than two mechanisms to produce one outcome, at least one of them is compensating for a bug you haven't found yet. Complexity is not robustness. Complexity is a bug report you haven't read.
+
+### Ritual 4: The Hedge Check
+
+Agents are confident until they can't be. At some point in my spiral, the agent started saying things like "this should work *assuming the backend record was created*."
+
+I blew past that qualifier three times. Three times. The agent was literally pointing at my problem with a flashing neon sign, and I was too busy vibing to look.
+
+New rule: when the agent says "assuming X," my next prompt is "let's verify X." Every time. No exceptions. The hedge is not caution. It's the agent telling you it's reached the edge of what your current framing can explain. Follow the hedge.
+
+### Ritual 5: The Reframe
+
+When you're stuck, the instinct is to go deeper. Fix the fix. Add another layer. The agent will happily comply, it has infinite patience for depth.
+
+What actually works is going *wider*. Replace "why isn't this card orange?" with "what are all the ways this system can silently fail?" Replace "fix this preservation bug" with "should we be preserving anything at all?"
+
+Same agent. Same codebase. Different question, different trajectory entirely. When I'm stuck, I now force myself to write three alternative framings of the problem before picking one. At least one of them has to start with "forget the symptom, what's the systemic issue?"
+
+It feels slow. It is slow. It's also faster than building five workarounds and then tearing them down.
+
+---
+
+## The Vibe-to-Engineering Checklist
+
+For the days when I need a sticky note on my monitor:
+
+```text
+Before you start:
+  [ ] Did you trace the lifecycle, or are you guessing?
+  [ ] Does your spec describe guarantees, or just pixels?
+  [ ] Did you write three "what if" scenarios?
+  [ ] Did you define what happens on failure?
+
+While you're building:
+  [ ] Is the agent hedging? Follow the hedge.
+  [ ] How many mechanisms are producing this one outcome?
+  [ ] Are you fixing a symptom, or a cause?
+
+When you feel stuck:
+  [ ] Write three reframings of the problem.
+  [ ] Ask the agent to narrate, not fix.
+  [ ] Count your workaround layers. Be honest.
+```
+
+---
+
+## What I Took Away
+
+- **Vibing is starting. Engineering is finishing.** The vibe gets you into the code. Curiosity gets you out with something that works. Knowing when to shift gears is the whole skill.
+
+- **Your spec is the agent's compass.** A vague spec doesn't make the agent less useful. It makes it useful in the wrong direction. Agents explore exhaustively wherever you point them. Point carefully.
+
+- **Trace before you fix.** Ask the agent to narrate the full lifecycle before you change anything. Fifteen minutes of narration replaces days of spiraling. The gap in the story is the bug in the code.
+
+- **"Just" is a lie you tell yourself.** Delete it from your prompts. Replace it with "what could go wrong?" The interesting engineering starts on the other side of that question.
+
+- **Follow the hedge.** When the agent says "assuming X," investigate X. The agent is pointing at your problem. Don't drive past the sign.
+
+- **Complexity is not robustness.** Five mechanisms producing one outcome is not defence in depth. It's a coping mechanism. Count your layers. If the number embarrasses you, you're looking in the wrong place.
+
+- **Reframe beats retry.** Same agent, different question, different outcome. When you're stuck, the move isn't deeper. It's wider. The question is the code.

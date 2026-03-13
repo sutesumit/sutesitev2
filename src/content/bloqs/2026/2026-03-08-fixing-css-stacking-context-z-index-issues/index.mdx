@@ -1,0 +1,89 @@
+---
+title: "When Z-Index Lies to You"
+publishedAt: "2026-03-08"
+summary: "A quick UI polish for a modal turned into a deep dive into React variants, CSS stacking contexts, and why clipping the background shouldn't mean clipping the tooltip."
+slug: "fixing-css-stacking-context-z-index-issues"
+tags:
+  - react
+  - frontend
+  - debugging
+  - architecture
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: true
+featured: false
+status: "trashed"
+---
+
+> "Sometimes the smallest bug is just hiding behind the largest negative z-index."
+
+I wanted to add a simple animated background to the new Blip modal. I already had a perfectly good, animated `BloqBackground` component ticking away on the site. It seemed like a two-minute job: drop it in, set it to `-z-10`, and call it a day. 
+
+It was not a two-minute job.
+
+---
+
+## The Setup
+
+The goal was twofold: add a slick floating "COPIED" tooltip to the permalink button in the header, and bring the ambient animated background from the Bloq cards into the Blip modal.
+
+I wanted the modal to feel alive.
+
+---
+
+## First Attempt (or: The Wrong Way)
+
+I wrapped `BloqBackground` inside the modal card. Because `BloqBackground` animates scale and rotation, I figured giving the modal container `overflow-hidden` would keep the blue glow neatly inside the rounded corners.
+
+```tsx
+<div className="relative overflow-hidden rounded-md bg-[#0a0a0a]">
+  <BloqBackground />
+  {/* Header with floating Tooltip */}
+  {/* Main Content */}
+</div>
+```
+
+Two things went immediately wrong.
+
+First, the background was completely invisible.
+
+Second, when I clicked the copy button, my beautiful floating `COPIED` tooltip was mercilessly decapitated by the `overflow-hidden` bounds of the modal.
+
+---
+
+## The Fix
+
+Why was the background invisible?
+
+It turns out my `BloqBackground` was hardcoded with `animate={undefined}`. It was designed to explicitly block inherited Framer Motion variants unless it was physically hovered by its own direct orchestrator. Inside the modal—which isn't "hovered" in the traditional sense, just open—it was stuck in its invisible `rest` state. I had to rip out the `animate={undefined}` block entirely so it could actually compose properly with its parent's state.
+
+But the bigger trap was the CSS stacking context.
+
+By placing `BloqBackground` inside the modal, its `-z-10` class technically pushed it behind the modal text. But because the modal card had a solid `#0a0a0a` background and established its own stacking context, the DOM rendering order became chaotic. The background shape rendered on top of the text header, forming a weird semi-opaque blue rectangle precisely where I wanted my clean UI to be.
+
+The solution was to stop relying on implicit DOM order entirely.
+
+```tsx
+{/* The background gets its own clipped container explicitly at z-0 */}
+<m.div className="absolute inset-0 overflow-hidden rounded-md z-0" animate="hover">
+  <BloqBackground />
+</m.div>
+
+{/* The content gets explicitly layered on top */}
+<div className="relative z-10 px-4 py-5">
+  {content}
+</div>
+```
+
+By isolating the `overflow-hidden` constraint *solely* to the `z-0` background layer, the main modal card could stay delightfully `overflow-visible`. 
+
+The tooltip now floats free above the modal, and the blue animated glow stays perfectly caged.
+
+---
+
+## What I Took Away
+
+- **Explicit layering beats DOM order.** Relying on `-z-10` to sort itself out against relative text layers is a roll of the dice in complex component trees. Explicit `z-0` and `z-10` enforce the contract.
+- **Don't hardcode `animate={undefined}`.** Components should accept state from their parents if they are meant to be composable. If you lock down the animation state, you lock down the component's future utility.
+- **You don't have to clip everything.** If you only need to clip a scaling background, wrap the background itself in an `overflow-hidden` div. Leave the main card open so tooltips and dropdowns can breathe.

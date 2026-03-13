@@ -1,0 +1,192 @@
+---
+title: "Metadata That Matters"
+publishedAt: "2026-03-06"
+summary: "I shared a bloq post on LinkedIn and saw my homepage title instead of the article title. Embarrassing. So I learned how to tell platforms what my content actually is."
+slug: "nextjs-seo-optimization-metadata-jsonld"
+tags:
+  - nextjs
+  - seo
+  - reflections
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: false
+---
+
+## The Problem
+
+> "A page without metadata is a stranger at its own party."
+
+So I shared one of my bloq posts on Telegram. The preview card showed:
+
+```text
+Title: sumit sute
+Description: Sumit Sute's personal dev page...
+```
+
+That's my homepage. Not the article. Every single bloq post had the same preview because I never told platforms what each article was actually about.
+
+The content was unique. The code was thoughtful. But to Twitter, LinkedIn, Google, every post looked identical. I'd built the reading experience. The discovery experience? Completely ignored.
+
+Classic me. Built the fun part, forgot the boring part that makes the fun part discoverable.
+
+---
+
+## How Link Previews Actually Work
+
+When you paste a URL into Twitter or LinkedIn, here's what happens:
+
+```text
+You paste URL → Platform fetches your page → Platform looks for meta tags → Platform builds preview
+```
+
+The platform doesn't read your beautiful prose. It doesn't care about your carefully crafted opening paragraph. It looks for specific meta tags in the HTML `<head>`. If those tags exist, great, nice preview. If not, the platform guesses, and let me tell you, platforms are terrible guessers.
+
+### OpenGraph
+
+Facebook created OpenGraph in 2010. The idea: webpages can describe themselves in a language platforms understand.
+
+```html
+<meta property="og:title" content="The Skill That Writes Itself" />
+<meta property="og:description" content="An orphan article..." />
+<meta property="og:type" content="article" />
+<meta property="og:image" content="https://sumitsute.com/images/post.jpg" />
+```
+
+When someone shares your link, the platform reads these tags and builds the preview. Title, description, image, all from OpenGraph.
+
+Twitter has its own format called Twitter Cards. Same idea, different tag names. Most platforms fall back to OpenGraph if Twitter tags are missing, so you can mostly just do OpenGraph and call it a day.
+
+One decision I made: no fake images. If a post has no image, the preview has no image. Using my homepage screenshot as a fallback felt like lying to people. "Here's an article about React memory leaks" with a preview image of my homepage. Confusing. Better to have no image than a misleading one.
+
+---
+
+## How Search Engines Understand Content
+
+Social platforms use OpenGraph. Search engines want something different.
+
+### JSON vs JSON-LD
+
+Regular JSON is just structure. You can format it however you want:
+
+```json
+{
+  "title": "My Post",
+  "author": "Sumit Sute"
+}
+```
+
+Valid JSON. But a search engine has no idea what this is. A blog post? A product listing? A support ticket? Who knows.
+
+JSON-LD (JSON for Linking Data) adds context:
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "My Post",
+  "author": {
+    "@type": "Person",
+    "name": "Sumit Sute"
+  }
+}
+```
+
+The `@context` says "I'm using the schema.org vocabulary." The `@type` says "this is a BlogPosting." Now search engines don't have to guess.
+
+### What is schema.org?
+
+Schema.org is a shared vocabulary created by Google, Microsoft, Yahoo, and Yandex in 2011. (Remember when Yahoo was relevant? Me neither, but they were there.)
+
+It defines types for things on the web. Person, Organization, BlogPosting, Product, Event, Recipe, HowTo, FAQ. Hundreds of them.
+
+When you use schema.org types, search engines can show rich results. Recipe cards with cooking times and ingredients. Event listings with dates and locations. Product pages with prices and review stars. Those fancy search results don't come from magic. They come from structured data.
+
+You include JSON-LD as a script tag:
+
+```html
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  ...
+}
+</script>
+```
+
+Google finds this, reads it, and understands what your page is.
+
+---
+
+## Canonical URLs
+
+One more thing. When someone links to your post with tracking garbage like `?utm_source=twitter&utm_campaign=share`, search engines see a different URL. When scrapers copy your content (they do this, apparently), they create more URLs with identical content. Which one is the original?
+
+```html
+<link rel="canonical" href="https://sumitsute.com/bloq/my-post" />
+```
+
+This tells search engines: no matter how you got here, this is the real URL. It consolidates ranking signals and helps avoid duplicate content penalties.
+
+---
+
+## How the Data Flows
+
+Here's the chain of how my bloq posts now get their metadata:
+
+```text
+1. I write frontmatter in MDX
+   ---
+   title: "Metadata That Matters"
+   summary: "I shared a bloq post..."
+   tags: [nextjs, seo, reflections]
+   ---
+
+2. Next.js calls generateMetadata() at build time
+   → Reads the frontmatter
+   → Builds Metadata object with OpenGraph, Twitter tags
+
+3. Next.js injects meta tags into <head>
+   → <meta property="og:title" content="Metadata That Matters">
+   → <link rel="canonical" href="...">
+
+4. BlogPostingJsonLd component renders
+   → <script type="application/ld+json">...</script>
+
+5. Someone shares the URL
+   → Platform fetches page
+   → Reads meta tags
+   → Builds preview with correct title, description
+
+6. Google crawls the page
+   → Reads JSON-LD
+   → Understands it's a BlogPosting
+   → Maybe shows rich results
+```
+
+Write it once in frontmatter, it propagates everywhere. The title I put in the MDX file becomes the title Twitter shows, the title Google sees, the title in search results.
+
+---
+
+## What I Built
+
+Nothing fancy:
+
+1. **generateMetadata function** in the bloq page. Reads frontmatter, returns metadata object with all the tags.
+
+2. **Conditional images**. Has image? Include it. No image? Leave it empty. No fake defaults.
+
+3. **JSON-LD component**. Renders a script tag with BlogPosting schema. Maybe 20 lines of code.
+
+4. **Static generation**. All posts pre-rendered at build time. Search engines get HTML immediately, no JavaScript execution needed.
+
+---
+
+## What I Learned
+
+Metadata is translation work. You're teaching platforms how to describe your content in their language.
+
+OpenGraph for social. JSON-LD for search. Canonical URLs for ownership. Different tools, different jobs, but they all need to be told what your content is.
+
+The implementation wasn't hard once I understood what each thing was for. The hard part was noticing I had completely ignored all of it.

@@ -1,0 +1,189 @@
+---
+title: "I Added an RSS Feed"
+publishedAt: "2026-03-07"
+summary: "I built an RSS feed for my site. Not because I expect millions of subscribers, but because there's something honest about a protocol that lets readers decide when and how to consume my writing. No algorithm. No engagement metrics. Just a file you can pull."
+slug: "how-to-add-rss-feed-nextjs"
+tags:
+  - nextjs
+  - backend
+  - seo
+  - reflections
+authors:
+  - Sumit Sute
+category: "Reflections"
+draft: false
+featured: false
+---
+
+## The Iconic <CopyLink className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-orange-500 hover:bg-orange-500/10 cursor-pointer transition-all duration-200' href='/feed.xml'><MdOutlineRssFeed /></CopyLink>.
+
+> "RSS is undead. It died years ago. It just won't stop working."
+
+There's an icon in my footer now. A small thing next to the mail icon. If you know what it means, you probably smiled. If you don't, it looks like a radio wave having a mild existential crisis.
+
+It's an RSS feed. I added it last week only to push updates, not *ideology*.
+
+The strange thing is, I almost didn't. RSS has been declared dead so many times that even the obituaries have obituaries. Google Reader shut down in 2013. Twitter killed the blogroll. Instagram killed the personal website. TikTok killed attention spans. Why would anyone subscribe to a feed in 2026?
+
+But then I kept thinking about Marc's post, [Why I Still Use RSS](https://atthis.link/blog/2021/rss.html):
+> "Having only the content I want to see only be shown when I want to see it with the freedom to jump between readers as I please, all with no ads? For me, no other service comes close to the flexibility, robustness, and overall ease-of-use that RSS offers."
+
+That's not nostalgia. That's a design philosophy.
+
+---
+
+## What RSS Actually Is
+
+If you've never used an RSS reader, here's the pitch: instead of visiting ten websites to check for updates, you visit one app. The app pulls updates from all the sites you care about. You read them in peace. No algorithm deciding what to show you. No "suggested posts." No engagement bait. Just the stuff you chose to follow.
+
+The technical side is almost comically simple. An RSS feed is just an XML file sitting on a server. It lists your recent posts: titles, links, dates, maybe a summary. When someone subscribes, their reader checks that file periodically. If there's new content, it shows up.
+
+That's it. No OAuth. No API keys. No rate limits. No platform lock-in. A static file that anyone can parse.
+
+The IndieWeb community [puts it well](https://indieweb.org/RSS): 
+> "Having an RSS feed makes your content more discoverable to your target audience because visitors do not need to manually check your site for new posts."
+
+---
+
+## The Agency Argument
+
+The more I thought about it, the more I realized this isn't really about technology. It's about agency.
+
+When you follow someone on Twitter, Twitter decides what you see. When you subscribe on YouTube, YouTube decides. Even email newsletters now have "promotions" tabs and deliverability scores. The platform sits between you and the creator, and it has opinions.
+
+RSS is different. The feed is just a file. Your reader pulls it. No one in the middle gets to:
+
+- Hide posts because they didn't get enough engagement
+- Insert ads between articles
+- Recommend content from people you don't follow
+- Change the sorting algorithm overnight
+- Shut down and take your subscriptions with it
+
+Brent Simmons, who built NetNewsWire, [wrote](http://inessential.com/2013/03/14/why_i_love_rss_and_you_do_too): "You're in charge. You decide what to read and when to read it."
+
+That's the old web. The web before platforms ate everything. The web where you owned your attention.
+
+---
+
+## What I Built
+
+I have two kinds of content on this site: bloqs (long-form articles) and blips (short updates, like tweets but on my own server). I wanted a single feed that combined both.
+
+The implementation turned out to be straightforward:
+
+```text
+┌─────────────────┐     ┌─────────────────┐
+│  Bloqs (MDX)    │     │  Blips (DB)     │
+│  Filesystem     │     │  Supabase       │
+└────────┬────────┘     └────────┬────────┘
+         │                       │
+         ▼                       ▼
+┌─────────────────────────────────────────┐
+│            generateFeed()               │
+│  1. Fetch both sources                  │
+│  2. Normalize to FeedItem[]             │
+│  3. Sort by date, limit to 50           │
+│  4. Build RSS 2.0 XML                   │
+└────────────────────┬────────────────────┘
+                     │
+                     ▼
+              GET /feed.xml
+              Content-Type: application/xml
+              Cache-Control: 1 hour
+```
+
+The feed generation lives in `src/lib/feed.ts`. It pulls bloqs from the filesystem (they're MDX files) and blips from Supabase, merges them, sorts by date, and outputs valid RSS 2.0 XML.
+
+```typescript
+export async function generateFeed(maxItems: number = 50): Promise<string> {
+  const [bloqs, blips] = await Promise.all([
+    Promise.resolve(getBloqPosts()),
+    getBlips(),
+  ]);
+
+  const bloqItems = bloqs.map(bloqToFeedItem);
+  const blipItems = blips.map(blipToFeedItem);
+
+  const allItems = [...bloqItems, ...blipItems]
+    .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+    .slice(0, maxItems);
+
+  // ... build XML string
+}
+```
+
+The route handler is even simpler:
+
+```typescript
+export async function GET() {
+  const feed = await generateFeed();
+
+  return new NextResponse(feed, {
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}
+```
+
+I cache it for an hour. RSS readers don't need real-time updates, and my server doesn't need to regenerate XML on every request.
+
+---
+
+## The Four Routes I Deleted
+
+Here's something embarrassing: I initially built four routes.
+
+`/feed.xml`, `/rss.xml`, `/feed`, `/rss`.
+
+I don't know why. I think I was trying to be "compatible" with every convention. But that's not compatibility, that's noise. If someone types `/rss.xml` and gets the same content as `/feed.xml`, what have I gained?
+
+So I deleted three of them. Now there's just `/feed.xml`. One canonical URL. The orange icon in the footer points to it. The `<link rel="alternate">` tag in my `<head>` points to it. Done.
+
+The lazy approach would have been keeping all four. The disciplined approach was deleting the duplicates.
+
+---
+
+## What I'm Not Doing
+
+I'm not tracking who subscribes. I'm not measuring open rates. I'm not A/B testing subject lines.
+
+The feed doesn't even include full article content, just summaries. If you want to read the whole thing, you have to come to the site. That's intentional. I write for the web, not for feed readers. The feed is a notification system, not a publishing platform.
+
+Some people disagree with this. [Marc Thiele](https://twitter.com/marcthiele/status/1503679968580182023) unsubscribes from feeds that don't include full content. That's fair. But I'm not trying to optimize for RSS reader UX. I'm trying to make my writing available in a way that respects the reader's agency.
+
+---
+
+## The Philosophical Part
+
+I keep coming back to this idea: the web used to be made of small things that connected in simple ways. A link. A feed. A pingback. No platform required. No VC funding needed. Just protocols that anyone could implement.
+
+RSS is one of those small things. It's not flashy. It doesn't have a growth team. It doesn't have a roadmap. It just works.
+
+Robb Knight [wrote](https://rknight.me/blog/please-expose-your-rss/): "Even if people only ever add your website into their feed reader and let the app find the RSS feed, showing an RSS link reminds people that RSS exists, a win for the open web."
+
+That's why I added the icon to my footer. Not because I expect traffic. Because it's a small signal that there's another way. That the web doesn't have to be five platforms fighting for your attention. That you can subscribe to things on your own terms.
+
+---
+
+## If You Want to Try It
+
+If you've never used an RSS reader, here's how to start:
+
+1. Download a reader. [NetNewsWire](https://netnewswire.com/) for Mac/iOS. [Feedly](https://feedly.com/) for web. [Newsboat](https://newsboat.org/) for terminal enthusiasts. I use [Feeder](https://feeder.co/).
+2. Add some feeds. Start with your favorite blogs. Most sites have one, even if they don't advertise it.
+3. Check it when you want. Not when an algorithm pushes you.
+
+And if you want to subscribe to this site, the feed is at <CopyLink className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-orange-500 hover:bg-orange-500/10 cursor-pointer transition-all duration-200' href='/feed.xml'><MdOutlineRssFeed /></CopyLink>. The radio icon in the footer will also take you there.
+
+No algorithm will ever recommend this article to you. But if you're reading it in your RSS reader right now, you didn't need one.
+
+---
+
+## What I Took Away
+
+- **Agency is a feature.** RSS gives readers control over when and how they consume content. That's rare now.
+- **Protocols outlive platforms.** RSS has been declared dead for a decade. It still works.
+- **The old web isn't gone.** It's just quieter. You have to look for it.
+- **Small signals matter.** An RSS icon in a footer is a tiny thing. But it says something about what you value.

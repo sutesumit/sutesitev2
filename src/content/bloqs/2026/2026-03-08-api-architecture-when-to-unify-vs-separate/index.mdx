@@ -1,0 +1,263 @@
+---
+title: "When Not To Unify"
+publishedAt: "2026-03-08"
+summary: "I had two APIs doing similar things. My instinct was to merge them. Then I asked what would happen with a third, and the answer told me everything."
+slug: "api-architecture-when-to-unify-vs-separate"
+tags:
+  - backend
+  - typescript
+  - architecture
+  - nextjs
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: true
+featured: false
+status: "trashed"
+---
+
+## The Temptation
+
+> "Code duplication is a smell. But sometimes the smell is coming from something else entirely."
+
+I was staring at two API routes that looked suspiciously similar.
+
+On the left: `/api/bloq/views/[slug]` — tracks how many people have read a post. Anonymous. Simple counter. One table, one RPC function.
+
+On the right: `/api/claps/[type]/[id]` — tracks how many times people have clapped. Fingerprint-based user tracking. Per-user limits. Three RPC functions, unified across two content types.
+
+Both increment a number. Both store it in Supabase. Both return the count to the frontend. The duplication was obvious. My instinct to unify was immediate.
+
+<del>One API to rule them all.</del> One route with an `engagement_type` parameter. One hook. One table. Clean. DRY. The kind of refactoring that feels productive before you've actually thought about it.
+
+So I started thinking about it. And the more I thought, the less unified things looked.
+
+---
+
+## What Views Actually Do
+
+Views are passive. A reader lands on a page, the `useAnalytics` hook fires, the counter increments. No user action required. No identity needed.
+
+```text
+Page loads
+  → useAnalytics.trackBloqView(slug)
+    → POST /api/bloq/views/[slug]
+      → increment_bloq_view(p_slug)
+        → bloq_views table: views = views + 1
+      ← returns { views: 42 }
+    ← fire and forget
+  ← no state update needed
+```
+
+The reader never knows it happened. There's no UI showing "you have viewed this 1 time." The number is for me, the author, to know which posts get traffic. It's analytics, not interaction.
+
+The implementation reflects this:
+
+```typescript
+// Views: 65 lines total, one RPC
+export async function POST(req: Request, { params }: RouteParams) {
+    const { slug } = await params;
+    const { data, error } = await supabase.rpc("increment_bloq_view", {
+        p_slug: slug
+    });
+    return NextResponse.json({ views: data });
+}
+```
+
+No fingerprint. No user tracking. No limits. Just a number going up.
+
+---
+
+## What Claps Actually Do
+
+Claps are active. A reader sees a button, decides they like what they read, and clicks. The click is intentional. The counter is visible. The feedback is immediate.
+
+```text
+User clicks clap button
+  → useClaps.clap()
+    → Optimistic update: totalClaps++, userClaps++
+    → POST /api/claps/[type]/[id] with fingerprint
+      → upsert_clap(p_post_type, p_post_id, p_fingerprint, p_increment)
+        → Check if user has clapped < 50 times
+        → post_engagement table: increment or insert
+      ← returns { totalClaps, userClaps, maxReached }
+    ← On success: confirm server values
+    ← On failure: rollback optimistic update
+  ← UI reflects user's contribution
+```
+
+The reader sees their contribution. "You clapped 3 times." There's a limit (50 claps per user per post) to prevent abuse. There's state: how many times *this specific user* has clapped.
+
+The implementation reflects this too:
+
+```typescript
+// Claps: 158 lines total, three RPCs
+export async function POST(req: Request, { params }: RouteParams) {
+    const { type, id } = await params;
+    const { fingerprint } = await req.json();
+    
+    const { data, error } = await supabase.rpc("upsert_clap", {
+        p_post_type: type,
+        p_post_id: id,
+        p_fingerprint: fingerprint,
+        p_increment: 1
+    });
+    
+    return NextResponse.json({
+        userClaps: data.user_claps,
+        totalClaps: data.total_claps,
+        maxReached: data.max_reached
+    });
+}
+```
+
+Fingerprint required. User-specific return data. Rate limiting logic. It's not just a counter. It's a relationship between a user and a post.
+
+---
+
+## The Semantic Gap
+
+Here's the thing I kept circling back to: views and claps aren't just technically different. They're semantically different.
+
+| Aspect | Views | Claps |
+|--------|-------|-------|
+| User action | None (automatic) | Click (intentional) |
+| Purpose | Analytics | Engagement |
+| User identity | Anonymous | Fingerprinted |
+| Per-user limit | None | 50 max |
+| User sees | Nothing | Their contribution |
+| Data returned | Total only | Total + user count |
+
+Views are something that *happens to* a post. Claps are something a reader *does to* a post.
+
+<del>They both increment counters.</del> That's true. But so does a page load counter, a download counter, a share counter, an error counter. "Both increment counters" is not a reason to unify. It's a reason to ask: what else do they share?
+
+The answer, when I was honest: not much.
+
+---
+
+## The Third Case Test
+
+I remembered something from the [spec-driven claps article](/bloq/spec-driven-development-clap-feature-nextjs): when you're building for two, ask what happens with three.
+
+So I imagined adding a third engagement type. Bookmarks, say. Or shares. Or reactions (like GitHub's emoji reactions).
+
+**With separate systems:**
+
+```text
+views/     → anonymous, no limits, analytics
+claps/     → fingerprinted, limited, engagement
+bookmarks/ → authenticated, persistent, personal
+```
+
+Each system does its thing. Different tables, different APIs, different hooks. Some duplication, but each optimized for its purpose.
+
+**With a unified system:**
+
+```text
+engagement/
+  → type: view | clap | bookmark | share | reaction
+  → fingerprint: nullable (null for views, required for claps)
+  → user_id: nullable (null for anonymous, required for bookmarks)
+  → count: integer (meaningless for bookmarks, meaningful for claps)
+  → reaction_type: nullable (only for reactions)
+```
+
+Every query now filters by `type`. Every new engagement type adds nullable columns or a JSON blob. The "unified" table becomes a grab bag of semi-related data with different constraints per row.
+
+What happens when bookmarks need authentication (not just fingerprint)? What happens when reactions need multiple types per post? What happens when shares need referral tracking?
+
+The unified model strains. Each new requirement is a special case. The "clean" unified API becomes a switch statement routing to different logic based on `engagement_type`.
+
+I've seen this movie before. It ends with a table called `events` that has 47 nullable columns and a comment saying "TODO: refactor this."
+
+---
+
+## What I Almost Missed
+
+The temptation to unify came from looking at the code. Two routes, similar structure, same database. The duplication was visible.
+
+What I almost missed was the invisible part: the intent.
+
+```text
+Views:  "Someone was here."
+Claps:  "I appreciated this."
+```
+
+Those aren't the same sentence. The first is observation. The second is expression. Merging them would merge the intent, and the intent is the part that matters.
+
+The code duplication is real. The shared patterns are real. But the duplication is at the infrastructure layer (Supabase calls, error handling, response formatting), not the domain layer. And infrastructure duplication is cheaper than domain confusion.
+
+---
+
+## What To Unify Instead
+
+I decided against merging the APIs. But I didn't walk away empty-handed.
+
+The code review surfaced actual duplication worth addressing:
+
+```typescript
+// Both routes use this
+const noStoreHeaders = { 'Cache-Control': 'no-store' };
+
+// Both routes validate post existence (claps does it better)
+// Both routes catch errors the same way
+// Both routes use getSupabaseServerClient()
+```
+
+These are infrastructure patterns. Extract them:
+
+```typescript
+// lib/api-utils.ts
+export const noStoreHeaders = { 'Cache-Control': 'no-store' };
+
+export async function validatePostExists(
+    type: 'bloq' | 'blip',
+    id: string
+): Promise<boolean> {
+    if (type === 'bloq') {
+        return getBloqPostBySlug(id) !== null;
+    }
+    // blips would go here
+    return true;
+}
+
+export function errorResponse(message: string, status: number) {
+    return NextResponse.json(
+        { error: message },
+        { status, headers: noStoreHeaders }
+    );
+}
+```
+
+This is the right kind of unification: shared infrastructure, distinct domains. The routes stay separate because they do different things. The utilities get extracted because they do the same thing.
+
+---
+
+## The Decision
+
+I'm keeping views and claps separate.
+
+Not because unification would be hard (it wouldn't, technically). Not because I love duplicated code (I don't). But because the cost of unification exceeds the cost of separation.
+
+The cost of separation: some duplicated infrastructure code. Fixable with utilities.
+
+The cost of unification: conflating two different concepts, creating a data model that serves neither well, and building a system that gets more complex with each new feature instead of less.
+
+<del>DRY is a guideline, not a law.</del> Sometimes duplication is the shape of the problem. Removing it creates a different problem.
+
+---
+
+## What I'm Taking Away
+
+- **Duplication can be domain separation in disguise.** Two pieces of code that look similar might be doing fundamentally different things. The similarity is at the wrong level of abstraction.
+
+- **Ask about the third case.** If you're merging two things, imagine adding a third. Does the unified model get simpler or more complex? The answer tells you whether to unify.
+
+- **Unify infrastructure, not intent.** Shared utilities for error handling, validation, database access. Separate APIs for semantically different operations.
+
+- **The cost of separation is usually visible (duplicated code). The cost of unification is usually invisible (conceptual confusion, future brittleness).** Look for the invisible costs.
+
+---
+
+> I still think about unifying them sometimes. Then I think about the `events` table with 47 nullable columns, and the feeling passes.

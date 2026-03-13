@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-09 | **Articles written:** 15 | **Version:** 1.12.0 (2026-03)
+> **Last evolved:** 2026-03-12 | **Articles written:** 21 | **Version:** 1.14.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -25,6 +25,8 @@ A changelog of what this skill has learned over time.
 | 2026-03-08 | 1.10.0 | When Z-Index Lies to You | Documented the danger of implicit DOM stacking contexts overriding negative z-index, and how to properly isolate `overflow-hidden` constraints to allow tooltips to float freely | Agent |
 | 2026-03-08 | 1.11.0 | Orchestrating Agents | Documented agent orchestration patterns (chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer); Kilo Code's Orchestrator Mode; trade-offs of multi-agent systems; when to orchestrate vs single-agent | Agent |
 | 2026-03-09 | 1.12.0 | Orchestrating Agents (revision) | Added real-world performance optimization example with 6 parallel measurement agents, 6 optimization agents, verification phase; 421KB to 160KB bundle reduction; lessons on parallelism, isolation, and verification closing the loop | Agent |
+| 2026-03-12 | 1.13.0 | SEO Slug Refactoring | Refactored all 21 bloq slugs to be SEO-friendly; updated frontmatter, directory names, and internal links; added pattern for slug-to-directory sync | Agent |
+| 2026-03-12 | 1.14.0 | Supabase Data Migration | Migrated `bloq_views` and `claps` data to match new SEO slugs; added migration script to project history | Agent |
 
 ---
 
@@ -79,9 +81,9 @@ The goal is balance: enough shared tags for discoverability, room for new tags w
 ```
 src/content/bloqs/
 ├── 2025/
-│   ├── 2025-11-23-setting-up-blog-series/
+│   ├── 2025-11-23-building-mdx-blog-system-nextjs-ai/
 │   │   └── index.mdx
-│   └── 2025-12-09-building-last-visitor-feature/
+│   └── 2025-12-09-building-real-time-last-visitor-feature/
 │       └── index.mdx
 ├── 2026/
 │   └── 2026-02-18-vibe-shift-hackathon/
