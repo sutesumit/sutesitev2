@@ -7,6 +7,8 @@ import LiveRepoLinks from "@/components/shared/LiveRepoLinks";
 import Accordion from "@/components/shared/Accordion";
 import { CardBackground } from "@/components/shared/CardBackground";
 import { projects, ProjectProps } from "@/data/projectlist";
+import ClapsCounter from "@/components/shared/ClapsCounter";
+import ViewCounter from "./ViewCounter";
 
 const ProjectPage = ({ project }: { project: ProjectProps }) => {
   const [iframeLoading, setIframeLoading] = useState(true);
@@ -119,18 +121,22 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
       </m.div>
 
       <m.div
-        className="project-list relative isolate p-4 grid grid-cols-1 md:grid-cols-2 items-center blue-border bg-slate-50/5 dark:bg-slate-900/5 overflow-hidden"
+        className="project-list relative isolate p-4 blue-border bg-slate-50/5 dark:bg-slate-900/5 overflow-hidden"
         initial="rest"
         whileHover="hover"
         animate="rest"
       >
         <CardBackground />
-        <div className="col-span-1 md:col-span-2 md:text-center text-sm pb-4 border-b border-dashed border-slate-300 dark:border-slate-700 mb-4">
-          <Link href="/work" className="nav-tab py-1 px-3">
+        <div className="flex items-center justify-between border-b border-dashed border-slate-300 dark:border-slate-700 pb-4 mb-4">
+          <div className="flex items-center gap-4">
+            <ClapsCounter postId={project.slug} postType="project" />
+            <ViewCounter slug={project.slug} className="inline-flex items-center text-xs" />
+          </div>
+          <Link href="/work" className="nav-tab py-1 px-3 text-sm">
             work
           </Link>
         </div>
-        <div className="flex flex-col md:flex-row md:col-span-2 gap-4 justify-around w-full">
+        <div className="flex flex-col md:flex-row gap-4 justify-around w-full">
           {projects.map((p, index) => (
             <div
               key={index}

@@ -1,4 +1,4 @@
-export type PostType = 'bloq' | 'blip';
+export type PostType = 'bloq' | 'blip' | 'project';
 
 export interface ClapsResult {
   userClaps: number;

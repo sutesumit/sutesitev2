@@ -10,7 +10,9 @@ export const useAnalytics = () => {
 
     // Refs to prevent duplicate tracking in React Strict Mode or persistent layouts
     const hasTrackedVisit = useRef(false);
-    const hasTrackedView = useRef(false);
+    const hasTrackedBloqView = useRef(false);
+    const hasTrackedBlipView = useRef(false);
+    const hasTrackedProjectView = useRef(false);
 
     /**
      * Tracks a generic site visit.
@@ -66,8 +68,8 @@ export const useAnalytics = () => {
         }
 
         // 2. Strict Mode / Duplicate Protection
-        if (hasTrackedView.current) return;
-        hasTrackedView.current = true;
+        if (hasTrackedBloqView.current) return;
+        hasTrackedBloqView.current = true;
 
         try {
             await fetch(`/api/bloq/views/${slug}`, {
@@ -91,8 +93,8 @@ export const useAnalytics = () => {
         }
 
         // 2. Strict Mode / Duplicate Protection
-        if (hasTrackedView.current) return;
-        hasTrackedView.current = true;
+        if (hasTrackedBlipView.current) return;
+        hasTrackedBlipView.current = true;
 
         try {
             await fetch(`/api/blip/views/${serial}`, {
@@ -104,10 +106,36 @@ export const useAnalytics = () => {
         }
     }, []);
 
+    /**
+     * Tracks a specific project view.
+     * Intended for use in individual project pages.
+     */
+    const trackProjectView = useCallback(async (slug: string) => {
+        // 1. Development Mode Protection
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Analytics] Project view tracking skipped for "${slug}" (Development Mode)`);
+            return;
+        }
+
+        // 2. Strict Mode / Duplicate Protection
+        if (hasTrackedProjectView.current) return;
+        hasTrackedProjectView.current = true;
+
+        try {
+            await fetch(`/api/project/views/${slug}`, {
+                method: 'POST',
+                cache: 'no-store',
+            });
+        } catch (error) {
+            console.warn(`Unable to track project view for ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+    }, []);
+
     return {
         visitorData: { lastVisitorLocation, visitorCount },
         trackSiteVisit,
         trackBloqView,
-        trackBlipView
+        trackBlipView,
+        trackProjectView
     };
 };
