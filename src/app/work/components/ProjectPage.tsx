@@ -21,7 +21,10 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
   useEffect(() => {
     const updateScale = () => {
       if (containerRef.current) {
-        setIframeScale(containerRef.current.offsetWidth / IFRAME_W);
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        const scaleX = width / IFRAME_W;
+        const scaleY = height / IFRAME_H;
+        setIframeScale(Math.min(scaleX, scaleY));
       }
     };
     updateScale();
@@ -42,9 +45,15 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
       >
         <CardBackground />
         <ul className="project-container project-list relative z-10 px-2">
-          <li className="project-item text-blue-900 dark:text-blue-400 font-medium">
-            <Link href={`/work/${project.slug}`}>{project.title}</Link>
-          </li>
+          <div className="flex flex-wrap gap-2 items-center justify-between">
+            <li className="project-item flex items-center justify-between text-blue-900 dark:text-blue-400 font-medium">
+              <Link href={`/work/${project.slug}`}>{project.title}</Link>
+            </li>
+            <div className="flex items-center gap-4">
+              <ViewCounter slug={project.slug} className="inline-flex items-center text-xs" />
+              <ClapsCounter postId={project.slug} postType="project" />
+            </div>
+          </div>
 
           <div className="about-section mt-4 space-y-1">
             {project.livelink && (
@@ -127,11 +136,7 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
         animate="rest"
       >
         <CardBackground />
-        <div className="flex items-center justify-between border-b border-dashed border-slate-300 dark:border-slate-700 pb-4 mb-4">
-          <div className="flex items-center gap-4">
-            <ClapsCounter postId={project.slug} postType="project" />
-            <ViewCounter slug={project.slug} className="inline-flex items-center text-xs" />
-          </div>
+        <div className="flex items-center justify-center border-b border-dashed border-slate-300 dark:border-slate-700 pb-4 mb-4">
           <Link href="/work" className="nav-tab py-1 px-3 text-sm">
             work
           </Link>
