@@ -1,7 +1,7 @@
 # Project Counters
 
 **Branch:** `feature/project-counters`  
-**Status:** Tested - Ready for Merge
+**Status:** Merged to main
 
 ---
 
@@ -225,4 +225,45 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 - Database table `project_views` exists in Supabase
 - RPC function `increment_project_view` exists in Supabase
 
-**Status: Tested - Ready for Merge**
+**Status: Merged to main**
+
+---
+
+## Enhancement Log
+
+### 2026-03-13: Iframe Scaling Fix
+
+**Issue:** The project page iframe appeared too small/zoomed out because scale was calculated based only on container width.
+
+**Solution:** Changed scaling to use `getBoundingClientRect()` and calculate scale based on minimum of width and height ratio.
+
+**Files Changed:**
+| File | Action |
+|------|--------|
+| `src/app/work/components/ProjectPage.tsx` | Modified - improved iframe scaling |
+| `src/app/work/components/WorkProjectCard.tsx` | Modified - added ViewCounter and ClapsCounter |
+
+**Code Change:**
+```typescript
+// Before:
+const updateScale = () => {
+  if (containerRef.current) {
+    setIframeScale(containerRef.current.offsetWidth / IFRAME_W);
+  }
+};
+
+// After:
+const updateScale = () => {
+  if (containerRef.current) {
+    const { width, height } = containerRef.current.getBoundingClientRect();
+    const scaleX = width / IFRAME_W;
+    const scaleY = height / IFRAME_H;
+    setIframeScale(Math.min(scaleX, scaleY));
+  }
+};
+```
+
+**Testing:**
+- Build passes
+- Page loads correctly at HTTP 200
+- Iframe scaling now uses ResizeObserver for responsive scaling
