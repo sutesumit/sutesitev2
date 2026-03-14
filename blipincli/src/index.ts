@@ -30,20 +30,6 @@ program
   .version('1.0.0')
 
 program
-  .command('byte')
-  .description('Manage bytes (short thoughts up to 280 chars)')
-  .action(() => {
-    program.help()
-  })
-
-program
-  .command('blip')
-  .description('Manage blips (term:meaning glossary pairs)')
-  .action(() => {
-    program.help()
-  })
-
-program
   .command('byte add <content...>')
   .description('Create a new byte (short thought)')
   .action(async (contentParts: string[]) => {
