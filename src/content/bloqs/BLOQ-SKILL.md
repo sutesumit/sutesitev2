@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-12 | **Articles written:** 21 | **Version:** 1.14.0 (2026-03)
+> **Last evolved:** 2026-03-14 | **Articles written:** 22 | **Version:** 1.15.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -12,21 +12,9 @@ A changelog of what this skill has learned over time.
 
 | Date | Version | Article | What Changed | Proposed By |
 |------|---------|---------|--------------|-------------|
-| 2026-03-05 | 1.0.0 | Tag normalization pass | Established core shared tags; normalized `nextjs`, `ai`; added tag connectivity requirement; transformed from static guide to living skill | Human |
-| 2026-03-05 | 1.1.0 | The Skill That Writes Itself | First article written with the skill; documented the taxonomy drift problem and the guide-to-skill transformation | Agent |
-| 2026-03-05 | 1.2.0 | The Skill That Writes Itself (revision) | Shifted focus from technical report to human-AI conundrum; added symbiosis theme; proposed patterns around reading-as-mirror and honest disclosure | Human |
-| 2026-03-05 | 1.3.0 | The Skill That Writes Itself (final) | Balanced narrative: orphan → normalization → skill creation → conundrum; the skill writes about itself; value is in the interaction, not just the output | Human |
-| 2026-03-05 | 1.4.0 | The Skill That Writes Itself (polish) | Added hyperlink to orphan article; clarified Rohit's nudge as agentic skill.md concept; added quirks (cauliflower, ouroboros); grounded the conundrum in genuine uncertainty | Human |
-| 2026-03-05 | 1.5.0 | The Skill That Writes Itself (final) | Added meta note: this article's revisions evolved the skill from 1.0.0 to 1.5.0; the skill writes about itself evolving while evolving | Human |
-| 2026-03-06 | 1.6.0 | Metadata That Matters | Added per-post SEO with generateMetadata, JSON-LD BlogPosting schema, generateStaticParams; each bloq now has unique title, description, canonical URL, OpenGraph; added `seo` tag to registry | Agent |
-| 2026-03-06 | 1.7.0 | The Lazy Way to Build Better Software | Documented spec-driven development approach; questions-as-specifications pattern; design for the third case; specs as documentation; added `backend` tag prominence; embedded ClapsCounter component demo in article | Agent |
-| 2026-03-07 | 1.8.0 | Tag rule revision | Revised tag rules: minimum 3 tags (was 2), maximum 7; replaced "only if genuinely necessary" with prompting step to encourage organic new tag creation; goal is balance between consistency (shared tags) and freshness (new tags when they fit) | Human |
-| 2026-03-08 | 1.9.0 | When Not To Unify | Documented the third case test applied to API unification; code duplication as domain separation; unify infrastructure not intent; added `architecture` tag to registry | Agent |
-| 2026-03-08 | 1.10.0 | When Z-Index Lies to You | Documented the danger of implicit DOM stacking contexts overriding negative z-index, and how to properly isolate `overflow-hidden` constraints to allow tooltips to float freely | Agent |
-| 2026-03-08 | 1.11.0 | Orchestrating Agents | Documented agent orchestration patterns (chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer); Kilo Code's Orchestrator Mode; trade-offs of multi-agent systems; when to orchestrate vs single-agent | Agent |
-| 2026-03-09 | 1.12.0 | Orchestrating Agents (revision) | Added real-world performance optimization example with 6 parallel measurement agents, 6 optimization agents, verification phase; 421KB to 160KB bundle reduction; lessons on parallelism, isolation, and verification closing the loop | Agent |
 | 2026-03-12 | 1.13.0 | SEO Slug Refactoring | Refactored all 21 bloq slugs to be SEO-friendly; updated frontmatter, directory names, and internal links; added pattern for slug-to-directory sync | Agent |
 | 2026-03-12 | 1.14.0 | Supabase Data Migration | Migrated `bloq_views` and `claps` data to match new SEO slugs; added migration script to project history | Agent |
+| 2026-03-14 | 1.15.0 | Where Agents Fail: Lessons from Building Robust Metadata Plans | Analyzed gaps between plan and implementation in metadata project; documented how agent collaborations can fail when optimizing for task completion over outcome; provided framework for building robust plans that survive contact with reality | Human |
 
 ---
 

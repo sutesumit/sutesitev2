@@ -3,8 +3,7 @@ import type { Metadata } from 'next';
 import { getBlipBySerial, getBlips } from '@/lib/blip';
 import BlipDetail from './components/BlipDetail';
 import TrackView from '../components/TrackView';
-
-const SITE_URL = 'https://sumitsute.com';
+import { SITE_URL, SITE_NAME, SITE_AUTHOR } from '@/config/metadata';
 
 export async function generateMetadata({ params }: { params: Promise<{ serial: string }> }): Promise<Metadata> {
   const { serial } = await params;
@@ -31,12 +30,12 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
       title: `blip #${blip.blip_serial}`,
       description,
       url: blipUrl,
-      siteName: 'Sumit Sute Personal Dev Page',
+      siteName: SITE_NAME,
       type: 'article',
       publishedTime: blip.created_at,
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title: `blip #${blip.blip_serial}`,
       description,
     },
@@ -58,7 +57,7 @@ function SocialMediaPostingJsonLd({ blip }: { blip: NonNullable<Awaited<ReturnTy
     datePublished: blip.created_at,
     author: {
       '@type': 'Person',
-      name: 'Sumit Sute',
+      name: SITE_AUTHOR,
       url: SITE_URL,
     },
     mainEntityOfPage: {
@@ -67,7 +66,7 @@ function SocialMediaPostingJsonLd({ blip }: { blip: NonNullable<Awaited<ReturnTy
     },
     publisher: {
       '@type': 'Person',
-      name: 'Sumit Sute',
+      name: SITE_AUTHOR,
       url: SITE_URL,
     },
   };
