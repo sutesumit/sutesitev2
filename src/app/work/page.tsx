@@ -1,8 +1,26 @@
+import type { Metadata } from 'next';
 import { projects } from '../../data/projectlist';
 import { skillList } from '@/data/skilllist';
 import { WorkProjectCard } from './components/WorkProjectCard';
 import { TechStackCard } from './components/TechStackCard';
 import { ContributionHeatmap } from './components/ContributionHeatmap';
+import { SITE_URL, pageMetadata } from '@/config/metadata';
+
+const { work } = pageMetadata;
+
+export const metadata: Metadata = {
+  title: work.title,
+  description: work.description,
+  alternates: { canonical: `${SITE_URL}/work` },
+  openGraph: {
+    title: work.ogTitle,
+    description: work.ogDescription,
+  },
+  twitter: {
+    title: work.ogTitle,
+    description: work.ogDescription,
+  },
+};
 
 export default function Home() {
 

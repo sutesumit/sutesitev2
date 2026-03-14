@@ -1,9 +1,27 @@
-import React, { Suspense } from 'react'
-import IntroCard from './components/IntroCard'
-import IntroText from './components/IntroText'
-import DryKeysQuest from './components/DryKeysQuest'
-import BloqFeed from './components/BloqFeed'
-import { getBloqPosts, getAllCategories, getAllTags } from '@/lib/bloq'
+import type { Metadata } from 'next';
+import React, { Suspense } from 'react';
+import IntroCard from './components/IntroCard';
+import IntroText from './components/IntroText';
+import DryKeysQuest from './components/DryKeysQuest';
+import BloqFeed from './components/BloqFeed';
+import { getBloqPosts, getAllCategories, getAllTags } from '@/lib/bloq';
+import { SITE_URL, pageMetadata } from '@/config/metadata';
+
+const { bloq } = pageMetadata;
+
+export const metadata: Metadata = {
+  title: bloq.title,
+  description: bloq.description,
+  alternates: { canonical: `${SITE_URL}/bloq` },
+  openGraph: {
+    title: bloq.ogTitle,
+    description: bloq.ogDescription,
+  },
+  twitter: {
+    title: bloq.ogTitle,
+    description: bloq.ogDescription,
+  },
+};
 
 const page = () => {
   const posts = getBloqPosts();

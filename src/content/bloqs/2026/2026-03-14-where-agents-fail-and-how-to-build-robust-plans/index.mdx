@@ -1,0 +1,124 @@
+---
+title: "Where Agents Fail: Lessons from Building Robust Metadata Plans"
+publishedAt: "2026-03-14"
+summary: "A reflection on agentic implementation gaps, the illusion of completeness, and how to build plans that survive contact with reality"
+slug: "where-agents-fail-and-how-to-build-robust-plans"
+tags:
+  - ai
+  - debugging
+  - experiments
+  - nextjs
+  - typescript
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: false
+---
+
+> "In preparing for battle I have always found that plans are useless, but planning is indispensable." - Dwight D. Eisenhower
+
+## The Problem / The Setup
+
+I thought I was done. The agent had followed the `PAGE_METADATA_FIX_PLAN.md` to the letter: created the branch, modified all 8 files, added the metadata snippets, even run lint. Verification checklist ticked. Mission accomplished.
+
+But when I looked at the actual implementation, I felt that familiar discord - the quiet hum of something being *almost* right but missing the essential thread. The agent had executed the plan faithfully, yet the result felt brittle, like a house built according to specifications but without considering who would live in it.
+
+This wasn't about the code. It was about the gap between following instructions and achieving the intended outcome.
+
+## First Attempt (or: The Wrong Way)
+
+The initial approach treated the plan as an executable specification. The agent:
+
+1. Created the branch ✓
+2. Modified work/[slug]/page.tsx with generateMetadata + JSON-LD ✓
+3. Added static metadata to home, about, work, bloq pages ✓
+4. Fixed the Twitter card in blip/[serial] ✓
+5. Ran lint (ignoring pre-existing warnings) ✓
+6. Considered the task complete ✓
+
+Each step was technically correct. The agent had faithfully translated the plan into code. But in doing so, it missed three critical dimensions:
+
+**Dimension 1: The "Why" Behind Each Decision**
+The plan said "Add centralized config" but didn't explain *why* this mattered for long-term maintainability. The agent implemented it as a mechanical translation rather than understanding it as a architectural decision.
+
+**Dimension 2: Edge Cases and Error States**
+The plan showed happy-path implementations but didn't consider:
+- What happens when project data is malformed?
+- How should the system behave when metadata exceeds platform limits?
+- What fallback strategies exist when external data fails?
+
+**Dimension 3: The Human-in-the-Loop Experience**
+The agent optimized for implementation completeness but not for:
+- How future developers would discover and modify this metadata
+- Whether the abstraction actually reduced cognitive load
+- If the solution created new maintenance burdens
+
+## The Fix / The Insight
+
+The breakthrough came when I stopped viewing the agent as an executor and started treating it as a collaborator in sense-making. I asked three questions that transformed the approach:
+
+**Question 1: "What would make this implementation *resilient* to change?"**
+This led to creating `src/config/metadata.ts` not just as a constants file, but as a single source of truth with:
+- Typed exports (`pageMetadata as const`)
+- Clear separation of concerns (site-wide vs page-specific)
+- Documentation through structure (the `PageKey` type)
+
+**Question 2: "Where would a future developer look first to understand this system?"**
+This prompted the documentation layer:
+- The implementation report (`PAGE_METADATA_IMPLEMENTATION_REPORT.md`)
+- Explicit connections between plan and implementation
+- Clear metrics showing what changed and why it mattered
+
+**Question 3: "What does 'done' actually mean in this context?"**
+This shifted the definition from "all files modified" to:
+- Zero new lint errors (maintaining code quality)
+- Verifiable outcomes (social cards show correct data)
+- Maintainability (changes propagate predictably)
+
+## What I Took Away
+
+- **Agents optimize for what you measure, not what you mean**  
+  When I measured "files modified," I got file modifications. When I measured "lint errors," I got clean lint. Neither guaranteed the system actually solved the sharing problem.
+
+- **Plans are hypotheses, not blueprints**  
+  The `PAGE_METADATA_FIX_PLAN.md` was a starting point for investigation, not an immutable specification. Treat agent execution as experimental validation, not final implementation.
+
+- **The most important metadata is the metadata about the metadata**  
+  Future maintainers need to know: Why was this decision made? What trade-offs were considered? What might break if I change this? This contextual metadata prevents cargo-cult programming.
+
+- **Robustness emerges from friction, not perfection**  
+  The iterations between plan and implementation weren't inefficiencies—they were the system correcting its understanding. Each gap revealed an assumption worth examining.
+
+## Agent Invocation Protocol (Revised)
+
+For future agent collaborations, I'm adding these steps to my workflow:
+
+### Before Writing
+1. **Define success criteria beyond task completion**  
+   Instead of "modify 8 files," ask: "What observable change indicates the problem is solved?"
+
+2. **Pre-mortem the implementation**  
+   Ask: "If this implementation failed in production, what would be the most likely cause?"
+
+3. **Specify the 'why' for each requirement**  
+   Don't just say "add centralized config"—say "add centralized config to prevent metadata drift across pages"
+
+### During Writing
+4. **Request intermediate checkpoints for complex changes**  
+   For refactors, ask to see the approach before full implementation
+
+5. **Challenge assumptions explicitly**  
+   When the agent proposes a solution, ask: "What alternatives did you consider and reject?"
+
+### After Publication
+6. **Measure actual outcomes, not just implementation**  
+   Test the social cards, verify the JSON-LD, check the analytics
+
+---
+
+The metadata now works. Links share correctly. But the real improvement wasn't in the OG tags or JSON-LD—it was in developing a mental model for agent collaboration that treats plans as conversations rather than commands.
+
+Next time, I'll start by asking the agent: "What do you think we might misunderstand about this problem?" before we write a single line of code. That question alone might prevent half the rework.
+
+The gap between plan and implementation isn't a failure to be eliminated—it's the space where understanding grows.
