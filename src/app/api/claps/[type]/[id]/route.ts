@@ -7,7 +7,7 @@ interface RouteParams {
     params: Promise<{ type: string; id: string }>
 }
 
-const VALID_POST_TYPES = ['bloq', 'blip'] as const;
+const VALID_POST_TYPES = ['bloq', 'blip', 'byte'] as const;
 type PostType = typeof VALID_POST_TYPES[number];
 
 function validatePostType(type: string): type is PostType {
@@ -22,7 +22,7 @@ export async function POST(
         const { type, id } = await params;
 
         if (!validatePostType(type)) {
-            return jsonError("Invalid post type. Must be 'bloq' or 'blip'", 400);
+            return jsonError("Invalid post type. Must be 'bloq', 'blip', or 'byte'", 400);
         }
 
         if (type === 'bloq') {
@@ -72,7 +72,7 @@ export async function GET(
         const { type, id } = await params;
 
         if (!validatePostType(type)) {
-            return jsonError("Invalid post type. Must be 'bloq' or 'blip'", 400);
+            return jsonError("Invalid post type. Must be 'bloq', 'blip', or 'byte'", 400);
         }
 
         if (type === 'bloq') {

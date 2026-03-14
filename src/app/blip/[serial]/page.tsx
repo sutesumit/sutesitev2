@@ -1,9 +1,8 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getBlipBySerial, getBlips } from '@/lib/blip';
+import { getBlipBySerial, getBlips } from '@/lib/glossary';
 import BlipDetail from './components/BlipDetail';
-import TrackView from '../components/TrackView';
-import { SITE_URL, SITE_NAME, SITE_AUTHOR } from '@/config/metadata';
+import { SITE_URL, SITE_NAME } from '@/config/metadata';
 
 export async function generateMetadata({ params }: { params: Promise<{ serial: string }> }): Promise<Metadata> {
   const { serial } = await params;
@@ -16,19 +15,16 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
   }
 
   const blipUrl = `${SITE_URL}/blip/${blip.blip_serial}`;
-  const description = blip.content.length > 150 
-    ? blip.content.substring(0, 147) + '...' 
-    : blip.content;
 
   return {
-    title: `blip #${blip.blip_serial}`,
-    description,
+    title: `${blip.term} | blip glossary`,
+    description: blip.meaning,
     alternates: {
       canonical: blipUrl,
     },
     openGraph: {
-      title: `blip #${blip.blip_serial}`,
-      description,
+      title: `${blip.term} | blip glossary`,
+      description: blip.meaning,
       url: blipUrl,
       siteName: SITE_NAME,
       type: 'article',
@@ -36,47 +32,10 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
     },
     twitter: {
       card: 'summary_large_image',
-      title: `blip #${blip.blip_serial}`,
-      description,
+      title: `${blip.term} | blip glossary`,
+      description: blip.meaning,
     },
   };
-}
-
-function SocialMediaPostingJsonLd({ blip }: { blip: NonNullable<Awaited<ReturnType<typeof getBlipBySerial>>> }) {
-  const blipUrl = `${SITE_URL}/blip/${blip.blip_serial}`;
-  const description = blip.content.length > 150 
-    ? blip.content.substring(0, 147) + '...' 
-    : blip.content;
-
-  const jsonLd: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'SocialMediaPosting',
-    headline: `blip #${blip.blip_serial}`,
-    description,
-    url: blipUrl,
-    datePublished: blip.created_at,
-    author: {
-      '@type': 'Person',
-      name: SITE_AUTHOR,
-      url: SITE_URL,
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': blipUrl,
-    },
-    publisher: {
-      '@type': 'Person',
-      name: SITE_AUTHOR,
-      url: SITE_URL,
-    },
-  };
-
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
-  );
 }
 
 const BlipPage = async ({ params }: { params: Promise<{ serial: string }> }) => {
@@ -96,8 +55,6 @@ const BlipPage = async ({ params }: { params: Promise<{ serial: string }> }) => 
 
   return (
     <div className="container flex flex-col min-h-screen justify-center p-10 font-roboto-mono lowercase">
-      <SocialMediaPostingJsonLd blip={blip} />
-      <TrackView serial={blip.blip_serial} />
       <BlipDetail blip={blip} newerBlip={newerBlip} olderBlip={olderBlip} />
     </div>
   );

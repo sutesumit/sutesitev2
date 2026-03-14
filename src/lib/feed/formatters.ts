@@ -1,5 +1,5 @@
 import type { BloqPost } from "@/lib/bloq";
-import type { Blip } from "@/types/blip";
+import type { Byte } from "@/types/byte";
 import type { FeedItem } from './types';
 
 export function formatDateToRFC822(dateString: string): string {
@@ -27,12 +27,12 @@ export function bloqToFeedItem(post: BloqPost, siteUrl: string): FeedItem {
   };
 }
 
-export function blipToFeedItem(blip: Blip, siteUrl: string): FeedItem {
+export function byteToFeedItem(byte: Byte, siteUrl: string): FeedItem {
   return {
-    title: `Blip: ${blip.content.substring(0, 50)}${blip.content.length > 50 ? "..." : ""}`,
-    link: `${siteUrl}/blip?blip=${blip.blip_serial}`,
-    description: blip.content,
-    pubDate: formatDateToRFC822(blip.created_at),
-    guid: `${siteUrl}/blip?blip=${blip.blip_serial}`,
+    title: `Byte: ${byte.content.substring(0, 50)}${byte.content.length > 50 ? "..." : ""}`,
+    link: `${siteUrl}/byte?byte=${byte.byte_serial}`,
+    description: byte.content,
+    pubDate: formatDateToRFC822(byte.created_at),
+    guid: `${siteUrl}/byte?byte=${byte.byte_serial}`,
   };
 }

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { useClaps } from "@/hooks/useClaps";
 import { cn } from "@/lib/utils";
 
-type PostType = 'bloq' | 'blip' | 'project';
+type PostType = 'bloq' | 'blip' | 'byte' | 'project';
 
 interface ClapsCounterProps {
     postId: string;

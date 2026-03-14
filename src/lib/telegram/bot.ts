@@ -1,5 +1,5 @@
 import { Bot, Context } from "grammy";
-import { handleStart, handleSubscribe, handleList, handleGet, handleEdit, handleDel, handleMessage } from './commands/handlers';
+import { handleStart, handleByte, handleBlip, handleList, handleGet, handleEdit, handleDel, handleMessage } from './commands/handlers';
 
 type MyContext = Context;
 
@@ -7,11 +7,12 @@ let botInstance: Bot<MyContext> | null = null;
 
 const BOT_COMMANDS = [
   { command: "start", description: "Show help" },
-  { command: "subscribe", description: "Get updates" },
-  { command: "list", description: "List recent blips" },
-  { command: "get", description: "Get a specific blip" },
-  { command: "edit", description: "Edit a blip" },
-  { command: "del", description: "Delete a blip" },
+  { command: "byte", description: "Create a byte (short thought)" },
+  { command: "blip", description: "Create a blip (term:meaning)" },
+  { command: "list", description: "List bytes or blips" },
+  { command: "get", description: "Get a byte or blip" },
+  { command: "edit", description: "Edit a byte or blip" },
+  { command: "del", description: "Delete a byte or blip" },
 ] as const;
 
 export async function initBot(): Promise<Bot<MyContext>> {
@@ -32,7 +33,8 @@ export async function initBot(): Promise<Bot<MyContext>> {
   await botInstance.api.setMyCommands([...BOT_COMMANDS]);
 
   botInstance.command("start", handleStart);
-  botInstance.command("subscribe", handleSubscribe);
+  botInstance.command("byte", handleByte);
+  botInstance.command("blip", handleBlip);
   botInstance.command("list", handleList);
   botInstance.command("get", handleGet);
   botInstance.command("edit", handleEdit);

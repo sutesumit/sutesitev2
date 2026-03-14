@@ -1,10 +1,20 @@
 import { getConfig, hasApiKey } from './config.js'
 
-export type Blip = {
+export type Byte = {
   id: string
   content: string
   created_at: string
+  byte_serial: string
+}
+
+export type Blip = {
+  id: string
   blip_serial: string
+  term: string
+  meaning: string
+  tags: string[]
+  created_at: string
+  updated_at: string
 }
 
 export type ApiResponse<T> = {
@@ -59,16 +69,16 @@ async function request<T>(
   }
 }
 
-export async function listBlips(): Promise<ApiResponse<{ blips: Blip[] }>> {
-  return request<{ blips: Blip[] }>('', { method: 'GET' })
+export async function listBlips(): Promise<ApiResponse<{ blips: Byte[] }>> {
+  return request<{ blips: Byte[] }>('blip', { method: 'GET' })
 }
 
-export async function getBlip(serial: string): Promise<ApiResponse<{ blip: Blip }>> {
-  return request<{ blip: Blip }>(serial, { method: 'GET' })
+export async function getBlip(serial: string): Promise<ApiResponse<{ blip: Byte }>> {
+  return request<{ blip: Byte }>(`blip/${serial}`, { method: 'GET' })
 }
 
-export async function createBlip(content: string): Promise<ApiResponse<{ blip: Blip }>> {
-  return request<{ blip: Blip }>('', {
+export async function createBlip(content: string): Promise<ApiResponse<{ blip: Byte }>> {
+  return request<{ blip: Byte }>('byte', {
     method: 'POST',
     body: JSON.stringify({ content })
   })
@@ -77,15 +87,71 @@ export async function createBlip(content: string): Promise<ApiResponse<{ blip: B
 export async function updateBlip(
   serial: string,
   content: string
-): Promise<ApiResponse<{ blip: Blip }>> {
-  return request<{ blip: Blip }>(serial, {
+): Promise<ApiResponse<{ blip: Byte }>> {
+  return request<{ blip: Byte }>(`byte/${serial}`, {
     method: 'PUT',
     body: JSON.stringify({ content })
   })
 }
 
 export async function deleteBlip(serial: string): Promise<ApiResponse<{ success: boolean }>> {
-  return request<{ success: boolean }>(serial, {
+  return request<{ success: boolean }>(`byte/${serial}`, {
+    method: 'DELETE'
+  })
+}
+
+export async function listBytes(): Promise<ApiResponse<{ bytes: Byte[] }>> {
+  return request<{ bytes: Byte[] }>('byte', { method: 'GET' })
+}
+
+export async function getByte(serial: string): Promise<ApiResponse<{ byte: Byte }>> {
+  return request<{ byte: Byte }>(`byte/${serial}`, { method: 'GET' })
+}
+
+export async function createByte(content: string): Promise<ApiResponse<{ byte: Byte }>> {
+  return request<{ byte: Byte }>('byte', {
+    method: 'POST',
+    body: JSON.stringify({ content })
+  })
+}
+
+export async function updateByte(serial: string, content: string): Promise<ApiResponse<{ byte: Byte }>> {
+  return request<{ byte: Byte }>(`byte/${serial}`, {
+    method: 'PUT',
+    body: JSON.stringify({ content })
+  })
+}
+
+export async function deleteByte(serial: string): Promise<ApiResponse<{ success: boolean }>> {
+  return request<{ success: boolean }>(`byte/${serial}`, {
+    method: 'DELETE'
+  })
+}
+
+export async function listBlipsGlossary(): Promise<ApiResponse<{ blips: Blip[] }>> {
+  return request<{ blips: Blip[] }>('blip', { method: 'GET' })
+}
+
+export async function getBlipGlossary(serial: string): Promise<ApiResponse<{ blip: Blip }>> {
+  return request<{ blip: Blip }>(`blip/${serial}`, { method: 'GET' })
+}
+
+export async function createBlipGlossary(term: string, meaning: string): Promise<ApiResponse<{ blip: Blip }>> {
+  return request<{ blip: Blip }>('blip', {
+    method: 'POST',
+    body: JSON.stringify({ term, meaning })
+  })
+}
+
+export async function updateBlipGlossary(serial: string, term: string, meaning: string): Promise<ApiResponse<{ blip: Blip }>> {
+  return request<{ blip: Blip }>(`blip/${serial}`, {
+    method: 'PUT',
+    body: JSON.stringify({ term, meaning })
+  })
+}
+
+export async function deleteBlipGlossary(serial: string): Promise<ApiResponse<{ success: boolean }>> {
+  return request<{ success: boolean }>(`blip/${serial}`, {
     method: 'DELETE'
   })
 }

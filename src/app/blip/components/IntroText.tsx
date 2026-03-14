@@ -7,9 +7,7 @@ const IntroText = () => {
       <div className="flex flex-col items-center gap-6">
         <AsciiLogo />
         <p className="">
-          Some thoughts don’t need essays. They just need somewhere to land.
-          Blips are the small ones: thoughts that appear mid-commute, mid-debug, mid-coffee.
-          I post them from <span className="highlight">telegram</span> or the <span className="highlight">terminal</span>, whichever is open, and whichever I’m probably procrastinating in when the brain buffer overflows.
+          <span className='highlight'>Blips</span> are a glossary of terms, concepts, and definitions I&apos;ve run into and decided my future self shouldn&apos;t have to rediscover. Think of it as a personal wiki. A place to refine vocabulary, reduce ambiguity, and express intent more clearly when working with humans, code, or increasingly, agents.
         </p>
       </div>
     </div>

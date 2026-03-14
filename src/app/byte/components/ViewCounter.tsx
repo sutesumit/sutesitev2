@@ -17,7 +17,7 @@ export default function ViewCounter({ serial, className }: ViewCounterProps) {
     
         const fetchView = async () => {
             try {
-                const res = await fetch(`/api/blip/views/${serial}`, {
+                const res = await fetch(`/api/byte/views/${serial}`, {
                     method: 'GET',
                     cache: 'no-store',
                 });

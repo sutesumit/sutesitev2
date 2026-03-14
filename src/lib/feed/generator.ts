@@ -1,7 +1,7 @@
 import { getBloqPosts } from "@/lib/bloq";
-import { getBlips } from "@/lib/blip";
+import { getBytes } from "@/lib/byte";
 import type { FeedConfig } from './types';
-import { escapeXml, bloqToFeedItem, blipToFeedItem } from './formatters';
+import { escapeXml, bloqToFeedItem, byteToFeedItem } from './formatters';
 
 const DEFAULT_CONFIG: FeedConfig = {
   siteUrl: "https://sumitsute.com",
@@ -14,15 +14,15 @@ export async function generateFeed(
   maxItems: number = 50, 
   config: FeedConfig = DEFAULT_CONFIG
 ): Promise<string> {
-  const [bloqs, blips] = await Promise.all([
+  const [bloqs, bytes] = await Promise.all([
     Promise.resolve(getBloqPosts()),
-    getBlips(),
+    getBytes(),
   ]);
 
   const bloqItems = bloqs.map(post => bloqToFeedItem(post, config.siteUrl));
-  const blipItems = blips.map(blip => blipToFeedItem(blip, config.siteUrl));
+  const byteItems = bytes.map(byte => byteToFeedItem(byte, config.siteUrl));
 
-  const allItems = [...bloqItems, ...blipItems]
+  const allItems = [...bloqItems, ...byteItems]
     .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
     .slice(0, maxItems);
 

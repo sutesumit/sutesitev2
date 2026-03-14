@@ -11,9 +11,9 @@ const robotoMono = Roboto_Mono({
 })
 
 const SITE_URL = 'https://sumitsute.com';
-const SITE_NAME = 'Sumit Sute Personal Dev Page';
-const SITE_DESCRIPTION = "Sumit Sute's personal dev page, featuring projects and writing, grounded in an engineering approach that favors simplicity, clear boundaries, and long-term maintainability.";
-const OG_DESCRIPTION = "Projects and writing by Sumit Sute, shaped by simplicity, clear boundaries, and long-term maintainability.";
+const SITE_NAME = 'Sumit Sute\'s Dev Page';
+const SITE_DESCRIPTION = "Sumit Sute's personal dev page — exploring agentic engineering, autonomous systems, and AI-driven development, grounded in simplicity, clear boundaries, and long-term maintainability.";
+const OG_DESCRIPTION = "Projects and writing on agentic engineering, web development, software craftsmanship, and building systems that evolve | from Sumit Sute.";
 
 export const metadata: Metadata = {
   title: {

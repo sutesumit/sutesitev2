@@ -4,10 +4,9 @@ import React from 'react';
 import Link from 'next/link';
 import { motion as m, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Undo2 } from 'lucide-react';
-import type { Blip } from '@/types/blip';
+import type { Blip } from '@/types/glossary';
 import { BloqBackground } from '@/app/bloq/components/BloqCard/parts';
 import ClapsCounter from '@/components/shared/ClapsCounter';
-import ViewCounter from './ViewCounter';
 
 type BlipCardContentProps = {
   blip: Blip;
@@ -161,9 +160,26 @@ const BlipCardContent = ({
               exit="exit"
               transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              <p className="text-slate-800 dark:text-slate-200 leading-relaxed text-sm">
-                {blip.content}
-              </p>
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
+                  {blip.term}
+                </h2>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {blip.meaning}
+                </p>
+                {blip.tags && blip.tags.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {blip.tags.map((tag) => (
+                      <span 
+                        key={tag} 
+                        className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </m.div>
           </AnimatePresence>
         </div>
@@ -196,18 +212,12 @@ const BlipCardContent = ({
             </m.time>
           </AnimatePresence>
         </div>
-        <div className="flex items-center gap-3">
-          <ViewCounter
-            serial={blip.blip_serial}
-            className="text-xs flex opacity-80"
-          />
-          <ClapsCounter
-            postId={blip.id}
-            postType="blip"
-            interactive={true}
-            className="text-xs opacity-80"
-          />
-        </div>
+        <ClapsCounter
+          postId={blip.id}
+          postType="blip"
+          interactive={true}
+          className="text-xs opacity-80"
+        />
       </div>
     </>
   );

@@ -1,6 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
-import type { Blip } from "@/types/blip";
-import { validateApiKey, parseContent, validateContentLength } from "@/lib/api/validation";
+import type { Blip } from "@/types/glossary";
+import { validateApiKey } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse, notFoundResponse } from "@/lib/api/responses";
 
 export async function GET(
@@ -13,7 +13,7 @@ export async function GET(
     
     const { data, error } = await supabase
       .from("blips")
-      .select("id, content, created_at, blip_serial")
+      .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
       .eq("blip_serial", serial)
       .single();
 
@@ -41,19 +41,41 @@ export async function PUT(
     }
 
     const { serial } = await params;
-    const content = await parseContent(req);
-    const validation = validateContentLength(content);
     
-    if (!validation.valid) {
-      return jsonError(validation.error!, 400);
+    const contentType = req.headers.get("content-type") || "";
+    let term = "";
+    let meaning = "";
+
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      term = typeof body?.term === 'string' ? body.term.trim() : "";
+      meaning = typeof body?.meaning === 'string' ? body.meaning.trim() : "";
+    } else if (contentType.includes("application/x-www-form-urlencoded")) {
+      const text = await req.text();
+      const params = new URLSearchParams(text);
+      term = (params.get("term") || "").trim();
+      meaning = (params.get("meaning") || "").trim();
+    } else {
+      const text = await req.text();
+      const params = new URLSearchParams(text);
+      term = (params.get("term") || "").trim();
+      meaning = (params.get("meaning") || "").trim();
+    }
+
+    if (!term) {
+      return jsonError("Term is required", 400);
+    }
+
+    if (!meaning) {
+      return jsonError("Meaning is required", 400);
     }
 
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("blips")
-      .update({ content })
+      .update({ term, meaning })
       .eq("blip_serial", serial)
-      .select("id, content, created_at, blip_serial")
+      .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
       .single();
 
     if (error || !data) {

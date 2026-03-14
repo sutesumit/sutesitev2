@@ -7,8 +7,8 @@ import { usePathname } from 'next/navigation'
 const navtabs = [
   { title: 'Work', href: '/work' },
   { title: 'Bloq', href: '/bloq' },
-  { title: 'Blip', href: '/blip' },
-  { title: 'About', href: '/about' }
+  { title: 'Byte', href: '/byte' },
+  { title: 'Blip', href: '/blip' }
 ]
 
 const Header = () => {
@@ -18,8 +18,9 @@ const Header = () => {
     <header className='header fixed top-0 w-full z-10'>
       <nav className='navbar px-2 container flex justify-between items-baseline border-b-2 border-slate-300 dark:border-slate-700 backdrop-blur-3xl lowercase'>
         
-        <ul className='nav__list-left flex gap-1 items-baseline'>
+        <ul className='nav__list-left flex gap-3 items-baseline'>
           <Link className={`nav-title box-content nav-tab py-1.5 ${pathname === '/' ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`} href="/">Sumit Sute</Link>
+          <Link className={`nav-tab py-1.5 ${pathname.split('/')[1] === 'about' ? 'opacity-100 border-t-2 border-slate-500 dark:border-slate-500' : 'opacity-50'}`} href="/about">about</Link>
         </ul>
         <ul className="nav__list-right flex gap-3 items-baseline">
           {navtabs.map(tab => (

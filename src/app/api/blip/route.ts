@@ -1,49 +1,44 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
-import { initBot } from "@/lib/telegram-bot";
-import { replies } from "@/lib/telegram-replies";
-import type { Blip } from "@/types/blip";
-import { validateApiKey, parseContent, validateContentLength } from "@/lib/api/validation";
+import type { Blip } from "@/types/glossary";
+import { validateApiKey } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse } from "@/lib/api/responses";
 
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("K") || req.headers.get("X-Key");
-    
+
     if (!validateApiKey(authHeader)) {
       return unauthorizedResponse();
     }
 
-    const content = await parseContent(req);
-    const validation = validateContentLength(content);
-    
-    if (!validation.valid) {
-      return jsonError(validation.error!, 400);
+    const contentType = req.headers.get("content-type") || "";
+
+    if (!contentType.includes("application/json")) {
+      return jsonError("Content-Type must be application/json", 400);
+    }
+
+    const body = await req.json();
+    const term = body?.term?.trim() || "";
+    const meaning = body?.meaning?.trim() || "";
+
+    if (!term) {
+      return jsonError("Term is required", 400);
+    }
+
+    if (!meaning) {
+      return jsonError("Meaning is required", 400);
     }
 
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("blips")
-      .insert({ content })
-      .select("id, content, created_at, blip_serial")
+      .insert({ term, meaning, tags: [] })
+      .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
       .single();
 
     if (error) {
       console.error("Error creating blip:", error);
       return jsonError("Failed to create blip", 500);
-    }
-
-    const channelId = process.env.TELEGRAM_CHANNEL_ID;
-    if (channelId) {
-      try {
-        const bot = await initBot();
-        await bot.api.sendMessage(
-          channelId,
-          replies.channelBlip(data.blip_serial, data.content),
-          { parse_mode: "HTML" }
-        );
-      } catch (broadcastError) {
-        console.error("Failed to broadcast to channel:", broadcastError);
-      }
     }
 
     return jsonSuccess({ blip: data as Blip }, 201);
@@ -59,7 +54,7 @@ export async function GET() {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("blips")
-      .select("id, content, created_at, blip_serial")
+      .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
       .order("created_at", { ascending: false });
 
     if (error) {

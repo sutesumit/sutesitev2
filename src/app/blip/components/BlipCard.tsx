@@ -1,13 +1,11 @@
 'use client'
 
 import React from "react";
-import type { Blip } from "@/types/blip";
+import type { Blip } from "@/types/glossary";
 import { cn } from "@/lib/utils";
 import { motion as m } from "framer-motion";
 import { BloqBackground } from "@/app/bloq/components/BloqCard/parts";
-import ClapsCounter from "@/components/shared/ClapsCounter";
 import { useRouter } from "next/navigation";
-import ViewCounter from "./ViewCounter";
 
 type BlipCardProps = {
   blip: Blip;
@@ -58,27 +56,31 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
       <BloqBackground />
       
       <m.div layout className="flex items-start gap-2">
-        <div className="flex items-center justify-end w-10 h-6 pr-2 shrink-0 border-r-[1px] border-r-blue-500 !border-l-solid opacity-50">
-          <span className="text-xs !normal-case font-mono font-bold text-slate-500 dark:text-slate-400">
+        <div className="flex items-center justify-end w-10 h-6 shrink-0 border-r-[1px] border-r-blue-500 !border-l-solid opacity-50">
+          <span className="text-xs mr-1 !normal-case font-mono font-bold text-slate-500 dark:text-slate-400">
             {blip.blip_serial}
           </span>
         </div>
         <div className="text-slate-800 dark:text-slate-200 leading-relaxed flex-1">
-          {blip.content}
+          <span className="font-semibold font-serif">{blip.term}</span>
+          <span className="text-slate-500 dark:text-slate-400 mx-2">—</span>
+          <span className="italic text-slate-600 dark:text-slate-300">{blip.meaning}</span>
+          {blip.tags && blip.tags.length > 0 && (
+            <div className="flex gap-1 mt-2 flex-wrap">
+              {blip.tags.map((tag) => (
+                <span 
+                  key={tag} 
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
           <span className="inline-flex items-center gap-2 ml-2 align-middle">
             <time className="text-xs text-slate-400 dark:text-slate-600 whitespace-nowrap">
               {formatRelativeTime(blip.created_at)}
             </time>
-            <ViewCounter
-              serial={blip.blip_serial}
-              className="text-xs flex opacity-80"
-            />
-            <ClapsCounter 
-              postId={blip.id} 
-              postType="blip" 
-              interactive={true}
-              className="text-xs opacity-80"
-            />
           </span>
         </div>
       </m.div>
