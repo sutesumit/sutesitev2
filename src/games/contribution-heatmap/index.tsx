@@ -6,94 +6,31 @@ import { CardBackground } from "@/components/shared/CardBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import { GITHUB_PROFILES } from "@/data/github";
-import { findSecondHighestDay } from "@/games/shared/utils";
 import GamePopup from "@/games/shared/GamePopup";
+import { useHeatmapGame } from "./hooks/useHeatmapGame";
+import { buildMonthGrid, toKey, densityLevel } from "./utils";
 
 const SYMBOLS = ["\u00A0", "✧", "✲", "✷", "❃", "❁"];
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function densityLevel(n: number) {
-  if (n === 0) return 0;
-  if (n <= 2) return 1;
-  if (n <= 6) return 2;
-  if (n <= 12) return 3;
-  if (n <= 20) return 4;
-  return 5;
-}
-
-function toKey(y: number, m: number, d: number) {
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
-
-function buildMonthGrid(year: number, month: number) {
-  const first = new Date(year, month, 1).getDay();
-  const total = new Date(year, month + 1, 0).getDate();
-  const slots: (number | null)[] = [
-    ...Array(first).fill(null),
-    ...Array.from({ length: total }, (_, i) => i + 1),
-  ];
-  while (slots.length < 42) slots.push(null);
-  return Array.from({ length: 6 }, (_, i) => slots.slice(i * 7, i * 7 + 7));
-}
-
 const BOOT_STEPS = [
   { label: "initializing engine", duration: 280 },
-  { label: "fetching remote timeline", duration: 800 }, // This will be dynamic now
+  { label: "fetching remote timeline", duration: 800 },
   { label: "merging contributions", duration: 240 },
   { label: "done", duration: 160 },
 ];
 
 export const ContributionHeatmap = ({ data: externalData = null }: { data?: Record<string, number> | null }) => {
-  const [data, setData] = useState<Record<string, number>>(externalData || {});
   const [error, setError] = useState<string | null>(null);
-
-  const now = new Date();
-  const todayKey = now.toISOString().slice(0, 10);
-
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth());
-  const [tooltip, setTooltip] = useState<{ dateKey: string; count: number; x: number; y: number } | null>(null);
   const [bootStep, setBootStep] = useState(-1);
   const [doneSteps, setDoneSteps] = useState<number[]>([]);
   const [spinIdx, setSpinIdx] = useState(0);
   const [booted, setBooted] = useState(false);
 
-  // Game state
-  const [skullDay, setSkullDay] = useState<number | null>(null);
-  const [revealed, setRevealed] = useState<Set<number>>(new Set());
-  const [isGameOver, setIsGameOver] = useState(false);
-  const [isWin, setIsWin] = useState(false);
-
-  const getSmartSkullDay = (data: Record<string, number>, year: number, month: number): number => {
-    const smartDay = findSecondHighestDay(data, year, month);
-    if (smartDay > 0) return smartDay;
-    const days = new Date(year, month + 1, 0).getDate();
-    return Math.floor(Math.random() * days) + 1;
-  };
-
-  useEffect(() => {
-    setSkullDay(getSmartSkullDay(data, year, month));
-    setRevealed(new Set());
-    setIsGameOver(false);
-    setIsWin(false);
-  }, [year, month, data]);
-
-  const handleDayClick = (day: number) => {
-    if (isGameOver || revealed.has(day)) return;
-
-    if (day === skullDay) {
-      setIsGameOver(true);
-      setIsWin(false);
-    } else {
-      const newRevealed = new Set(revealed).add(day);
-      setRevealed(newRevealed);
-      if (newRevealed.size >= 28) {
-        setIsGameOver(true);
-        setIsWin(true);
-      }
-    }
-  };
+  const { state, actions, stats, isAtLatest } = useHeatmapGame(externalData);
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
 
   useEffect(() => {
     const id = setInterval(() => setSpinIdx((i) => (i + 1) % SPINNER.length), 80);
@@ -102,12 +39,10 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
 
   useEffect(() => {
     const runBoot = async () => {
-      // Step 0: Initializing
       setBootStep(0);
       await new Promise(r => setTimeout(r, 280));
       setDoneSteps(p => [...p, 0]);
 
-      // Step 1: Fetching (Actual fetch)
       setBootStep(1);
       try {
         const res = await fetch('/api/github-activity');
@@ -116,20 +51,18 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
           throw new Error(errData.error || "Failed to fetch GitHub activity");
         }
         const githubData = await res.json();
-        setData(githubData);
+        actions.setData(githubData);
         setDoneSteps(p => [...p, 1]);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "Unknown error";
         setError(message);
-        return; // Stop boot on error
+        return;
       }
 
-      // Step 2: Merging (Wait for effect)
       setBootStep(2);
       await new Promise(r => setTimeout(r, 240));
       setDoneSteps(p => [...p, 2]);
 
-      // Step 3: Done
       setBootStep(3);
       await new Promise(r => setTimeout(r, 160));
       setDoneSteps(p => [...p, 3]);
@@ -141,53 +74,17 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
     };
 
     if (externalData) {
-      setData(externalData);
+      actions.setData(externalData);
       setBooted(true);
     } else {
       runBoot();
     }
-  }, [externalData]);
+  }, [externalData, actions]);
 
-  const isAtLatest = year === now.getFullYear() && month === now.getMonth();
-  const prevMonth = () => (month === 0 ? (setYear((y) => y - 1), setMonth(11)) : setMonth((m) => m - 1));
-  const nextMonth = () => {
-    if (isAtLatest) return;
-    if (month === 11) {
-      setYear((y) => y + 1);
-      setMonth(0);
-    } else {
-      setMonth((m) => m + 1);
-    }
-  };
-
-  const weeks = buildMonthGrid(year, month);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let monthTotal = 0,
-    activeDays = 0,
-    peakCount = 0,
-    peakDay: number | null = null;
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const c = data[toKey(year, month, d)] ?? 0;
-    monthTotal += c;
-    if (c > 0) activeDays++;
-    if (c > peakCount) {
-      peakCount = c;
-      peakDay = d;
-    }
-  }
-
-  // const levelColors = [
-  //   "text-slate-300/30 dark:text-slate-600/30", 
-  //   "text-blue-400 dark:text-blue-900", 
-  //   "text-blue-500 dark:text-blue-700", 
-  //   "text-blue-600 dark:text-blue-500", 
-  //   "text-blue-700 dark:text-blue-400", 
-  //   "text-blue-900 dark:text-blue-300", 
-  // ];
+  const weeks = buildMonthGrid(state.year, state.month);
 
   const achievement = {
-    unlocked: isWin,
+    unlocked: state.isWin,
     title: "Crystal Master!",
     emoji: "💎",
   };
@@ -202,25 +99,20 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
       >
         <CardBackground />
         
-        {/* Header */}
         <div className="flex justify-between items-center text-[10px] text-slate-500 tracking-wider pb-1">
-          {/* <span className="project-item">Across following profiles</span> */}
-          {/* <span className="flex gap-2 items-center"> */}
-            {GITHUB_PROFILES.map((profile) => (
-              <a 
-                key={profile}
-                href={`https://github.com/${profile}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="tab flex items-center gap-1"
-              >
-                <SiGithub />{profile}
-              </a>
-            ))}
-          {/* </span> */}
+          {GITHUB_PROFILES.map((profile) => (
+            <a 
+              key={profile}
+              href={`https://github.com/${profile}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="tab flex items-center gap-1"
+            >
+              <SiGithub />{profile}
+            </a>
+          ))}
         </div>
 
-        {/* Boot */}
         {!booted && (
           <div className="text-[11px] leading-loose tracking-wide min-h-[100px] text-slate-600 dark:text-slate-400">
             {BOOT_STEPS.map(({ label }, i) => {
@@ -255,7 +147,6 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
           </div>
         )}
 
-        {/* Heatmap */}
         {booted && (
           <m.div
             initial={{ opacity: 0, y: 10 }}
@@ -263,19 +154,18 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
             transition={{ duration: 0.4 }}
             className="flex flex-col items-center w-full"
           >
-            {/* Nav */}
             <div className="flex justify-between items-center w-full max-w-sm border-b border-slate-200/50 dark:border-slate-800/50">
               <button
-                onClick={prevMonth}
+                onClick={actions.prevMonth}
                 className="w-8 h-8 flex items-center justify-center hover:bg-slate-100/80 dark:hover:bg-slate-900/80 transition-colors cursor-pointer text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               >
                 <ChevronLeft size={16} />
               </button>
               <span className="text-xs font-bold tracking-widest uppercase text-blue-600 dark:text-blue-400">
-                {MONTHS[month]} {year}
+                {MONTHS[state.month]} {state.year}
               </span>
               <button
-                onClick={nextMonth}
+                onClick={actions.nextMonth}
                 disabled={isAtLatest}
                 className={`w-8 h-8 flex items-center justify-center transition-colors ${
                   isAtLatest ? "opacity-30 cursor-default text-slate-400" : "hover:bg-slate-100/80 dark:hover:bg-slate-900/80 cursor-pointer text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
@@ -285,21 +175,20 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
               </button>
             </div>
 
-            {/* Grid */}
             <div className="relative">
               <m.div 
                 className="grid grid-cols-7 grid-rows-6 gap-0.5 md:gap-1 my-1 mx-auto"
-                animate={isGameOver ? { y: 300, opacity: 0, rotate: 5 } : { y: 0, opacity: 1, rotate: 0 }}
+                animate={state.isGameOver ? { y: 300, opacity: 0, rotate: 5 } : { y: 0, opacity: 1, rotate: 0 }}
                 transition={{ duration: 1.2, ease: "backIn" }}
               >
                 {weeks.flat().map((day, idx) => {
                   if (!day) return <div key={idx} className="w-8 h-8 border border-slate-200/30 dark:border-slate-800/30" />;
-                  const dateKey = toKey(year, month, day);
-                  const count = data[dateKey] ?? 0;
+                  const dateKey = toKey(state.year, state.month, day);
+                  const count = state.data[dateKey] ?? 0;
                   const lv = densityLevel(count);
                   const isToday = dateKey === todayKey;
-                  const isRevealed = revealed.has(day);
-                  const isSkull = day === skullDay;
+                  const isRevealed = state.revealed.has(day);
+                  const isSkull = day === state.skullDay;
 
                   return (
                     <div
@@ -307,14 +196,11 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                       className={`w-8 h-8 border border-slate-200/30 dark:border-slate-800/30 relative flex items-center justify-center text-[10px] sm:text-xs md:text-sm cursor-crosshair select-none transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-900/80 group ${
                         isToday ? "ring-1 ring-blue-500/50" : ""
                       }`}
-                      onClick={() => handleDayClick(day)}
-                      onMouseEnter={(e) => !isGameOver && !isRevealed && setTooltip({ dateKey, count, x: e.clientX, y: e.clientY })}
-                      onMouseLeave={() => setTooltip(null)}
+                      onClick={() => actions.handleDayClick(day)}
                     >
-                      {/* The Key Brackets & Symbol - Flies Away */}
                       <m.div
                         className="flex items-center justify-center pointer-events-none"
-                        animate={isRevealed || (isGameOver && isSkull) ? { y: -100, opacity: 0, rotate: 45, scale: 1.5 } : { y: 0, opacity: 1, rotate: 0, scale: 1 }}
+                        animate={isRevealed || (state.isGameOver && isSkull) ? { y: -100, opacity: 0, rotate: 45, scale: 1.5 } : { y: 0, opacity: 1, rotate: 0, scale: 1 }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
                       >
                         <span className="opacity-50">[</span>
@@ -322,20 +208,11 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                         <span className="opacity-50">]</span>
                       </m.div>
 
-                      {/* The Crystal - Zooms in from behind */}
                       {isRevealed && !isSkull && (
                         <m.div 
                           initial={{ scale: 0, opacity: 0, rotate: -360 }}
-                          animate={{ 
-                            scale: 1, 
-                            opacity: 1, 
-                            rotate: 720,
-                          }}
-                          transition={{ 
-                            rotate: { duration: 1, type: "spring", stiffness: 100, damping: 20 },
-                            scale: { duration: 1, type: "spring", stiffness: 100, damping: 20 },
-                            opacity: { duration: 1 }
-                          }}
+                          animate={{ scale: 1, opacity: 1, rotate: 720 }}
+                          transition={{ rotate: { duration: 1, type: "spring", stiffness: 100, damping: 20 }, scale: { duration: 1, type: "spring", stiffness: 100, damping: 20 }, opacity: { duration: 1 } }}
                           className="absolute inset-0 flex items-center justify-center text-blue-700 dark:text-blue-400 text-lg pointer-events-none group"
                         >
                           <m.span
@@ -348,8 +225,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                         </m.div>
                       )}
 
-                      {/* The Skull */}
-                      {isGameOver && isSkull && (
+                      {state.isGameOver && isSkull && (
                         <m.div 
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
@@ -364,40 +240,33 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
               </m.div>
 
               <GamePopup
-                isOpen={isGameOver}
-                type={isWin ? "win" : "lose"}
-                emoji={isWin ? "💎" : "💀"}
-                score={{ label: "Crystals collected", value: revealed.size }}
-                onRestart={() => {
-                  setRevealed(new Set());
-                  setIsGameOver(false);
-                  setIsWin(false);
-                  setSkullDay(getSmartSkullDay(data, year, month));
-                }}
-                restartLabel={isWin ? "[ Win Again ]" : "[ Try Again ]"}
+                isOpen={state.isGameOver}
+                type={state.isWin ? "win" : "lose"}
+                emoji={state.isWin ? "💎" : "💀"}
+                score={{ label: "Crystals collected", value: state.score }}
+                onRestart={actions.restart}
+                restartLabel={state.isWin ? "[ Win Again ]" : "[ Try Again ]"}
                 achievement={achievement}
               />
             </div>
 
-            {/* Divider */}
             <hr className="w-full max-w-sm border-t border-slate-200/50 dark:border-slate-800/50" />
 
-            {/* Stats */}
             <div className="text-[10px] pt-2 text-slate-500 dark:text-slate-400 tracking-wider text-center leading-relaxed">
               <span className="text-slate-800 dark:text-slate-200 font-bold">{GITHUB_PROFILES.length}</span>
               <span> profiles </span>
               <span className="opacity-50">&middot; </span>
-              <span className="text-slate-800 dark:text-slate-200 font-bold">{monthTotal.toLocaleString()}</span>
+              <span className="text-slate-800 dark:text-slate-200 font-bold">{stats.monthTotal.toLocaleString()}</span>
               <span> commits </span>
               <span className="opacity-50">&middot; </span>
-              <span className="text-slate-800 dark:text-slate-200 font-bold">{activeDays}</span>
+              <span className="text-slate-800 dark:text-slate-200 font-bold">{stats.activeDays}</span>
               <span> days</span>
-              {peakDay !== null && (
+              {stats.peakDay !== null && (
                 <span className="inline-block">
                   <span className="opacity-50"> &middot; </span>
                   <span>peak </span>
                   <span className="text-slate-800 dark:text-slate-200 font-bold">
-                    day {peakDay} ({peakCount})
+                    day {stats.peakDay} ({stats.peakCount})
                   </span>
                   <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400 ml-1">_</span>
                 </span>
@@ -406,19 +275,6 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
           </m.div>
         )}
       </m.div>
-      
-      {/* Tooltip */}
-      {tooltip && (
-        <div
-          style={{ left: tooltip.x, top: tooltip.y }}
-          className="fixed pointer-events-none transform -translate-x-1/2 -translate-y-full -mt-4 dark:bg-slate-900 bg-slate-50 border border-slate-300 dark:border-slate-600 dark:text-slate-300 text-slate-800 font-mono text-[10px] whitespace-pre px-3 py-1.5 z-[999] leading-relaxed tracking-wider"
-        >
-          <div className="flex flex-col gap-0.5">
-            <span>{tooltip.dateKey}</span>
-            <span className="text-blue-400">{tooltip.count} commits</span>
-          </div>
-        </div>
-      )}
     </>
   );
 };

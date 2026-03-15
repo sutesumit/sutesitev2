@@ -20,3 +20,35 @@ export interface GamePopupProps {
   restartLabel?: string;
   achievement?: GameAchievement;
 }
+
+export interface GameState {
+  isPlaying: boolean;
+  isGameOver: boolean;
+  isWin: boolean;
+  score: number;
+  moves: number;
+}
+
+export interface HeatmapDayState {
+  day: number;
+  dateKey: string;
+  count: number;
+  isRevealed: boolean;
+  isSkull: boolean;
+  isToday: boolean;
+}
+
+export interface HeatmapState extends GameState {
+  revealed: Set<number>;
+  skullDay: number | null;
+  year: number;
+  month: number;
+  data: Record<string, number>;
+}
+
+export interface HeatmapStats {
+  monthTotal: number;
+  activeDays: number;
+  peakCount: number;
+  peakDay: number | null;
+}
