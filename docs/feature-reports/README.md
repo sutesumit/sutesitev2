@@ -16,6 +16,7 @@ Technical documentation for all implemented features.
 | 06 | [Project Counters](./06-project-counters.md) | `feature/project-counters` | 2 | Complete |
 | 07 | [Telegram Visitor Notifications](./07-telegram-visitor-notifications.md) | `feature/telegram-visitor-notifications` | 4 | Complete |
 | 08 | [Pagination](./08-pagination.md) | `feature/pagination` | 4 | Complete |
+| 09 | [Pagination & Search](./09-pagination-search.md) | `feature/pagination-search` | 4 | In Progress |
 
 ---
 
