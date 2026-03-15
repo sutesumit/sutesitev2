@@ -79,7 +79,8 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
     } else {
       runBoot();
     }
-  }, [externalData, actions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalData]);
 
   const weeks = buildMonthGrid(state.year, state.month);
 

@@ -45,7 +45,8 @@ export function useHeatmapGame(externalData: Record<string, number> | null) {
       setIsWin(false);
       setIsPlaying(false);
     } else {
-      const newRevealed = new Set(revealed).add(day);
+      const newRevealed = new Set(revealed);
+      newRevealed.add(day);
       setRevealed(newRevealed);
       if (newRevealed.size >= WIN_THRESHOLD) {
         setIsGameOver(true);
@@ -111,13 +112,13 @@ export function useHeatmapGame(externalData: Record<string, number> | null) {
     data,
   };
 
-  const actions = {
+  const actions = useMemo(() => ({
     handleDayClick,
     restart,
     prevMonth,
     nextMonth,
     setData,
-  };
+  }), [handleDayClick, restart, prevMonth, nextMonth, setData]);
 
   const isAtLatest = useMemo(() => {
     const now = new Date();
