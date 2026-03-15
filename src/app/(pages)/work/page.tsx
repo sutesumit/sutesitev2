@@ -3,7 +3,7 @@ import { projects } from '@/data/projectlist';
 import { skillList } from '@/data/skilllist';
 import { WorkProjectCard } from './components/WorkProjectCard';
 import { TechStackCard } from './components/TechStackCard';
-import { ContributionHeatmap } from './components/ContributionHeatmap';
+import { ContributionHeatmap } from '@/games/contribution-heatmap';
 import { SITE_URL, pageMetadata } from '@/config/metadata';
 
 const { work } = pageMetadata;

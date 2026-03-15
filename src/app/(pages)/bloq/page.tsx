@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import React, { Suspense } from 'react';
 import IntroCard from '@/components/shared/IntroCard';
 import IntroText from './components/IntroText';
-import DryKeysQuest from './components/DryKeysQuest';
+import DryKeysQuest from '@/games/dry-keys-quest';
 import BloqFeed from './components/BloqFeed';
 import { getBloqPosts, getAllCategories, getAllTags } from '@/lib/bloq';
 import { SITE_URL, pageMetadata } from '@/config/metadata';

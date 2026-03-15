@@ -2,7 +2,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 
-const DryKeysQuest = dynamic(() => import('@/app/(pages)/bloq/components/DryKeysQuest'), {
+const DryKeysQuest = dynamic(() => import('@/games/dry-keys-quest'), {
   ssr: false,
   loading: () => <div className="h-64 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />,
 });

@@ -1,5 +1,5 @@
 import React from 'react'
-import AsciiByteGame from './AsciiByteGame'
+import AsciiByteGame from '@/games/ascii-byte'
 
 const IntroText = () => {
   return (

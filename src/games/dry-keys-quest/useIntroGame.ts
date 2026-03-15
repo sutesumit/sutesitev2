@@ -5,6 +5,7 @@ export const useIntroGame = () => {
   const [guess, setGuess] = useState<string>(INITIAL_GUESS);
   const [clickedKeys, setClickedKeys] = useState<Set<string>>(new Set());
   const [isWon, setIsWon] = useState(false);
+  const [keysWasted, setKeysWasted] = useState(0);
 
   const answerKeysSet = useMemo(() => new Set(
     ANSWER
@@ -30,12 +31,12 @@ export const useIntroGame = () => {
   const handleKeyClick = (key: string) => {
     if (key === '[Esc]') {
       setGuess(INITIAL_GUESS);
-      setClickedKeys(new Set()); // Reset all
+      setClickedKeys(new Set());
       setIsWon(false);
+      setKeysWasted(0);
       return;
     }
     
-    // Update clicked keys state to trigger animation
     const newClickedKeys = new Set(clickedKeys);
     newClickedKeys.add(key);
     setClickedKeys(newClickedKeys);
@@ -53,6 +54,8 @@ export const useIntroGame = () => {
         }
         return newGuessChars.join('');
       });
+    } else {
+      setKeysWasted((prev) => prev + 1);
     }
   };
 
@@ -64,6 +67,7 @@ export const useIntroGame = () => {
     isWon,
     handleKeyClick,
     answerKeysSet,
-    setIsPeeking
+    setIsPeeking,
+    keysWasted
   };
 };

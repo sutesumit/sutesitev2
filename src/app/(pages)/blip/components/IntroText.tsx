@@ -1,5 +1,5 @@
 import React from 'react'
-import AsciiShelf from './AsciiShelf'
+import AsciiShelf from '@/games/ascii-shelf'
 
 const IntroText = () => {
   return (
