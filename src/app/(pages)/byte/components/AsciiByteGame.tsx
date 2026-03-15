@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { motion as m } from "motion/react";
 import { cn } from "@/lib/utils";
 
 type ColorKey = "blue" | "yellow" | "yellowBright" | "red" | "redBright" | "white" | "gray";
@@ -15,6 +16,9 @@ const COLORS: Record<ColorKey, { hex: string; tw: string }> = {
 };
 
 const CHARACTERS = ["{", "}", "[", "]", "<", ">", "/", "*", "+", "-", "&", "|", "!", ";", "?", "(", ")", "#", "$", "%", "^"];
+
+const UNDO_TIMEOUT_START_MS = 2000;
+const UNDO_TIMEOUT_END_MS = 800;
 
 const LOGO: [string, ColorKey][][] = [
   [["██████╗ ", "yellow"], ["██╗  ██╗", "yellow"], ["████████╗", "red"], ["███████╗", "red"]],
@@ -105,13 +109,12 @@ interface ParticleData {
 }
 
 interface GameState {
-  score: number;
-  combo: number;
-  comboDisplay: number | null;
   started: boolean;
   finished: boolean;
   elapsed: number;
   revealedCount: number;
+  revealedOrder: string[];
+  progressColor: ColorKey | null;
 }
 
 const MAX_PARTICLES = 100;
@@ -120,18 +123,17 @@ export default function AsciiByteGame() {
   const [grid, setGrid] = useState<Cell[][]>(buildGrid);
   const [particles, setParticles] = useState<ParticleData[]>([]);
   const [gameState, setGameState] = useState<GameState>({
-    score: 0,
-    combo: 1,
-    comboDisplay: null,
     started: false,
     finished: false,
     elapsed: 0,
     revealedCount: 0,
+    revealedOrder: [],
+    progressColor: null,
   });
 
   const gridRef = useRef<Cell[][]>(grid);
   const gameStateRef = useRef<GameState>(gameState);
-  const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const particleIdRef = useRef(0);
   const pendingRevealsRef = useRef<Set<string>>(new Set());
@@ -153,13 +155,50 @@ export default function AsciiByteGame() {
 
   useEffect(() => {
     if (gameState.revealedCount >= TOTAL_CELLS && !gameState.finished) {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
       setGameState((prev) => ({ ...prev, finished: true }));
     }
   }, [gameState.revealedCount, gameState.finished]);
 
-  const resetCombo = useCallback(() => {
-    setGameState((prev) => ({ ...prev, combo: 1, comboDisplay: null }));
+  const getUndoTimeout = useCallback(() => {
+    const pct = gameStateRef.current.revealedCount / TOTAL_CELLS;
+    return UNDO_TIMEOUT_START_MS - pct * (UNDO_TIMEOUT_START_MS - UNDO_TIMEOUT_END_MS);
   }, []);
+
+  const undoLastCell = useCallback(() => {
+    const current = gameStateRef.current;
+    if (current.finished || current.revealedOrder.length === 0) return;
+
+    const lastKey = current.revealedOrder[current.revealedOrder.length - 1];
+    const [r, c] = lastKey.split(",").map(Number);
+
+    setGrid((prevGrid) => {
+      const cell = prevGrid[r]?.[c];
+      if (!cell || !cell.revealed) return prevGrid;
+      const newGrid = prevGrid.map((row) => [...row]);
+      newGrid[r][c] = { ...cell, revealed: false };
+      return newGrid;
+    });
+
+    setGameState((prev) => ({
+      ...prev,
+      revealedCount: Math.max(0, prev.revealedCount - 1),
+      revealedOrder: prev.revealedOrder.slice(0, -1),
+      progressColor: null,
+    }));
+  }, []);
+
+  const startUndoTimer = useCallback(() => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    
+    const current = gameStateRef.current;
+    if (current.finished || current.revealedOrder.length === 0) return;
+
+    undoTimerRef.current = setTimeout(() => {
+      undoLastCell();
+      startUndoTimer();
+    }, getUndoTimeout());
+  }, [undoLastCell, getUndoTimeout]);
 
   const flushPendingReveals = useCallback(() => {
     if (pendingRevealsRef.current.size === 0) {
@@ -174,10 +213,8 @@ export default function AsciiByteGame() {
     let hasChanges = false;
     const newGrid = currentGrid.map((row) => [...row]);
     const newParticles: ParticleData[] = [];
-    let scoreGain = 0;
-    let newCombo = gameStateRef.current.combo;
-    let newComboDisplay = gameStateRef.current.comboDisplay;
     let cellsRevealed = 0;
+    const newlyRevealedKeys: string[] = [];
 
     pending.forEach((key) => {
       const [r, c] = key.split(",").map(Number);
@@ -186,6 +223,7 @@ export default function AsciiByteGame() {
         hasChanges = true;
         newGrid[r][c] = { ...cell, revealed: true };
         cellsRevealed++;
+        newlyRevealedKeys.push(key);
 
         for (let i = 0; i < 7; i++) {
           newParticles.push({
@@ -195,10 +233,6 @@ export default function AsciiByteGame() {
             color: COLORS[cell.correct].hex,
           });
         }
-
-        newCombo = Math.min(newCombo + 1, 10);
-        scoreGain += 10 * newCombo;
-        if (newCombo >= 3) newComboDisplay = newCombo;
       }
     });
 
@@ -214,27 +248,28 @@ export default function AsciiByteGame() {
         });
       }
 
-      if (scoreGain > 0) {
-        setGameState((prev) => ({
-          ...prev,
-          score: prev.score + scoreGain,
-          combo: newCombo,
-          comboDisplay: newComboDisplay,
-          started: prev.started || true,
-          revealedCount: prev.revealedCount + cellsRevealed,
-        }));
+      const lastKey = newlyRevealedKeys[newlyRevealedKeys.length - 1];
+      const [lastR, lastC] = lastKey.split(",").map(Number);
+      const lastCell = currentGrid[lastR]?.[lastC];
 
-        if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
-        comboTimerRef.current = setTimeout(resetCombo, 800);
-      }
+      setGameState((prev) => ({
+        ...prev,
+        started: prev.started || true,
+        revealedCount: prev.revealedCount + cellsRevealed,
+        revealedOrder: [...prev.revealedOrder, ...newlyRevealedKeys],
+        progressColor: lastCell?.correct ?? prev.progressColor,
+      }));
+
+      startUndoTimer();
     }
 
     rafRef.current = null;
-  }, [resetCombo]);
+  }, [startUndoTimer]);
 
   const handleMouseOver = useCallback(
     (r: number, c: number, e: React.MouseEvent) => {
-      if (gridRef.current[r]?.[c]?.revealed || gridRef.current[r]?.[c]?.isEmpty) return;
+      const cell = gridRef.current[r]?.[c];
+      if (cell?.revealed || cell?.isEmpty) return;
 
       const key = `${r},${c}`;
       if (pendingRevealsRef.current.has(key)) return;
@@ -244,8 +279,11 @@ export default function AsciiByteGame() {
       const clientX = e.clientX;
       const clientY = e.clientY;
 
+      if (cell) {
+        setGameState((prev) => ({ ...prev, progressColor: cell.correct }));
+      }
+
       setParticles((prev) => {
-        const cell = gridRef.current[r]?.[c];
         if (!cell) return prev;
 
         const newParticles: ParticleData[] = [];
@@ -271,10 +309,32 @@ export default function AsciiByteGame() {
     [flushPendingReveals]
   );
 
+  const restartGame = useCallback(() => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    setGrid(buildGrid());
+    setParticles([]);
+    setGameState({
+      started: false,
+      finished: false,
+      elapsed: 0,
+      revealedCount: 0,
+      revealedOrder: [],
+      progressColor: null,
+    });
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
   const pct = Math.round((gameState.revealedCount / TOTAL_CELLS) * 100);
 
   return (
-    <div className="flex container mx-auto flex-col items-center justify-center select-none font-mono">
+    <div className="flex pt-4 container mx-auto flex-col items-center justify-center select-none font-mono">
       {particles.map((p) => (
         <Particle
           key={p.id}
@@ -285,33 +345,63 @@ export default function AsciiByteGame() {
         />
       ))}
 
-      <div className="flex flex-col gap-0 leading-none">
-        {grid.map((row, r) => (
-          <div key={r} className="flex">
-            {row.map((cell, c) => (
-              <span
-                key={c}
-                className={cn(
-                  "inline-flex items-center justify-center w-[1ch] h-[1.2em] whitespace-pre text-sm transition-all duration-1000 ease-in-out",
-                  cell.isEmpty
-                    ? "cursor-default"
-                    : cell.revealed
-                      ? cn("cursor-pointer", COLORS[cell.correct].tw, "hover:drop-shadow-[0_0_8px_currentColor]")
-                      : "cursor-pointer text-blue-500 hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.6)] hover:scale-125 hover:brightness-125"
-                )}
-                onMouseOver={cell.revealed || cell.isEmpty ? undefined : (e) => handleMouseOver(r, c, e)}
+      <div className="relative">
+        <div className="flex flex-col gap-0 leading-none">
+          {grid.map((row, r) => (
+            <div key={r} className="flex">
+              {row.map((cell, c) => (
+                <span
+                  key={c}
+                  className={cn(
+                    "inline-flex items-center justify-center w-[1ch] h-[1.2em] whitespace-pre text-sm transition-all duration-1000 ease-in-out",
+                    cell.isEmpty
+                      ? "cursor-default"
+                      : cell.revealed
+                        ? cn("cursor-pointer", COLORS[cell.correct].tw, "hover:drop-shadow-[0_0_8px_currentColor]")
+                        : "cursor-pointer text-blue-500 hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.6)] hover:scale-125 hover:brightness-125"
+                  )}
+                  onMouseOver={cell.revealed || cell.isEmpty ? undefined : (e) => handleMouseOver(r, c, e)}
+                >
+                  {cell.ch}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {gameState.finished && (
+          <m.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 flex flex-col items-center justify-center z-20"
+          >
+            <m.div 
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="dark:bg-slate-900 bg-slate-50 border border-slate-300 dark:border-slate-600 p-6 flex flex-col items-center gap-3"
+            >
+              <span className="text-3xl">🖱️</span>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">You won in {formatTime(gameState.elapsed)}</div>
+              <button 
+                onClick={restartGame}
+                className="px-6 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-300 font-mono text-[10px] tracking-widest uppercase hover:bg-blue-200 dark:hover:bg-blue-950 transition-colors cursor-pointer"
               >
-                {cell.ch}
-              </span>
-            ))}
-          </div>
-        ))}
+                [ Play Again ]
+              </button>
+            </m.div>
+          </m.div>
+        )}
       </div>
 
       <div className="w-full h-[1px] bg-white/10 mt-4 overflow-hidden">
         <div
-          className="h-full bg-blue-500 transition-[width] duration-200"
-          style={{ width: `${pct}%` }}
+          className="h-full transition-[width,background-color] duration-200"
+          style={{ 
+            width: `${pct}%`,
+            backgroundColor: gameState.progressColor 
+              ? COLORS[gameState.progressColor].hex 
+              : "#3B82F6"
+          }}
         />
       </div>
     </div>
