@@ -4,8 +4,8 @@ import { motion as m, AnimatePresence } from 'framer-motion'
 import NavLink from './NavLink'
 import { NAV_TABS } from '@/data/nav'
 
-// Spring physics shared by all three lines
-const springTransition = { type: "spring" as const, stiffness: 320, damping: 28 }
+// Spring physics shared by all three lines - softened for smoother feel
+const springTransition = { type: "spring" as const, stiffness: 260, damping: 25 }
 
 const menuVariants = {
   closed: {
@@ -50,23 +50,28 @@ const MenuIcon = ({ isOpen }: { isOpen: boolean }) => {
       {/* Line 1 — morphs into top-left→bottom-right diagonal, stagger: 0ms */}
       <m.path
         strokeWidth={2}
-        animate={{ d: isOpen ? "M6 6L18 18" : "M4 6h16" }}
+        animate={{ d: isOpen ? "M6 6 L18 18" : "M4 6 L20 6" }}
         transition={{ ...springTransition, delay: 0 }}
       />
-      {/* Line 2 — slides right and fades out instead of just disappearing */}
+      {/* Line 2 — slowly converges into a point at the center and fades out */}
       <m.path
         strokeWidth={2}
         animate={{
+          d: isOpen ? "M12 12 L12 12" : "M4 12 L20 12",
+          // The line physically shrinks into the center while fading
           opacity: isOpen ? 0 : 1,
-          d: "M4 12h16",
-          x: isOpen ? 6 : 0,
         }}
-        transition={{ ...springTransition, delay: 0.04 }}
+        transition={{
+          // Slowly morph the path shape
+          d: { type: "spring", stiffness: 200, damping: 28, delay: 0.04 },
+          // Fade out only right as it gets extremely small
+          opacity: { duration: 0.2, delay: isOpen ? 0.1 : 0 },
+        }}
       />
       {/* Line 3 — morphs into bottom-left→top-right diagonal, stagger: 80ms */}
       <m.path
         strokeWidth={2}
-        animate={{ d: isOpen ? "M6 18L18 6" : "M4 18h16" }}
+        animate={{ d: isOpen ? "M6 18 L18 6" : "M4 18 L20 18" }}
         transition={{ ...springTransition, delay: 0.08 }}
       />
     </m.svg>

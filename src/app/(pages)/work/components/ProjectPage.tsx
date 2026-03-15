@@ -8,7 +8,7 @@ import Accordion from "@/components/shared/Accordion";
 import { CardBackground } from "@/components/shared/CardBackground";
 import { projects, ProjectProps } from "@/data/projectlist";
 import ClapsCounter from "@/components/shared/ClapsCounter";
-import ViewCounter from "./ViewCounter";
+import ViewCounter from "@/components/shared/ViewCounter";
 
 const ProjectPage = ({ project }: { project: ProjectProps }) => {
   const [iframeLoading, setIframeLoading] = useState(true);
@@ -50,7 +50,7 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
               <Link href={`/work/${project.slug}`}>{project.title}</Link>
             </li>
             <div className="flex items-center gap-4">
-              <ViewCounter slug={project.slug} className="inline-flex items-center text-xs" />
+              <ViewCounter type="project" identifier={project.slug} className="inline-flex items-center text-xs" />
               <ClapsCounter postId={project.slug} postType="project" />
             </div>
           </div>

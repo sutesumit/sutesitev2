@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { motion as m } from "framer-motion";
 import { ProjectProps } from "@/data/projectlist";
 import LiveRepoLinks from "@/components/shared/LiveRepoLinks";
-import ViewCounter from "./ViewCounter";
+import ViewCounter from "@/components/shared/ViewCounter";
 import ClapsCounter from "@/components/shared/ClapsCounter";
 
 import { CardBackground } from "@/components/shared/CardBackground";
@@ -35,7 +35,7 @@ export const WorkProjectCard = ({ project }: WorkProjectCardProps) => {
             {project.title}
           </div>
           <div className="flex items-center gap-2">
-            <ViewCounter slug={project.slug} className="inline-flex items-center text-xs" />
+            <ViewCounter type="project" identifier={project.slug} className="inline-flex items-center text-xs" />
             <ClapsCounter postId={project.slug} postType="project" />
           </div>
         </div>

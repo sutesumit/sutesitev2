@@ -6,7 +6,7 @@ import { motion as m, AnimatePresence } from 'framer-motion'
 import { Link, Check, X } from 'lucide-react'
 import type { Byte } from '@/types/byte'
 import ByteCardContent from './ByteCardContent'
-import TrackView from './TrackView'
+import TrackView from '@/components/shared/TrackView'
 
 type ByteModalProps = {
   bytes: Byte[]
@@ -149,7 +149,7 @@ const ByteModal = ({ bytes }: ByteModalProps) => {
                 </div>
               )}
             />
-            {activeByte && <TrackView serial={activeByte.byte_serial} />}
+            {activeByte && <TrackView type="byte" identifier={activeByte.byte_serial} />}
           </m.div>
         </m.div>
       )}

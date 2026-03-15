@@ -3,7 +3,7 @@ import { motion as m } from 'framer-motion'
 import { BloqPost } from '@/lib/bloq'
 import { cn } from '@/lib/utils'
 import { BloqDate, BloqTitle, BloqSummary, BloqBackground, BloqReadingTime } from './parts'
-import ViewCounter from '../ViewCounter'
+import ViewCounter from '@/components/shared/ViewCounter'
 import ClapsCounter from '@/components/shared/ClapsCounter'
 // import TagList from '../TagList'
 
@@ -45,7 +45,7 @@ export const BloqCardList = ({ post, variant = 'list', className }: BloqCardList
                 "flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 ml-auto",
                 variant === 'related-post' && "w-full flex-row justify-between ml-0"
               )}>
-                <ViewCounter slug={post.url} className="text-xs flex items-center text-gray-500" />
+                <ViewCounter type="bloq" identifier={post.url} className="text-xs flex items-center text-gray-500" />
                 <ClapsCounter postId={post.url} postType="bloq" interactive={false} className="text-xs !p-0 flex items-center text-gray-500" />
               </div>
             </div>

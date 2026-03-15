@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { projects } from '../../data/projectlist';
+import { projects } from '@/data/projectlist';
 import { skillList } from '@/data/skilllist';
 import { WorkProjectCard } from './components/WorkProjectCard';
 import { TechStackCard } from './components/TechStackCard';

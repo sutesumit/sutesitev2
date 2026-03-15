@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useCardCollapse } from "../../hooks/useCardCollapse";
 import { BloqDate, BloqTitle, BloqSummary, BloqBackground, BloqReadingTime } from "./parts";
 import TagList from "../TagList";
-import ViewCounter from "../ViewCounter";
+import ViewCounter from "@/components/shared/ViewCounter";
 import ClapsCounter from "@/components/shared/ClapsCounter";
 
 interface BloqCardDetailProps {
@@ -72,8 +72,9 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
               </m.div>
             ) : (
               <div className="flex items-center gap-3">
-                <ViewCounter
-                  slug={post.url}
+<ViewCounter
+                  type="bloq"
+                  identifier={post.url}
                   className="text-xs flex items-center"
                 />
                 <ClapsCounter
