@@ -14,13 +14,13 @@ export async function generateFeed(
   maxItems: number = 50, 
   config: FeedConfig = DEFAULT_CONFIG
 ): Promise<string> {
-  const [bloqs, bytes] = await Promise.all([
+  const [bloqs, bytesResult] = await Promise.all([
     Promise.resolve(getBloqPosts()),
-    getBytes(),
+    getBytes(1, 100), // Get more items for feed (high limit)
   ]);
 
   const bloqItems = bloqs.map(post => bloqToFeedItem(post, config.siteUrl));
-  const byteItems = bytes.map(byte => byteToFeedItem(byte, config.siteUrl));
+  const byteItems = bytesResult.data.map(byte => byteToFeedItem(byte, config.siteUrl));
 
   const allItems = [...bloqItems, ...byteItems]
     .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
@@ -50,7 +50,7 @@ export async function generateFeed(
     <language>${config.language}</language>
     <lastBuildDate>${lastBuildDate}</lastBuildDate>
     <atom:link href="${config.siteUrl}/feed.xml" rel="self" type="application/rss+xml"/>
-${itemsXml}
+ ${itemsXml}
   </channel>
 </rss>`;
 }

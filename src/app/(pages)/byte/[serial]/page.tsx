@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getByteBySerial, getBytes } from '@/lib/byte';
+import { getByteBySerial, getAdjacentBytes } from '@/lib/byte';
 import ByteDetail from './components/ByteDetail';
 import TrackView from '@/components/shared/TrackView';
 import { SITE_URL, SITE_NAME, SITE_AUTHOR } from '@/config/metadata';
@@ -81,18 +81,16 @@ function SocialMediaPostingJsonLd({ byte }: { byte: NonNullable<Awaited<ReturnTy
 
 const BytePage = async ({ params }: { params: Promise<{ serial: string }> }) => {
   const { serial } = await params;
-  const [byte, allBytes] = await Promise.all([
-    getByteBySerial(serial),
-    getBytes(),
-  ]);
+  
+  const byte = await getByteBySerial(serial);
 
   if (!byte) {
     notFound();
   }
 
-  const currentIndex = allBytes.findIndex(b => b.id === byte.id);
-  const newerByte = currentIndex > 0 ? allBytes[currentIndex - 1] : null;
-  const olderByte = currentIndex >= 0 && currentIndex < allBytes.length - 1 ? allBytes[currentIndex + 1] : null;
+  // Use optimized adjacent query instead of fetching all bytes
+  const serialNumber = parseInt(byte.byte_serial, 10);
+  const { newer: newerByte, older: olderByte } = await getAdjacentBytes(serialNumber);
 
   return (
     <div className="container flex flex-col min-h-screen justify-center p-10 font-roboto-mono lowercase">

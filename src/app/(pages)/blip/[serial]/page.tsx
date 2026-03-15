@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getBlipBySerial, getBlips } from '@/lib/glossary';
+import { getBlipBySerial, getAdjacentBlips } from '@/lib/glossary';
 import BlipDetail from './components/BlipDetail';
 import { SITE_URL, SITE_NAME } from '@/config/metadata';
 
@@ -40,18 +40,16 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
 
 const BlipPage = async ({ params }: { params: Promise<{ serial: string }> }) => {
   const { serial } = await params;
-  const [blip, allBlips] = await Promise.all([
-    getBlipBySerial(serial),
-    getBlips(),
-  ]);
+  
+  const blip = await getBlipBySerial(serial);
 
   if (!blip) {
     notFound();
   }
 
-  const currentIndex = allBlips.findIndex(b => b.id === blip.id);
-  const newerBlip = currentIndex > 0 ? allBlips[currentIndex - 1] : null;
-  const olderBlip = currentIndex >= 0 && currentIndex < allBlips.length - 1 ? allBlips[currentIndex + 1] : null;
+  // Use optimized adjacent query instead of fetching all blips
+  const serialNumber = parseInt(blip.blip_serial, 10);
+  const { newer: newerBlip, older: olderBlip } = await getAdjacentBlips(serialNumber);
 
   return (
     <div className="container flex flex-col min-h-screen justify-center p-10 font-roboto-mono lowercase">

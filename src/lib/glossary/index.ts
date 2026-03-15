@@ -1,5 +1,6 @@
 export { 
   getBlips, 
   getBlipBySerial, 
-  createBlip 
+  createBlip,
+  getAdjacentBlips 
 } from './repository';

@@ -3,5 +3,6 @@ export {
   getByteBySerial, 
   createByte, 
   updateByte, 
-  deleteByte 
+  deleteByte,
+  getAdjacentBytes
 } from './repository';

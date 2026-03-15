@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BloqPost } from '@/lib/bloq';
+import { BloqPost, PaginationInfo } from '@/lib/bloq';
 import { searchBlogPosts } from '@/lib/search';
 import BloqCard from './BloqCard';
 import FilterPanel from './FilterPanel';
@@ -12,9 +12,20 @@ interface BloqFeedProps {
   initialPosts: BloqPost[];
   allCategories: { category: string; count: number }[];
   allTags: { tag: string; count: number }[];
+  pagination?: PaginationInfo;
+  currentFilters?: {
+    category?: string;
+    tags?: string[];
+  };
 }
 
-export default function BloqFeed({ initialPosts, allCategories, allTags }: BloqFeedProps) {
+export default function BloqFeed({ 
+  initialPosts, 
+  allCategories, 
+  allTags,
+  pagination,
+  currentFilters 
+}: BloqFeedProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -25,6 +36,16 @@ export default function BloqFeed({ initialPosts, allCategories, allTags }: BloqF
   const [selectedTags, setSelectedTags] = useState<string[]>(
     searchParams.get('tags') ? searchParams.get('tags')!.split(',') : []
   );
+
+  // Sync with server-side filters on initial load
+  useEffect(() => {
+    if (currentFilters?.category) {
+      setSelectedCategory(currentFilters.category);
+    }
+    if (currentFilters?.tags) {
+      setSelectedTags(currentFilters.tags);
+    }
+  }, [currentFilters]);
 
   // Update URL when filters change
   useEffect(() => {
@@ -98,7 +119,11 @@ export default function BloqFeed({ initialPosts, allCategories, allTags }: BloqF
       />
 
       <div className="flex items-center justify-between mb-1 text-sm text-gray-500">
-        <span>Showing {filteredPosts.length} posts</span>
+        {pagination ? (
+          <span>Showing {filteredPosts.length} of {pagination.total} posts</span>
+        ) : (
+          <span>Showing {filteredPosts.length} posts</span>
+        )}
       </div>
 
       <motion.div 
