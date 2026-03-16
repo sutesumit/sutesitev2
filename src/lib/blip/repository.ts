@@ -25,7 +25,7 @@ export async function getBlips(
   // Build query
   let query = supabase
     .from("blips")
-    .select("id, blip_serial, term, meaning, tags, created_at, updated_at", { count: 'exact' })
+    .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
     .order("created_at", { ascending: false });
 
   // Apply filters BEFORE pagination
@@ -41,7 +41,15 @@ export async function getBlips(
 
   // If no search, just get count from regular query
   if (!sanitizedQuery || sanitizedQuery.length < 2) {
-    const { count } = await query.select('*', { count: 'exact', head: true });
+    const countQuery = supabase
+      .from("blips")
+      .select("*", { count: 'exact', head: true });
+    
+    if (tags && tags.length > 0) {
+      countQuery.contains('tags', tags);
+    }
+    
+    const { count } = await countQuery;
     total = count ?? 0;
   }
 
