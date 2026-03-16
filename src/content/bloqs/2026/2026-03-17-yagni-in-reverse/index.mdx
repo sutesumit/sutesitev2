@@ -1,0 +1,454 @@
+---
+title: "The YAGNI in Reverse"
+publishedAt: "2026-03-17"
+summary: "I spent three days building pagination for 48 items. Here's what I learned about architecture, search strategies, and why 30 passing tests didn't catch the thing that broke."
+slug: "yagni-in-reverse"
+tags:
+  - architecture
+  - typescript
+  - reflections
+  - experiments
+  - nextjs
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: false
+---
+
+> "The opposite of 'just ship it' isn't 'never ship it.' It's 'ship in a way that future you will thank you for.'"
+
+I stared at the Supabase dashboard. Forty-eight items total. Forty-eight. That's a single tweet. That's barely a paragraph.
+
+And I'd just finished implementing server-side pagination with fuzzy search, tag filtering, debounced input, and three layers of test coverage.
+
+This is either foresight or obsession. I'll let you decide.
+
+---
+
+## The Database That Fits in a Tweet
+
+Let me tell you about my database. It's 48KB. That's smaller than my profile picture, smaller than the debug output from a single React render, smaller than the ego of any engineer who would dare call this production.
+
+Here's the breakdown:
+
+```text
+| Content Type | Count | Average Size   |
+|--------------|-------|----------------|
+| Bytes        | 23    | 159 characters |
+| Blips        | 2     | 149 characters |
+| Bloqs        | 23    | ~2KB each      |
+```
+
+Two blips. I had two. I built a tag filtering system for two items.
+
+If this were a code review, I'd reject it with a single comment: "lol."
+
+---
+
+## The Wrong Way (What Existed First)
+
+Here's how the site actually worked before I added pagination:
+
+```typescript
+// The original approach
+const bytes = await getBytes(); // Returns all 23
+const page = bytes.slice(0, 10); // Client-side slice
+```
+
+It fetched everything, then sliced it in JavaScript. This would have worked perfectly for the next decade, probably. The entire database could triple in size and this approach would still not care.
+
+And it existed. This was the foundation. Then I added pagination on top of that.
+
+---
+
+## The Architecture (What I Actually Built)
+
+Here's where it gets technical. The implementation uses a three-tier filtering architecture:
+
+```text
+Client Layer (React)
+    │
+    │ URL State (?page=2&q=search)
+    ▼
+Server Layer (Next.js)
+    │
+    │ Paginated queries
+    ▼
+Data Layer (Supabase)
+```
+
+### The Offset-Based Approach
+
+I used **offset-based pagination**, which is the most common strategy. You probably know it as "page 1, page 2, page 3." Here's the math:
+
+```typescript
+const from = (normalizedPage - 1) * limit;  // Starting index
+const to = from + limit - 1;                 // Ending index
+
+// Page 2 with limit 10
+// from = 10, to = 19
+// Returns records 10-19
+```
+
+This is simpler than **cursor-based pagination**, which uses the last item's ID instead of page numbers. Cursor-based is better when you have 100,000+ items or lots of concurrent writes. But for a personal blog with fewer than 1,000 items? Offset is fine. I'm not trying to solve problems I don't have yet. That's the YAGNI in reverse, but for pagination strategies. No self-pun intended.
+
+Here's the difference with a concrete example:
+
+**Offset-based (what I built):**
+```text
+GET /byte?page=1   → Returns bytes 1-10
+GET /byte?page=2   → Returns bytes 11-20
+GET /byte?page=3   → Returns bytes 21-30
+```
+
+You ask for "page 2" and the database skips the first 10, then gives you the next 10. Simple. Human-readable. The URL says exactly which page you're on.
+
+**Cursor-based (<del>what I'd migrate to later</del>):**
+```text
+GET /byte?limit=10                     → Returns bytes 1-10, cursor="byte_47"
+GET /byte?limit=10&cursor=byte_47      → Returns bytes 11-20, cursor="byte_36"
+GET /byte?limit=10&cursor=byte_36      → Returns bytes 21-30, cursor="byte_25"
+```
+
+You ask for "the next 10 after byte_47" and the database finds that specific record, then gives you the next 10. The URL doesn't say "page 2" - it says "after this specific item."
+
+### Why Cursor-Based Matters (The Problem It Solves)
+
+Here's where offset-based breaks. Imagine you're on page 3 of the bytes:
+
+```text
+GET /byte?page=3   → Returns bytes 21-30
+```
+
+While you're reading, I add a new byte. That new byte gets inserted at the top (because they're sorted by `created_at` desc). Now the old "bytes 21-30" have shifted. When you click "Next →", you're now seeing bytes 20-29 instead of 22-31. You might see the same byte twice, or skip one.
+
+This is called **page drift**.
+
+Cursor-based pagination solves this. When you ask for "the next 10 after byte_47", it doesn't matter if new bytes are added before byte_47. The database finds that specific record and continues from there. It's stable.
+
+The trade-off: cursor-based URLs are harder to share ("hey, check out this cool byte" → "here's a URL with a base62 string in it"). You can't jump to "page 5" directly - you have to go through pages 1, 2, 3, 4 first.
+
+For a personal blog with 48 items, offset-based is perfectly fine. But if I ever hit 10,000 bytes where posts are made concurrently? I'd migrate to cursor-based. Lol, that's not even a real scenario. I'm the only one posting here. <del>(I think?)</del>
+
+The trade-off: if I add a new byte while you're browsing page 3, you might see the same item twice or skip one when you click "next." At my scale, I can live with that.
+
+### The Repository Pattern
+
+Each content type has its own repository, a file that wraps all database calls. Instead of scattering Supabase queries everywhere, you put them in one place. Here's the byte repository:
+
+```typescript
+export async function getBytes(
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
+): Promise<PaginatedResult<Byte>> {
+  const from = (normalizedPage - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from("bytes")
+    .select("*", { count: 'exact' })  // Ask for total count
+    .order("created_at", { ascending: false })
+    .range(from, to);                   // Server-side slice
+
+  // Search at database level
+  if (sanitizedQuery) {
+    query = query.ilike('content', `%${sanitizedQuery}%`);
+  }
+
+  return {
+    data: paginatedData,
+    pagination: createPaginationInfo(normalizedPage, limit, total),
+  };
+}
+```
+
+Key decisions:
+1. **Return type consistency** - Every repository returns `{ data, pagination }`
+2. **Database-level search** - Using SQL ILIKE, which PostgreSQL handles efficiently
+3. **Exact count** - Supabase's `{ count: 'exact' }` gives accurate pagination metadata in a single query
+
+### URL-Driven State
+
+The pagination state lives entirely in the URL:
+
+```text
+/byte?page=2&q=typescript
+/blip?page=3&tags=javascript,react
+/bloq?page=1&category=engineering&tags=typescript
+```
+
+This is important because:
+- **Bookmarkable** - Users can save specific pages
+- **Shareable** - Links accurately represent what you see
+- **SSR-compatible** - Next.js can pre-render specific pages server-side
+
+The `PaginationControls` component is "dumb" - it doesn't manage state, it just builds URLs:
+
+```typescript
+const buildUrl = (newPage: number) => {
+  const params = new URLSearchParams();
+  params.set('page', newPage.toString());
+  if (searchQuery) params.set('q', searchQuery);
+  return `${basePath}?${params.toString()}`;
+};
+```
+
+---
+
+## The Search Strategy (Three Different Approaches)
+
+Here's where it gets interesting. Different content types use different search strategies:
+
+```text
+| Content Type | Strategy            | Why                               |
+|--------------|---------------------|-----------------------------------|
+| **Byte**     | SQL ILIKE           | Simple text, database handles it  |
+| **Blip**     | Client-side Fuse.js | Small dataset, complex multi-field|
+| **Bloq**     | Server-side Fuse.js | File-based, cached in memory      |
+```
+
+### Byte Search: Database-Level
+
+```typescript
+if (sanitizedQuery) {
+  query = query.ilike('content', `%${sanitizedQuery}%`);
+}
+```
+
+Simple. Fast. Lets the database do what databases do best.
+
+### Blip Search: The Dumb Thing I Did
+
+Here's the honest part: I implemented blip search with Fuse.js, which meant fetching *all* blips to the browser, then filtering in JavaScript.
+
+```typescript
+// What I wrote (stupid)
+const { data: allBlips } = await supabase.from("blips").select("*");
+// ... then Fuse.js filtering in JavaScript
+```
+
+For 2 blips, this works fine. For 100 blips, it's annoying. For 1,000, it's a problem.
+
+Here's why: every time someone searched, it would fetch ALL blips to the browser, then filter in JavaScript. That's the opposite of what you want. The point of pagination is to NOT fetch everything at once. But search defeats that purpose entirely.
+
+So I fixed it. Added a PostgreSQL full-text search column and GIN index:
+
+```sql
+ALTER TABLE blips 
+ADD COLUMN search_text TEXT GENERATED ALWAYS AS (
+  term || ' ' || meaning || ' ' || tags::text
+) STORED;
+
+CREATE INDEX idx_blips_fts ON blips 
+USING GIN(to_tsvector('english', search_text));
+```
+
+Updated the repository to search server-side:
+
+```typescript
+// What it is now (fixed)
+if (sanitizedQuery) {
+  query = query.textSearch('search_text', sanitizedQuery);
+}
+```
+
+Now the database does the searching. Scales to millions instead of breaking at 500.
+
+**The trade-off:** PostgreSQL full-text search is less fuzzy than Fuse.js. But we added the pg_trgm extension which provides trigram similarity. Now "webho" finds "webhook" via ILIKE partial matching. Not quite as fuzzy as Fuse.js, but close enough.
+
+---
+
+### When Does Server-Side Search Make Sense?
+
+Here's the honest trade-off analysis:
+
+```text
+| Dataset Size  | Approach               | Why                                                              |
+|---------------|------------------------|------------------------------------------------------------------|
+| < 50 items    | Client-side is fine    | Fetching everything is faster than making multiple API calls     |
+| 50-500 items  | Depends                | If search is frequent, server-side wins                          |
+| 500+ items    | Server-side required   | Client-side is too slow                                          |
+| 10,000+ items | Full-text index needed | Even server-side needs optimization                              |
+```
+
+The break-even point is roughly **50-100 items**. Below that, the overhead of multiple API calls (one for count, one for data) outweighs the benefit of not transferring extra rows. Above that, server-side search is faster.
+
+For my blips: I had 2. Then I implemented server-side anyway, because I knew I'd grow into it. Or hope so. That's YAGNI in reverse again.
+
+### The Fuzzy Matching Trade-off
+
+One honest downside: PostgreSQL full-text search is less fuzzy than Fuse.js.
+
+- Fuse.js: "javscript" → finds "JavaScript" ✅
+- PostgreSQL: "javscript" → finds nothing ❌
+
+PostgreSQL needs the exact word. Fuse.js tolerates typos.
+
+The fix: PostgreSQL has trigram similarity (`pg_trgm` extension) for fuzzy matching. I haven't added it yet. It's future me's problem. Again.
+
+### The Debounce
+
+Every search input uses **debouncing** to prevent the "typing tornado" effect:
+
+```typescript
+const debouncedSearchRef = useRef<NodeJS.Timeout | null>(null);
+
+const updateSearchParams = useCallback((query: string) => {
+  if (debouncedSearchRef.current) {
+    clearTimeout(debouncedSearchRef.current);
+  }
+
+  debouncedSearchRef.current = setTimeout(() => {
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, 300);  // Wait 300ms after typing stops
+}, [...]);
+```
+
+Why 300ms? It's the sweet spot:
+- Less than 100ms: feels jittery
+- 300-500ms: feels responsive but not overwhelming
+- More than 1000ms: feels broken
+
+---
+
+## The Testing Strategy (30 Tests, One Gap)
+
+I wrote three layers of tests:
+
+### Unit Tests (16 tests)
+
+Tests the pagination math in isolation:
+
+```typescript
+describe('createPaginationInfo', () => {
+  it('should calculate correct pagination for 50 items, 10 per page', () => {
+    const result = createPaginationInfo(1, 10, 50);
+    expect(result.totalPages).toBe(5);
+    expect(result.hasMore).toBe(true);
+  });
+});
+```
+
+Covers: pagination math, input validation, query sanitization.
+
+### End-to-End Tests (8 tests)
+
+Tests user flows through the browser:
+
+```typescript
+test('should navigate to next page', async ({ page }) => {
+  await page.goto('/byte');
+  await page.click('text=Next →');
+  await expect(page).toHaveURL(/page=2/);
+});
+```
+
+Covers: navigation, search resets to page 1, filter preservation.
+
+### Edge Case Tests (6 tests)
+
+Tests resilience against garbage input:
+
+```typescript
+test('should handle invalid page number gracefully', async ({ page }) => {
+  await page.goto('/byte?page=abc');
+  await expect(page.locator('body')).toBeVisible();
+});
+```
+
+Covers: invalid parameters, long queries, XSS attempts.
+
+### The Testing Gap
+
+Here's what those tests don't catch:
+
+- The pagination component is actually imported on the page
+- The page passes data to the components
+- The feature works end-to-end in production
+
+This is the **orchestration gap**. Tests verify the parts, not that the parts are connected. I know this because I lived it: the tests passed, the build succeeded, I opened localhost and saw nothing.
+
+The components existed. The tests verified their logic. But nobody had told the page to render them.
+
+I've since added integration tests that would catch this: tests that verify pagination actually shows different items on different pages, and that search actually filters results. But at the time? Just had to check manually.
+
+---
+
+### The Break-Even Analysis
+
+Here's the question nobody answers honestly: **when does server-side pagination and search actually start making sense?**
+
+Here's my honest take:
+
+**Pagination break-even:**
+- < 100 items: Client-side is fine
+- 100-500 items: Server-side starts helping
+- 500+ items: Server-side is necessary
+
+**Search break-even:**
+- < 50 items: Client-side is fine (fetch all, filter in browser)
+- 50-200 items: Depends on search frequency
+- 200+ items: Server-side required
+
+The math is simple: if fetching all data takes 50ms, and you make a server-side query in 10ms, but need 2 calls (count + data), you're at 20ms. The break-even is roughly when the data transfer time exceeds the API call overhead.
+
+For my site:
+- Bytes: 23 items, but server-side search was easy (SQL ILIKE) → server-side
+- Blips: 2 items, client-side was simpler → but I migrated anyway for practice
+- Bloqs: 23 items, file-based → server-side (in-memory, cached)
+
+The honest truth: at my scale, it doesn't matter. The performance difference is within noise margin. I did it for learning, for future-proofing, and because I could.
+
+That's YAGNI in reverse. You're not gonna need it today, but you'll appreciate having it tomorrow.
+
+---
+
+## The Architectural Choice
+
+Look, I've been doing this long enough to know: the code you write at 50 items is the code you'll maintain at 5,000. The question isn't whether pagination matters. It's whether you want to fix it once or fix it twice.
+
+I chose once. (Famous last words.)
+
+The "simple" approach was to fetch everything and let the client figure it out. It's not wrong at this scale. It's just not how I'd want to live. Every future feature would have to work around the assumption that everything is already in memory.
+
+So I made a deliberate architectural choice: build it the way it should be built, even if the current scale doesn't require it.
+
+You could call this over-engineering. I call it not wanting to leave breadcrumbs of technical debt for future me to trip over.
+
+Or maybe I'm just the kind of person who buys a 10-year battery for a remote control that costs $2. Either way, the pagination works.
+
+---
+
+## The Trade-offs
+
+Here's the honest assessment:
+
+```text
+| Approach              | Now        | Later          |
+|-----------------------|------------|----------------|
+| Server-side search    | ✅ Done    | ✅ Ready       |
+| In-memory Bloq search | Works      | Refactor later |
+| Offset pagination     | Works      | Migrate later  |
+```
+
+The blip search migration happened faster than expected because I realized the client-side approach wouldn't scale. The GIN index is already there. The repository already uses it. When bloqs grow to 500+, I'll do the same.
+
+For now: this is the architecture. It works. It scales. It doesn't need attention.
+
+---
+
+## What I'd Tell Past Me
+
+If I could send a message back to the version of me who started this project:
+
+"Hey, the database is tiny. You're going to feel silly implementing pagination for two blips."
+
+"But also: you're going to play with pagination, search strategies, and testing at a level may not matter much now, but is still fun. You're going to know where it breaks. You're going to build the architecture right the first time."
+
+"Future you says thanks (for the fun)."
+
+*48KB. Three days. Zero regrets. 30 tests. One gap.*
+
+---

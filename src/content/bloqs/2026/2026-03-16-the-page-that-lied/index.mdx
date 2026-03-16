@@ -1,0 +1,378 @@
+---
+title: "The Bug That Returned 200 OK"
+publishedAt: "2026-03-16"
+summary: "An agent wrote page_size: 5000 and I approved it without blinking. It was losing 75% of our data. A story about learning to smell where agent code is guessing, and the taste you only develop by getting burned."
+slug: "hardcoded-page-size-data-loss"
+tags:
+  - typescript
+  - backend
+  - debugging
+  - architecture
+  - ai
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: false
+---
+
+## Two Words in a PR Review
+
+> "Your most dangerous bugs aren't the ones that crash. They're the ones that return 200 OK."
+
+It was a Tuesday. A routine PR review. Someone left a comment on a service file that an agent had written months ago, during one of those "let the agent build the whole service layer" sessions. I'd reviewed the diff, nodded at the types, confirmed the logic looked sound, and approved it. The comment was two words long, polite, almost apologetic:
+
+*"Hardcoded page_size?"*
+
+I looked at the line they were pointing at:
+
+```typescript
+const res = await fetchFeedItems(Filter, { page_no: 1, page_size: 5000 });
+```
+
+Five thousand. A nice round number. The kind of number that looks reasonable if you don't think about it too hard. I hadn't thought about it too hard. Neither had the agent. That was the problem.
+
+It was not enough. And those two words in a PR review were about to uncover months of silent data loss that no test, no alert, and no user complaint had ever caught. Not because the agent wrote bad code. Because I reviewed agent code the same way I review human code, and those are two very different activities.
+
+---
+
+## The Wrong Review Lens
+
+> "I was the compiler, not the reviewer."
+
+Here's what happened. The agent needed to fetch feed items from a paginated API. It saw the endpoint accepted `page_size`, and it needed to pick a number. So it reasoned, the way agents do:
+
+*"The endpoint paginates. I need all the data. What's a safe number? 100 feels small. 1,000 feels conservative. 5,000? That's generous. That should cover it."*
+
+And honestly? That reasoning is perfectly sound if you've never seen the data. The agent doesn't know that one activity has 20,822 items. It doesn't know the distribution. It can't `ssh` into a production box and run an aggregation query. Unless, of course, you've set up an MCP server that gives it database access, in which case congratulations, you've traded one problem (blind assumptions) for another (an agent with a live connection to production and all the context overload that comes with it). It's making an educated guess, and educated guesses about data volume are almost always wrong.
+
+But here's the part I have to own: I had database access. I had domain knowledge. I knew this was a high-traffic feature. And when I reviewed the PR, I looked at the types, the error handling, the function signatures. I reviewed it the way I'd review a senior engineer's code: trusting the author's judgment on the parts that require domain knowledge.
+
+The agent isn't a senior engineer. It's a brilliant intern with perfect syntax and zero production intuition. I was applying the wrong trust calibration, and the number `5000` sailed right past me.
+
+That round number was a tell. I just didn't know how to read it yet.
+
+---
+
+## State Cobbling, or: How Your App Lies to You With a Straight Face
+
+Here's what was happening under the hood. The service fetched feed items to determine which people were currently registered vs. unregistered for an activity. It processed these items to build a map of each person's latest action. Register, unregister, register again. The last action wins.
+
+But the function only ever saw the first 5,000 items. If an activity had 20,000 items, the remaining 15,000 were silently discarded. No error. No warning. No log. The function happily computed results from a partial dataset and presented them as truth.
+
+Not to be confused with state clobbering, where code accidentally overwrites existing state and loses earlier information, but I call this **state cobbling**: assembling application state from incomplete data without knowing it's incomplete. The result looks correct, feels correct, passes every test you'd think to write. But it's wrong. Someone who unregistered three months ago still shows as registered, because the unregistration event was item number 5,001.
+
+The scariest part? Nobody noticed. The UI showed confident statuses. Green checkmarks. Clean tables. The system was lying with a straight face, and it was very convincing.
+
+State cobbling is particularly insidious with agent-written code, because the code itself is immaculate. Clean types. Proper error handling. Sensible variable names. Everything a reviewer looks for is present. The thing that's missing, completeness of the underlying data, isn't something you can see in a diff. You have to *smell* it. And at the time, my nose wasn't trained for it.
+
+---
+
+## How Bad Was It, Really?
+
+I could have just fixed the code and moved on. But the masochist in me wanted to know exactly how bad it was. So I went to the database.
+
+```javascript
+// "How bad is it?" — the query
+db.Collection.aggregate([
+  { $match: { Category: "Attendance" } },
+  { $group: {
+      _id: { activityId: "$activityId", instanceId: "$instanceId" },
+      count: { $sum: 1 }
+  }},
+  { $sort: { count: -1 } },
+  { $limit: 10 }
+])
+```
+
+The top result: **20,822 items**. The top 10 all ranged between 16,000 and 20,800. We were losing roughly 75% of the data for the busiest activities.
+
+But here's where it gets interesting. Because the worst case doesn't tell the whole story. I ran the distribution:
+
+| Metric | Value |
+|---|---|
+| Total groups | 23,250 |
+| Min count | 1 |
+| Max count | 20,822 |
+| Average count | 32 |
+| **Median count** | **6** |
+
+Six. The median was six. Half of all activities had six or fewer items. The average was 32, dragged up by the outliers. This is a textbook **long-tail distribution**: most values cluster near zero, but a small number of outliers are orders of magnitude larger.
+
+```text
+Number of items per activity:
+
+ Count
+   ^
+   |
+   |
+20k|                                                          *
+   |
+   |
+   |
+ 5k|          * *
+   |       * * * *
+   |   * * * * * * * *
+ 6 | * * * * * * * * * * * * * * * * * * * * * * * * *  <- median
+   +-------------------------------------------------> Activities
+     (sorted by item count)
+```
+
+This is the query I should have asked the agent to run *before* it wrote the fetch code. "Before you write this, check the database for the distribution of items per group and choose a strategy accordingly." Thirty seconds of prompting. The agent had the ability to reason about the result. It just didn't have the prompt. I didn't shape the input. I just reviewed the output. And the output looked fine.
+
+If you only look at the max, you'd think every query is massive and you need to architect for 20,000 items on every call. If you only look at the median, you'd think 100 is plenty. **Always check both** when making capacity decisions. The median tells you the common case (optimize for speed). The max tells you the edge case (optimize for correctness).
+
+---
+
+## The Fork in the Road
+
+Two options presented themselves, as they always do. One was lazy. One was correct. I am not proud of how long I stared at the lazy one.
+
+### Option A: Just Make the Number Bigger
+
+```typescript
+// The "future me can deal with it" approach
+const res = await fetchFeedItems(Filter, { page_no: 1, page_size: 25000 });
+```
+
+Simple. One-line change. Bump 5,000 to 25,000. Ship it. Go home. Except the worst-case activity was already at 20,822 and growing. At current growth rates, it would breach 25,000. This is the software equivalent of buying bigger pants instead of addressing the underlying issue. It works until it doesn't, and when it doesn't, you're back here making the same fix with a larger number and less dignity.
+
+This is also, tellingly, what you get if you tell an agent "the page size is too small, fix it." The agent bumps the number, because that solves the immediate problem. It can't reason about growth rates or long-tail behaviour without the distribution data. The quality of the fix mirrors the quality of the prompt. "Fix it" gets you a bigger number. "Make this robust regardless of dataset size" gets you a loop. Same agent, same capability, completely different outcome based on how you frame the problem.
+
+### Option B: Pagination Loop
+
+Fetch data in batches. Keep requesting pages until all data is retrieved. The batch size becomes irrelevant to correctness. It only affects how many HTTP round trips you make.
+
+I chose Option B. Not because I'm disciplined, but because I'd already been burned once and the scar tissue was fresh.
+
+---
+
+## The Conceptual Shift
+
+> "The variable isn't a page size anymore. It's a batch size. That distinction is everything."
+
+This is the part I want to linger on, because it changed how I think about pagination.
+
+Most developers encounter pagination as a UX pattern. Page 1, Page 2, Next, Previous. Twenty items at a time. The user clicks through. It's a display concern.
+
+But here, pagination is a **correctness mechanism**. The user never sees individual pages. We loop through all pages behind the scenes to ensure we have the full dataset before computing state. The page boundary is invisible. The batch size is a throughput dial, not a correctness dial.
+
+**Before: page_size as a hard cap.**
+
+```text
+Activity has 20,000 items
+
+Request: page_size=5000, page_no=1
+         +---------------------+
+         | Items 1 - 5000      |  <-- Only this was fetched
+         +---------------------+
+         | Items 5001 - 20000  |  <-- Gone. Poof. Bye.
+         +---------------------+
+
+Result: 5,000 items (the app is 75% wrong and 100% confident)
+```
+
+**After: page_size as a batch size in a loop.**
+
+```text
+Activity has 20,000 items
+
+Loop 1: page_no=1  -> 5000 items   -> total: 5000
+Loop 2: page_no=2  -> 5000 items   -> total: 10000
+Loop 3: page_no=3  -> 5000 items   -> total: 15000
+Loop 4: page_no=4  -> 5000 items   -> total: 20000
+                      length >= total  -> STOP
+
+Result: 20,000 items (the app is correct and knows it)
+```
+
+The variable isn't a "page size" anymore. It's a **batch size**. Renaming it makes the intent clear:
+
+```typescript
+const BATCH_SIZE = 5000;
+```
+
+This renaming isn't cosmetic. It's a signal to the next developer (or the next agent): "This number is about throughput, not about limits."
+
+---
+
+## The Implementation
+
+When I asked the agent to rewrite the fetch with "fetch everything in batches, not just the first page," it produced this loop on the first try:
+
+```typescript
+export const fetchAllItems = async (
+  filter: FilterParams
+): Promise<FeedItem[]> => {
+  try {
+    const BATCH_SIZE = 5000;
+    const allItems: FeedItem[] = [];
+    let pageNo = 1;
+    let total = Infinity;
+
+    while (allItems.length < total) {
+      const res = await fetchItems(filter, {
+        page_no: pageNo,
+        page_size: BATCH_SIZE,
+      });
+
+      // Defensive: APIs love to surprise you with response shapes
+      let items: FeedItem[] = [];
+      if (res?.Result && Array.isArray(res.Result)) {
+        items = res.Result;
+      } else if (res?.items && Array.isArray(res.items)) {
+        items = res.items;
+      } else if (Array.isArray(res)) {
+        items = res;
+      }
+
+      allItems.push(...items);
+      total = res?.TotRecords ?? res?.count ?? allItems.length;
+
+      if (items.length < BATCH_SIZE) break; // last page, don't waste a request
+      pageNo++;
+    }
+
+    return allItems;
+  } catch (error) {
+    console.error('[FetchAll] Error:', error);
+    return [];
+  }
+};
+```
+
+First try. Clean. Correct. The pagination pattern itself is well within an agent's wheelhouse. Loops, exit conditions, response parsing: that's all syntax-level work, and agents are excellent at syntax. The hard part was never the implementation. It was knowing that the implementation was needed in the first place. The agent could build the right thing the moment I asked for the right thing. My job was to know *what* to ask for, and for months, I didn't.
+
+A few things to notice:
+
+### The double exit condition
+
+The loop exits when **either** of two conditions is met:
+
+1. **`allItems.length >= total`**: we've collected as many items as the server says exist.
+2. **`items.length < BATCH_SIZE`**: the server returned fewer items than requested, meaning we're on the last page.
+
+The second check is a short-circuit. Without it, the loop would make one extra request after the last page, get zero items back, and *then* exit. It works, but it's wasteful. Like driving to the pizza place to confirm they're closed when the lights are already off.
+
+### Why `??` instead of `||`
+
+This one is subtle and it bites constantly. Agents are particularly susceptible because they pattern-match on common JavaScript idioms, and `||` for fallbacks is *extremely* common in training data.
+
+```typescript
+// This looks right but is wrong
+total = res?.TotRecords || res?.count || allItems.length;
+
+// This is actually correct
+total = res?.TotRecords ?? res?.count ?? allItems.length;
+```
+
+The `||` operator treats `0` as falsy. If `TotRecords` is `0` (no items exist), `||` skips it and falls through to `allItems.length`. In the worst case, this creates an infinite loop: the server says "there are zero items" but the code ignores that and keeps fetching.
+
+The nullish coalescing operator `??` only falls through on `null` or `undefined`. A `TotRecords` of `0` is treated as a valid answer, which it is.
+
+```typescript
+const count = 0;
+
+count || 'fallback'   // 'fallback' — wrong! 0 is a valid count
+count ?? 'fallback'   // 0          — correct
+```
+
+I've seen this bug in three different codebases now. It's always `||` where it should be `??`, and it's always in a place where `0` is a legitimate value. The operator looks friendly. It is not.
+
+### A rule of thumb I now live by
+
+Here's the mental checklist I run every time I write a fallback:
+
+```text
+Is the fallback for a missing value?        -> use ??
+Is the fallback for a "falsy" value?        -> use ||
+Not sure?                                   -> use ??
+```
+
+More concretely: if the variable could ever legitimately be `0`, `""`, or `false`, and those are *valid* states your code should respect, `||` will silently discard them. `??` only triggers on `null` and `undefined`, which are almost always the actual "missing" signals you care about.
+
+The way I think about it now: `||` answers "is this truthy?" while `??` answers "does this exist?" Those are different questions, and conflating them is how you get infinite loops at 2am.
+
+If you're writing a fallback chain for anything numeric (counts, indices, offsets, pagination totals, pixel values, timestamps), just default to `??`. You'll be right more often than not, and when you're wrong, the failure mode is a loud type error, not a silent logic bug. I'll take a loud error over a quiet lie every single time.
+
+---
+
+## Choosing the Batch Size
+
+Given the distribution, the batch size barely matters for correctness. But it matters for performance:
+
+```text
+| Batch Size | Requests for median (6 items) | Requests for max (20,822 items) |
+|------------|-------------------------------|---------------------------------|
+| 500        | 1                             | 42                              |
+| 1,000      | 1                             | 21                              |
+| 2,500      | 1                             | 9                               |
+| **5,000**  | **1**                         | **5**                           |
+| 10,000     | 1                             | 3                               |
+```
+
+Since the median is 6, the batch size is irrelevant for 99%+ of calls. They complete in a single request regardless. The batch size only affects the handful of outlier activities.
+
+5,000 is the sweet spot: keeps the outlier to a handful of requests without risking oversized response payloads or server timeouts. And since it was already the existing value, changing it would mean testing a new payload size, which is an unnecessary variable when the real fix is the loop.
+
+---
+
+## Learning to Smell Agent Code
+
+> "A sommelier doesn't taste wine by reading the label. You have to drink a few bad bottles first."
+
+This bug taught me something I couldn't have learned from a tutorial: agent-generated code has tells. Not syntax tells. The syntax is always perfect. But *judgment* tells. Places where the agent is shrugging and you can learn to see the shrug if you know what to look for.
+
+Here's the smell test I run now when reviewing agent-written code. None of these are automatic failures. They're moments to pause, squint, and ask "does this author actually know, or is it guessing?"
+
+```text
+The Agent Code Smell Test
+─────────────────────────
+[ ] Hardcoded numeric limits on data fetches
+    → The 5000 smell. Any round number in a fetch is the agent saying
+      "I picked something." Ask: what's the actual data distribution?
+
+[ ] Single-request patterns for potentially unbounded datasets
+    → If it fetches once and uses the result to compute state,
+      ask: what if there's more?
+
+[ ] || fallbacks on numeric values
+    → The agent learned from a million code samples where || was fine.
+      For counts, offsets, indices: it probably isn't.
+
+[ ] Absence of "what if there's more?" logic
+    → No pagination loop, no total-count check, no overflow handling.
+      The agent assumed the happy path because it has no unhappy memories.
+
+[ ] Round numbers where the domain is spiky
+    → 100, 500, 1000, 5000. These are vibes, not decisions.
+      Real limits come from data analysis, not intuition.
+
+[ ] Confident constants with no comment
+    → A human who picks a magic number usually knows why and feels guilty
+      enough to comment. An agent picks one and moves on without flinching.
+```
+
+None of this means "don't let agents write code." Agents are phenomenal at the implementation. The loop they wrote was clean on the first try. But agents don't have production scars. They don't remember the time a feature worked fine for six months and then collapsed because the data grew. They can't develop the instinct that comes from being paged at 3am because a "generous" limit turned out to be stingy.
+
+That instinct, that taste, is yours to bring. The agent provides the hands. You provide the nose.
+
+---
+
+## What I Took Away
+
+- **State cobbling is silent and confident.** The most dangerous data bugs don't crash. They return partial data and let the UI render it with full conviction. Any time you fetch with a hard limit and use the result to compute derived state, ask yourself: "What happens if there's more data than my limit?"
+
+- **Pagination isn't always a UX pattern.** Sometimes it's a correctness mechanism. The user never sees the pages. The loop fetches everything. The batch size is a throughput concern, not a correctness concern. Once I started seeing pagination as "fetching in batches for completeness," a whole category of silent bugs became obvious.
+
+- **Check the distribution, not just the extremes.** The median was 6. The max was 20,822. If I'd only checked the max, I might have over-engineered. If I'd only checked the median, I'd have missed the bug entirely. The median tells you what to optimize for. The max tells you what to protect against.
+
+- **`??` is not `||`.** If zero is a valid value in your domain (and it almost always is for counts, indices, and offsets), `||` will betray you. The nullish coalescing operator exists for exactly this reason. I've started treating every `||` with a numeric fallback as a code smell.
+
+- **Shape the input, don't just review the output.** The most valuable thing I can do when working with an agent isn't scanning its diff for syntax errors. It's the thirty seconds of context *before* the code gets written: "check the database first," "what's the worst case?", "assume the data grows." The quality of the fix mirrors the quality of the prompt. "Fix it" gets you a bigger number. "Make this robust regardless of dataset size" gets you a loop.
+
+- **Develop the nose.** Agents don't have production scars. They can't remember the outage, the late-night page, the time a limit held for six months and then didn't. That scar tissue is your edge. Learn to smell where agent code is guessing: round numbers, single fetches, missing overflow logic. The agent provides the hands. You provide the nose. Together you're fast *and* correct. Alone, you're just one or the other.
+
+- **PR reviews remain the last line of defence.** A human looked at `page_size: 5000` and asked "why?" No test caught this, because test data never exceeded 5,000 items. The agent couldn't catch it, because it didn't know production data exceeded 5,000 items. I didn't catch it, because I was reviewing syntax when I should have been questioning assumptions. The bug lived in the gap between what was written and what was real. Two words in a review comment bridged that gap.
+
+> "The scariest bugs aren't the ones that fail loudly. They're the ones that succeed quietly, with incomplete data and full confidence. Learning to smell them before they ship is the skill that no agent can learn for you. Ofcouse, the details in this story are dramatized for your attention and amusement. The failure patterns are not."

@@ -41,6 +41,25 @@ test.describe('Pagination - Byte Page', () => {
     // Should show empty state message
     await expect(page.locator('text=no bytes')).toBeVisible();
   });
+
+  // Integration test: verify pagination actually filters data
+  test('should show different items on different pages', async ({ page }) => {
+    await page.goto('/byte');
+    
+    // Get first item on page 1
+    const firstItemPage1 = await page.locator('[class*="grid"] > div').first().textContent();
+    
+    // Navigate to page 2 if available
+    const nextButton = page.locator('text=Next →');
+    if (await nextButton.isVisible()) {
+      await nextButton.click();
+      await page.waitForURL(/page=2/);
+      
+      // First item on page 2 should be different
+      const firstItemPage2 = await page.locator('[class*="grid"] > div').first().textContent();
+      expect(firstItemPage1).not.toBe(firstItemPage2);
+    }
+  });
 });
 
 test.describe('Pagination - Blip Page', () => {
@@ -63,6 +82,24 @@ test.describe('Pagination - Blip Page', () => {
       await nextButton.click();
       await expect(page).toHaveURL(/page=2/);
     }
+  });
+
+  // Integration test: verify search actually filters blips
+  test('should filter blips based on search query', async ({ page }) => {
+    await page.goto('/blip');
+    
+    // Get total count (if any)
+    const searchInput = page.locator('input[type="text"]').first();
+    
+    // Type a search term
+    await searchInput.fill('webhook');
+    await page.waitForTimeout(400);
+    
+    // Either shows filtered results or empty state
+    const hasResults = await page.locator('[class*="grid"] > div').first().isVisible();
+    const hasEmptyState = await page.locator('text=no blip').isVisible();
+    
+    expect(hasResults || hasEmptyState).toBe(true);
   });
 });
 

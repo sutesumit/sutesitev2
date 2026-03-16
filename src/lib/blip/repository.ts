@@ -1,19 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import type { Blip } from '@/types/blip';
 import { PaginatedResult, createPaginationInfo, normalizePage, normalizeSearchQuery } from '@/types/pagination';
-import Fuse from 'fuse.js';
-
-const fuseOptions = {
-  keys: [
-    { name: 'term', weight: 0.4 },
-    { name: 'meaning', weight: 0.3 },
-    { name: 'tags', weight: 0.3 },
-  ],
-  threshold: 0.4,
-  includeScore: true,
-  minMatchCharLength: 2,
-  ignoreLocation: true,
-};
 
 export async function getBlips(
   page: number = 1,
@@ -25,47 +12,75 @@ export async function getBlips(
   
   const normalizedPage = normalizePage(page, 1);
   const sanitizedQuery = normalizeSearchQuery(searchQuery);
+  const from = (normalizedPage - 1) * limit;
+  const to = from + limit - 1;
 
-  // Fetch all blips for fuzzy search
-  const { data: allBlips, error: fetchError } = await supabase
+  // Get total count for pagination
+  let total = 0;
+  if (sanitizedQuery && sanitizedQuery.length >= 2) {
+    const { data: countData } = await supabase.rpc('search_blips_count', { p_query: sanitizedQuery });
+    total = countData ?? 0;
+  }
+
+  // Build query
+  let query = supabase
     .from("blips")
-    .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
+    .select("id, blip_serial, term, meaning, tags, created_at, updated_at", { count: 'exact' })
     .order("created_at", { ascending: false });
 
-  if (fetchError) {
-    console.error("Error fetching blips:", fetchError);
-    return {
-      data: [],
-      pagination: createPaginationInfo(normalizedPage, limit, 0),
-    };
-  }
-
-  let filteredBlips = allBlips ?? [];
-
-  // Filter by tags first (if any)
-  if (tags && tags.length > 0) {
-    const lowerTags = tags.map(t => t.toLowerCase());
-    filteredBlips = filteredBlips.filter(blip => 
-      blip.tags?.some((tag: string) => lowerTags.includes(tag.toLowerCase()))
-    );
-  }
-
-  // Apply Fuse.js fuzzy search if query exists
+  // Apply filters BEFORE pagination
   if (sanitizedQuery && sanitizedQuery.length >= 2) {
-    const fuse = new Fuse(filteredBlips, fuseOptions);
-    const results = fuse.search(sanitizedQuery);
-    filteredBlips = results.map(result => result.item);
+    // Use fuzzy search via RPC (trigram + ILIKE)
+    // This is handled below via filtering
   }
 
-  const total = filteredBlips.length;
+  // Filter by tags if specified
+  if (tags && tags.length > 0) {
+    query = query.contains('tags', tags);
+  }
 
-  // Paginate
-  const from = (normalizedPage - 1) * limit;
-  const to = from + limit;
-  const paginatedData = filteredBlips.slice(from, to);
+  // If no search, just get count from regular query
+  if (!sanitizedQuery || sanitizedQuery.length < 2) {
+    const { count } = await query.select('*', { count: 'exact', head: true });
+    total = count ?? 0;
+  }
+
+  // Apply pagination range
+  query = query.range(from, to);
+
+  let data;
+  
+  // Use fuzzy search function if query exists
+  if (sanitizedQuery && sanitizedQuery.length >= 2) {
+    const { data: searchResults, error } = await supabase.rpc('search_blips', {
+      p_query: sanitizedQuery,
+      p_limit: limit,
+      p_offset: from
+    });
+    
+    if (error) {
+      console.error("Error searching blips:", error);
+      return {
+        data: [],
+        pagination: createPaginationInfo(normalizedPage, limit, 0),
+      };
+    }
+    
+    data = searchResults ?? [];
+  } else {
+    const { data: regularData, error } = await query;
+    if (error) {
+      console.error("Error fetching blips:", error);
+      return {
+        data: [],
+        pagination: createPaginationInfo(normalizedPage, limit, 0),
+      };
+    }
+    data = regularData ?? [];
+  }
 
   return {
-    data: paginatedData,
+    data: data,
     pagination: createPaginationInfo(normalizedPage, limit, total),
   };
 }
