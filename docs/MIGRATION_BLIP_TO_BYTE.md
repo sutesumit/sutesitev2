@@ -1,6 +1,6 @@
 # Migration Plan: Blip to Byte & New Blip Glossary (v3)
 
-This document outlines the end-to-end migration to rename existing "blips" (micro-posts) to "bytes" and repurpose the "blip" namespace for a new glossary/dictionary feature.
+This document outlines the end-to-end migration to rename existing "blips" (micro-posts) to "bytes" and repurpose the "blip" namespace for a new dictionary feature.
 
 ---
 
@@ -21,7 +21,7 @@ This document outlines the end-to-end migration to rename existing "blips" (micr
     - `created_at`, `updated_at`: TIMESTAMPTZ.
 *   **Key Design:** 
     - We will use a **Base-62 Serial** (`blip_serial`) for CLI/URL identification.
-    - Example: `blip get 5` (gets the glossary entry with serial '5').
+    - Example: `blip get 5` (gets the dictionary entry with serial '5').
 
 ---
 
@@ -43,7 +43,7 @@ This document outlines the end-to-end migration to rename existing "blips" (micr
 
 ### Phase 1: API Route Refactoring
 *   **Bytes:** `/api/blip` → `/api/byte`.
-*   **Blips:** New `/api/blip` endpoints for glossary CRUD.
+*   **Blips:** New `/api/blip` endpoints for dictionary CRUD.
 
 ### Phase 2: CLI Tool (`blipincli`)
 *   **Commands:**
@@ -54,7 +54,7 @@ This document outlines the end-to-end migration to rename existing "blips" (micr
 ### Phase 3: Telegram Bot
 *   **Command Logic:**
     - `/byte <content>`: Creates a new micro-post.
-    - `/blip <term> | <meaning>`: Creates a glossary entry using a pipe delimiter.
+    - `/blip <term> | <meaning>`: Creates a dictionary entry using a pipe delimiter.
 *   **Automation:** Future background process to generate tags based on `term` and `meaning`.
 
 ---
@@ -65,4 +65,4 @@ This document outlines the end-to-end migration to rename existing "blips" (micr
 2.  **UI Renaming:** Run a batch refactor for `Blip` → `Byte` in components and routes.
 3.  **API Implementation:** Set up the new dual-API structure.
 4.  **Integration Update:** Update `blipincli` and the Telegram bot.
-5.  **Verification:** Verify all "Byte" content is preserved and the "Blip" glossary is functional.
+5.  **Verification:** Verify all "Byte" content is preserved and "blip" dictionary is functional.

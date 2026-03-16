@@ -1,7 +1,7 @@
 'use client'
 
 import React from "react";
-import type { Blip } from "@/types/glossary";
+import type { Blip } from "@/types/blip";
 import { cn } from "@/lib/utils";
 import { motion as m } from "framer-motion";
 import { BloqBackground } from "@/app/(pages)/bloq/components/BloqCard/parts";
@@ -49,7 +49,7 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
       animate="rest"
       onClick={openModal}
       className={cn(
-        "relative p-1 sm:p-3 overflow-hidden rounded-md border-l-[1px] border-l-blue-500 !border-l-solid cursor-pointer",
+        "relative p-1 sm:p-3 min-h-32 flex items-center overflow-hidden rounded-md border-l-[1px] border-l-blue-500 !border-l-solid cursor-pointer",
         className
       )}
     >
@@ -66,16 +66,16 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
           <span className="text-slate-500 dark:text-slate-400 mx-2">—</span>
           <span className="italic text-slate-600 dark:text-slate-300">{blip.meaning}</span>
           {blip.tags && blip.tags.length > 0 && (
-            <div className="flex gap-1 mt-2 flex-wrap">
+            <span className="flex gap-1 mt-2 flex-wrap">
               {blip.tags.map((tag) => (
                 <span 
                   key={tag} 
-                  className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                  className="text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                 >
                   {tag}
                 </span>
               ))}
-            </div>
+            </span>
           )}
           <span className="inline-flex items-center gap-2 ml-2 align-middle">
             <time className="text-xs text-slate-400 dark:text-slate-600 whitespace-nowrap">

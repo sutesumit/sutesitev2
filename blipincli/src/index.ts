@@ -26,7 +26,7 @@ const program = new Command()
 
 program
   .name('blip')
-  .description('CLI for managing bytes (short thoughts) and blips (term:meaning glossary)')
+  .description('CLI for managing bytes (short thoughts) and blips (term:meaning definitions)')
   .version('1.0.0')
 
 program

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getBlipBySerial, getAdjacentBlips } from '@/lib/glossary';
+import { getBlipBySerial, getAdjacentBlips } from '@/lib/blip';
 import BlipDetail from './components/BlipDetail';
 import { SITE_URL, SITE_NAME } from '@/config/metadata';
 
@@ -17,13 +17,13 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
   const blipUrl = `${SITE_URL}/blip/${blip.blip_serial}`;
 
   return {
-    title: `${blip.term} | blip glossary`,
+    title: `${blip.term} | blip`,
     description: blip.meaning,
     alternates: {
       canonical: blipUrl,
     },
     openGraph: {
-      title: `${blip.term} | blip glossary`,
+      title: `${blip.term} | blip`,
       description: blip.meaning,
       url: blipUrl,
       siteName: SITE_NAME,
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${blip.term} | blip glossary`,
+      title: `${blip.term} | blip`,
       description: blip.meaning,
     },
   };

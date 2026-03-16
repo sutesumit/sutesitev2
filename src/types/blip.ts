@@ -1,10 +1,15 @@
 export type Blip = {
   id: string;
-  content: string;
-  created_at: string;
   blip_serial: string;
+  term: string;
+  meaning: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
 };
 
 export type BlipInput = {
-  content: string;
+  term: string;
+  meaning: string;
+  tags?: string[];
 };

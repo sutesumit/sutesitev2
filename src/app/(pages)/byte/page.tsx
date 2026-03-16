@@ -35,7 +35,7 @@ const BytePage = async (props: Props) => {
         <IntroText />
       </IntroCard>
 
-      <div className="mt-4 mb-4">
+      <div className="mt-2 p-2 blue-border">
         <SearchBar 
           placeholder="Search bytes..." 
           initialValue={searchQuery}

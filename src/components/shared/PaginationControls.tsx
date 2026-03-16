@@ -9,14 +9,36 @@ interface PaginationControlsProps {
   searchQuery?: string;
 }
 
+function getPageNumbers(current: number, total: number): (number | '...')[] {
+  const pages: (number | '...')[] = [];
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1);
+
+    if (current > 3) pages.push('...');
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    if (current < total - 2) pages.push('...');
+
+    pages.push(total);
+  }
+
+  return pages;
+}
+
 export default function PaginationControls({
   pagination,
   basePath,
   searchQuery,
 }: PaginationControlsProps) {
-  const { page, limit, total, totalPages, hasMore } = pagination;
+  const { page, totalPages } = pagination;
 
-  // Don't render if only one page
   if (totalPages <= 1) {
     return null;
   }
@@ -30,41 +52,33 @@ export default function PaginationControls({
     return `${basePath}?${params.toString()}`;
   };
 
-  // Calculate showing range
-  const start = Math.min((page - 1) * limit + 1, total);
-  const end = Math.min(page * limit, total);
+  const pageNumbers = getPageNumbers(page, totalPages);
 
   return (
-    <nav className="flex flex-col items-center gap-2 mt-8" aria-label="Pagination">
-      <div className="text-sm text-muted-foreground">
-        Showing {start} - {end} of {total}
-      </div>
-
-      <div className="flex items-center gap-1">
-        {page > 1 && (
-          <Link
-            href={buildUrl(page - 1)}
-            className="px-3 py-1.5 border rounded-md hover:bg-muted transition-colors"
-            aria-label="Previous page"
+    <nav className="flex items-center justify-center gap-1 mt-2" aria-label="Pagination">
+      {pageNumbers.map((item, index) =>
+        item === '...' ? (
+          <span key={`ellipsis-${index}`} className="px-3 py-1.5 text-muted-foreground">
+            ...
+          </span>
+        ) : item === page ? (
+          <span
+            key={item}
+            className="px-3 py-1.5 blue-border border-blue-600 rounded-md bg-blue-600 transition-colors"
           >
-            ← Prev
-          </Link>
-        )}
-
-        <span className="px-3 py-1.5">
-          {page} / {totalPages}
-        </span>
-
-        {hasMore && (
+            {item}
+          </span>
+        ) : (
           <Link
-            href={buildUrl(page + 1)}
-            className="px-3 py-1.5 border rounded-md hover:bg-muted transition-colors"
-            aria-label="Next page"
+            key={item}
+            href={buildUrl(item)}
+            className="px-3 py-1.5 blue-border rounded-md hover:bg-blue-500/50 transition-colors"
+            aria-label={`Page ${item}`}
           >
-            Next →
+            {item}
           </Link>
-        )}
-      </div>
+        )
+      )}
     </nav>
   );
 }

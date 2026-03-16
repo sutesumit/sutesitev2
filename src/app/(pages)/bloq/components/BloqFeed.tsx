@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BloqPost, PaginationInfo } from '@/lib/bloq';
-import { searchBlogPosts } from '@/lib/search';
 import BloqCard from './BloqCard';
 import FilterPanel from './FilterPanel';
 
@@ -17,6 +16,7 @@ interface BloqFeedProps {
     category?: string;
     tags?: string[];
   };
+  initialSearchQuery?: string;
 }
 
 export default function BloqFeed({ 
@@ -24,84 +24,83 @@ export default function BloqFeed({
   allCategories, 
   allTags,
   pagination,
-  currentFilters 
+  currentFilters,
+  initialSearchQuery = ''
 }: BloqFeedProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  // Initialize state from URL params
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get('category'));
-  const [selectedTags, setSelectedTags] = useState<string[]>(
-    searchParams.get('tags') ? searchParams.get('tags')!.split(',') : []
-  );
+  // Initialize state from props (which come from URL)
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(currentFilters?.category || null);
+  const [selectedTags, setSelectedTags] = useState<string[]>(currentFilters?.tags || []);
 
-  // Sync with server-side filters on initial load
-  useEffect(() => {
-    if (currentFilters?.category) {
-      setSelectedCategory(currentFilters.category);
+  // Debounce ref for search
+  const debouncedSearchRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced URL update for search - prevents excessive URL changes
+  const updateSearchParams = useCallback((query: string) => {
+    if (debouncedSearchRef.current) {
+      clearTimeout(debouncedSearchRef.current);
     }
-    if (currentFilters?.tags) {
-      setSelectedTags(currentFilters.tags);
-    }
-  }, [currentFilters]);
 
-  // Update URL when filters change
+    debouncedSearchRef.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (query) params.set('q', query);
+      if (selectedCategory) params.set('category', selectedCategory);
+      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }, 300);
+  }, [pathname, router, selectedCategory, selectedTags]);
+
+  // Clean up timeout on unmount
   useEffect(() => {
+    return () => {
+      if (debouncedSearchRef.current) {
+        clearTimeout(debouncedSearchRef.current);
+      }
+    };
+  }, []);
+
+  // Handle search input change
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    updateSearchParams(query);
+  };
+
+  // Handle category change
+  const handleCategoryChange = (category: string | null) => {
+    setSelectedCategory(category);
+    
+    // Immediate URL update for category (no debounce needed)
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (category) params.set('category', category);
+    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // Handle tag toggle
+  const handleTagToggle = (tag: string) => {
+    const newTags = selectedTags.includes(tag) 
+      ? selectedTags.filter(t => t !== tag)
+      : [...selectedTags, tag];
+    setSelectedTags(newTags);
+    
+    // Immediate URL update for tags
     const params = new URLSearchParams();
     if (searchQuery) params.set('q', searchQuery);
     if (selectedCategory) params.set('category', selectedCategory);
-    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
-
-    // Use replace to avoid cluttering history, or push to allow back button navigation through filter states
+    if (newTags.length > 0) params.set('tags', newTags.join(','));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [searchQuery, selectedCategory, selectedTags, pathname, router]);
-
-  // Filter posts logic
-  const filteredPosts = useMemo(() => {
-    let results = initialPosts;
-
-    // 1. Filter by Category
-    if (selectedCategory) {
-      results = results.filter(post => 
-        post.category?.toLowerCase() === selectedCategory.toLowerCase()
-      );
-    }
-
-    // 2. Filter by Tags (OR logic - match ANY selected tag)
-    if (selectedTags.length > 0) {
-      results = results.filter(post => 
-        post.tags.some(tag => selectedTags.includes(tag))
-      );
-    }
-
-    // 3. Filter by Search Query (using Fuse.js wrapper from lib/bloq if available, or simple filter)
-    // Note: The searchBlogPosts function in lib/bloq.ts uses Fuse.js
-    if (searchQuery) {
-      results = searchBlogPosts(results, searchQuery);
-    }
-
-    return results;
-  }, [initialPosts, selectedCategory, selectedTags, searchQuery]);
-
-  // Handlers
-  const handleCategoryChange = (category: string | null) => {
-    setSelectedCategory(category);
-  };
-
-  const handleTagToggle = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
   };
 
   const handleClearAll = () => {
     setSearchQuery('');
     setSelectedCategory(null);
     setSelectedTags([]);
+    router.replace(pathname, { scroll: false });
   };
 
   return (
@@ -112,7 +111,7 @@ export default function BloqFeed({
         selectedCategory={selectedCategory}
         selectedTags={selectedTags}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={handleSearchChange}
         onCategoryChange={handleCategoryChange}
         onTagToggle={handleTagToggle}
         onClearAll={handleClearAll}
@@ -120,9 +119,9 @@ export default function BloqFeed({
 
       <div className="flex items-center justify-between mb-1 text-sm text-gray-500">
         {pagination ? (
-          <span>Showing {filteredPosts.length} of {pagination.total} posts</span>
+          <span>Showing {initialPosts.length} of {pagination.total} posts</span>
         ) : (
-          <span>Showing {filteredPosts.length} posts</span>
+          <span>Showing {initialPosts.length} posts</span>
         )}
       </div>
 
@@ -131,13 +130,13 @@ export default function BloqFeed({
         className='all-tiles grid sm:grid-cols-1 grid-cols-1 gap-3'
       >
         <AnimatePresence mode='popLayout'>
-          {filteredPosts.map((post) => (
+          {initialPosts.map((post) => (
             <BloqCard key={post.slug} post={post} />
           ))}
         </AnimatePresence>
       </motion.div>
 
-      {filteredPosts.length === 0 && (
+      {initialPosts.length === 0 && (
         <div className="text-center py-20 text-gray-500">
           <p className="text-lg">No posts found matching your criteria.</p>
           <button 

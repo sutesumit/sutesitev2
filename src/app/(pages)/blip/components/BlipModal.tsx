@@ -4,7 +4,7 @@ import React, { useEffect, useCallback, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion as m, AnimatePresence } from 'framer-motion'
 import { Link, Check, X } from 'lucide-react'
-import type { Blip } from '@/types/glossary'
+import type { Blip } from '@/types/blip'
 import BlipCardContent from './BlipCardContent'
 
 type BlipModalProps = {

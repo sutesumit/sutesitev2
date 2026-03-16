@@ -1,4 +1,4 @@
-import { getBlipBySerial } from "@/lib/glossary";
+import { getBlipBySerial } from "@/lib/blip";
 import { jsonSuccess, notFoundResponse } from "@/lib/api/responses";
 
 export async function GET(

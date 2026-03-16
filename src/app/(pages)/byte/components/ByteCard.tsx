@@ -26,7 +26,7 @@ function formatRelativeTime(dateString: string): string {
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  
+
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -51,12 +51,12 @@ const ByteCard = ({ byte, className }: ByteCardProps) => {
       animate="rest"
       onClick={openModal}
       className={cn(
-        "relative p-1 sm:p-3 overflow-hidden rounded-md border-l-[1px] border-l-blue-500 !border-l-solid cursor-pointer",
+        "relative p-1 sm:p-3 overflow-hidden min-h-32 flex items-center gap-2 rounded-md border-l-[1px] border-l-blue-500 !border-l-solid cursor-pointer",
         className
       )}
     >
       <BloqBackground />
-      
+
       <m.div layout className="flex items-start gap-2">
         <div className="flex items-center justify-end w-10 h-6 shrink-0 border-r-[1px] border-r-blue-500 !border-l-solid opacity-50">
           <span className="text-xs mr-1 !normal-case font-mono font-bold text-slate-500 dark:text-slate-400">
@@ -64,19 +64,21 @@ const ByteCard = ({ byte, className }: ByteCardProps) => {
           </span>
         </div>
         <div className="text-slate-800 dark:text-slate-200 leading-relaxed flex-1">
-          {byte.content}
-          <span className="inline-flex items-center gap-2 ml-2 align-middle">
+          <span className="mr-2">
+            {byte.content}
+          </span>
+          <span className="inline-flex items-center gap-2 align-middle">
             <time className="text-xs text-slate-400 dark:text-slate-600 whitespace-nowrap">
               {formatRelativeTime(byte.created_at)}
             </time>
-<ViewCounter
+            <ViewCounter
               type="byte"
               identifier={byte.byte_serial}
               className="text-xs flex opacity-80"
             />
-            <ClapsCounter 
-              postId={byte.id} 
-              postType="byte" 
+            <ClapsCounter
+              postId={byte.id}
+              postType="byte"
               interactive={true}
               className="text-xs opacity-80"
             />

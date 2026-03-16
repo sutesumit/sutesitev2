@@ -1,5 +1,5 @@
 -- Migration: 003_blip_to_byte_migration
--- Description: Renames blips to bytes, creates new glossary blips, updates functions.
+-- Description: Renames blips to bytes, creates new blips, updates functions.
 
 -- 1. Rename Existing Tables & Columns (Blip -> Byte)
 ALTER TABLE IF EXISTS public.blips RENAME TO bytes;
@@ -96,10 +96,10 @@ CREATE TABLE IF NOT EXISTS public.blips (
 );
 
 -- Sequence for new blips
-CREATE SEQUENCE IF NOT EXISTS public.blip_glossary_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS public.blip_blip_seq START 1;
 
 -- Serial Generator for Glossary Blips
-CREATE OR REPLACE FUNCTION public.generate_blip_glossary_serial()
+CREATE OR REPLACE FUNCTION public.generate_blip_blip_serial()
 RETURNS text
 LANGUAGE plpgsql
 AS $$
@@ -109,7 +109,7 @@ DECLARE
   chars TEXT := '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
   base INT := 62;
 BEGIN
-  SELECT nextval('public.blip_glossary_seq') INTO seq_val;
+  SELECT nextval('public.blip_blip_seq') INTO seq_val;
   
   IF seq_val = 0 THEN
     RETURN '0';
@@ -125,21 +125,21 @@ END;
 $$;
 
 -- Trigger Function for Glossary Serial
-CREATE OR REPLACE FUNCTION public.set_blip_glossary_serial()
+CREATE OR REPLACE FUNCTION public.set_blip_blip_serial()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  NEW.blip_serial := generate_blip_glossary_serial();
+  NEW.blip_serial := generate_blip_blip_serial();
   RETURN NEW;
 END;
 $$;
 
 -- Trigger on Blips
-CREATE TRIGGER trg_set_blip_glossary_serial
+CREATE TRIGGER trg_set_blip_blip_serial
 BEFORE INSERT ON public.blips
 FOR EACH ROW
-EXECUTE FUNCTION public.set_blip_glossary_serial();
+EXECUTE FUNCTION public.set_blip_blip_serial();
 
 -- 4. Security (RLS)
 -- Enable RLS

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Blip } from '@/types/glossary';
+import type { Blip } from '@/types/blip';
 import BlipCardContent from '@/app/(pages)/blip/components/BlipCardContent';
 
 type BlipDetailProps = {

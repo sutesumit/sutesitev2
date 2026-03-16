@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { motion as m, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Undo2 } from 'lucide-react';
-import type { Blip } from '@/types/glossary';
+import type { Blip } from '@/types/blip';
 import { BloqBackground } from '@/app/(pages)/bloq/components/BloqCard/parts';
 import ClapsCounter from '@/components/shared/ClapsCounter';
 

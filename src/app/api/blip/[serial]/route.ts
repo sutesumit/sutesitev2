@@ -1,5 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
-import type { Blip } from "@/types/glossary";
+import type { Blip } from "@/types/blip";
 import { validateApiKey } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse, notFoundResponse } from "@/lib/api/responses";
 

@@ -2,5 +2,6 @@ export {
   getBlips, 
   getBlipBySerial, 
   createBlip,
-  getAdjacentBlips 
+  getAdjacentBlips,
+  getAllBlipTags 
 } from './repository';

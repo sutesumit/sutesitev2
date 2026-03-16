@@ -6,7 +6,6 @@ import DryKeysQuest from '@/games/dry-keys-quest';
 import BloqFeed from './components/BloqFeed';
 import { getBloqPostsPaginated, getAllCategories, getAllTags } from '@/lib/bloq';
 import { SITE_URL, pageMetadata } from '@/config/metadata';
-import SearchBar from '@/components/shared/SearchBar';
 import PaginationControls from '@/components/shared/PaginationControls';
 
 const { bloq } = pageMetadata;
@@ -51,14 +50,6 @@ const page = async (props: Props) => {
         <DryKeysQuest />
         <IntroText />
       </IntroCard>
-
-      <div className="mt-4 mb-4">
-        <SearchBar 
-          placeholder="Search posts..." 
-          initialValue={searchQuery}
-          basePath="/bloq"
-        />
-      </div>
       
       <div className="mt-2">
         <Suspense fallback={<div className="text-center py-10">Loading...</div>}>
@@ -68,6 +59,7 @@ const page = async (props: Props) => {
             allTags={tagsList}
             pagination={pagination}
             currentFilters={{ category, tags: tags || [] }}
+            initialSearchQuery={searchQuery}
           />
         </Suspense>
       </div>

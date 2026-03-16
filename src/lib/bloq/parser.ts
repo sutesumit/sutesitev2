@@ -5,6 +5,7 @@ import type { BloqPost } from './types';
 import { getPostsDirectory, getPostEntries, readPostFile, postFileExists } from './reader';
 import { calculateReadingTime } from './reading-time';
 import { PaginationInfo, createPaginationInfo, normalizePage, normalizeSearchQuery } from '@/types/pagination';
+import { searchBlogPosts } from '@/lib/search';
 
 export function toUrlSafeString(text: string): string {
   return text
@@ -152,14 +153,9 @@ export function getBloqPostsPaginated(
   // Apply filters
   let filtered = allPosts;
   
-  // Search filter
+  // Search filter (using Fuse.js for fuzzy search)
   if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    filtered = filtered.filter(post => 
-      post.title?.toLowerCase().includes(q) || 
-      post.summary?.toLowerCase().includes(q) ||
-      post.content?.toLowerCase().includes(q)
-    );
+    filtered = searchBlogPosts(filtered, searchQuery);
   }
   
   // Category filter

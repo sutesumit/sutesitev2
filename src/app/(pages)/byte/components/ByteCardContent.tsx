@@ -103,7 +103,7 @@ const ByteCardContent = ({
 
   return (
     <>
-      <m.div 
+      <m.div
         className="absolute inset-0 rounded-md overflow-hidden pointer-events-none z-0"
         initial="rest"
         animate={isHovered ? "hover" : "rest"}
@@ -186,7 +186,7 @@ const ByteCardContent = ({
               transition={{ duration: 0.2, ease: 'easeOut' }}
               className="text-xs text-left text-slate-400 dark:text-slate-600 block"
             >
-              <Link 
+              <Link
                 href={`/byte/${byte.byte_serial}`}
                 className="hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
                 onClick={(e) => e.stopPropagation()}
@@ -197,7 +197,7 @@ const ByteCardContent = ({
           </AnimatePresence>
         </div>
         <div className="flex items-center gap-3">
-<ViewCounter
+          <ViewCounter
             type="byte"
             identifier={byte.byte_serial}
             className="text-xs flex opacity-80"
