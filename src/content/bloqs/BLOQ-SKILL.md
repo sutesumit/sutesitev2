@@ -1,6 +1,6 @@
 # Bloq Skill — A Living Writing Practice
 
-> **Last evolved:** 2026-03-14 | **Articles written:** 22 | **Version:** 1.15.0 (2026-03)
+> **Last evolved:** 2026-03-17 | **Articles written:** 23 | **Version:** 1.16.0 (2026-03)
 
 This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
 
@@ -14,6 +14,7 @@ A changelog of what this skill has learned over time.
 |------|---------|---------|--------------|-------------|
 | 2026-03-12 | 1.13.0 | SEO Slug Refactoring | Refactored all 21 bloq slugs to be SEO-friendly; updated frontmatter, directory names, and internal links; added pattern for slug-to-directory sync | Agent |
 | 2026-03-12 | 1.14.0 | Supabase Data Migration | Migrated `bloq_views` and `claps` data to match new SEO slugs; added migration script to project history | Agent |
+| 2026-03-17 | 1.16.0 | The Testing Infrastructure We Have, and the One We Need | Analyzed existing Vitest and Playwright setup; documented 33 tests (26 pass, 7 fail due to stale PaginationControls tests); proposed three-phase roadmap for agentic testing infrastructure including test orchestration, generation, and self-healing capabilities | Agent |
 | 2026-03-14 | 1.15.0 | Where Agents Fail: Lessons from Building Robust Metadata Plans | Analyzed gaps between plan and implementation in metadata project; documented how agent collaborations can fail when optimizing for task completion over outcome; provided framework for building robust plans that survive contact with reality | Human |
 
 ---
