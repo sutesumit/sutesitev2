@@ -41,12 +41,12 @@ export async function getBlips(
 
   // If no search, just get count from regular query
   if (!sanitizedQuery || sanitizedQuery.length < 2) {
-    const countQuery = supabase
+    let countQuery = supabase
       .from("blips")
-      .select("*", { count: 'exact', head: true });
+      .select("*", { count: 'exact' });
     
     if (tags && tags.length > 0) {
-      countQuery.contains('tags', tags);
+      countQuery = countQuery.contains('tags', tags);
     }
     
     const { count } = await countQuery;
