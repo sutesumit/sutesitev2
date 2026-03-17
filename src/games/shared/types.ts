@@ -19,6 +19,8 @@ export interface GamePopupProps {
   onRestart: () => void;
   restartLabel?: string;
   achievement?: GameAchievement;
+  showConfetti?: boolean;
+  hint?: string;
 }
 
 export interface GameState {

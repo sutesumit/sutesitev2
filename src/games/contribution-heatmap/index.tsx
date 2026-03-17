@@ -10,6 +10,8 @@ import GamePopup from "@/games/shared/GamePopup";
 import { useHeatmapGame } from "./hooks/useHeatmapGame";
 import { buildMonthGrid, toKey, densityLevel } from "./utils";
 
+const ACHIEVEMENT_THRESHOLD = 27;
+
 const SYMBOLS = ["\u00A0", "✧", "✲", "✷", "❃", "❁"];
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -85,10 +87,14 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
   const weeks = buildMonthGrid(state.year, state.month);
 
   const achievement = {
-    unlocked: state.isWin,
+    unlocked: state.isWin && state.score > ACHIEVEMENT_THRESHOLD,
     title: "Crystal Master!",
     emoji: "💎",
   };
+
+  const hint = !achievement.unlocked 
+    ? `Collect ${ACHIEVEMENT_THRESHOLD + 1}+ for Crystal Master 💎` 
+    : undefined;
 
   return (
     <>
@@ -248,6 +254,8 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                 onRestart={actions.restart}
                 restartLabel={state.isWin ? "[ Win Again ]" : "[ Try Again ]"}
                 achievement={achievement}
+                showConfetti={achievement.unlocked}
+                hint={hint}
               />
             </div>
 

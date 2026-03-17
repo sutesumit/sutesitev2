@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { HeatmapState, HeatmapStats } from '@/games/shared/types';
 import { findSecondHighestDay } from '@/games/shared/utils';
 
-const WIN_THRESHOLD = 28;
+const WIN_THRESHOLD = 20;
 
 export function useHeatmapGame(externalData: Record<string, number> | null) {
   const [data, setData] = useState<Record<string, number>>(externalData || {});
@@ -41,18 +41,14 @@ export function useHeatmapGame(externalData: Record<string, number> | null) {
     if (isGameOver || revealed.has(day)) return;
 
     if (day === skullDay) {
+      const won = revealed.size >= WIN_THRESHOLD;
       setIsGameOver(true);
-      setIsWin(false);
+      setIsWin(won);
       setIsPlaying(false);
     } else {
       const newRevealed = new Set(revealed);
       newRevealed.add(day);
       setRevealed(newRevealed);
-      if (newRevealed.size >= WIN_THRESHOLD) {
-        setIsGameOver(true);
-        setIsWin(true);
-        setIsPlaying(false);
-      }
     }
   }, [isGameOver, revealed, skullDay]);
 

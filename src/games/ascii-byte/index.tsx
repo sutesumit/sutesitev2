@@ -213,7 +213,6 @@ export default function AsciiByteGame() {
     const currentGrid = gridRef.current;
     let hasChanges = false;
     const newGrid = currentGrid.map((row) => [...row]);
-    const newParticles: ParticleData[] = [];
     let cellsRevealed = 0;
     const newlyRevealedKeys: string[] = [];
 
@@ -225,29 +224,11 @@ export default function AsciiByteGame() {
         newGrid[r][c] = { ...cell, revealed: true };
         cellsRevealed++;
         newlyRevealedKeys.push(key);
-
-        for (let i = 0; i < 7; i++) {
-          newParticles.push({
-            id: ++particleIdRef.current,
-            x: 0,
-            y: 0,
-            color: COLORS[cell.correct].hex,
-          });
-        }
       }
     });
 
     if (hasChanges) {
       setGrid(newGrid);
-
-      if (newParticles.length > 0) {
-        setParticles((prev) => {
-          const combined = [...prev, ...newParticles];
-          return combined.length > MAX_PARTICLES
-            ? combined.slice(combined.length - MAX_PARTICLES)
-            : combined;
-        });
-      }
 
       const lastKey = newlyRevealedKeys[newlyRevealedKeys.length - 1];
       const [lastR, lastC] = lastKey.split(",").map(Number);
@@ -334,6 +315,10 @@ export default function AsciiByteGame() {
     emoji: "⚡",
   };
 
+  const hint = gameState.finished && gameState.elapsed >= 60 
+    ? "So close! Under 60s for Speed Demon ⚡" 
+    : undefined;
+
   return (
     <div className="flex pt-4 container mx-auto flex-col items-center justify-center select-none font-mono">
       {particles.map((p) => (
@@ -377,6 +362,8 @@ export default function AsciiByteGame() {
           score={{ label: "You won in", value: formatTime(gameState.elapsed) }}
           onRestart={restartGame}
           achievement={achievement}
+          showConfetti={achievement.unlocked}
+          hint={hint}
         />
       </div>
 

@@ -15,6 +15,10 @@ const DryKeysQuest = () => {
     emoji: "🏆",
   };
 
+  const hint = isWon && keysWasted > 0 
+    ? "So close! Waste 0 keys for Perfection 🏆" 
+    : undefined;
+
   return (
     <div className="relative w-full flex flex-col justify-center items-center overflow-x-auto overflow-y-hidden lowercase scrollbar-ascii">
       <PhraseReveal guess={guess} />
@@ -33,6 +37,8 @@ const DryKeysQuest = () => {
           score={{ label: "Keys wasted", value: keysWasted }}
           onRestart={() => handleKeyClick('[Esc]')}
           achievement={achievement}
+          showConfetti={achievement.unlocked}
+          hint={hint}
         />
       </div>
     </div>
