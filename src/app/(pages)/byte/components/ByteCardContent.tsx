@@ -20,6 +20,7 @@ type ByteCardContentProps = {
   onNewerClick?: () => void;
   onOlderClick?: () => void;
   renderHeaderRight?: () => React.ReactNode;
+  pageIndex?: number;
 };
 
 export function formatFullDate(dateString: string): string {
@@ -56,6 +57,7 @@ const ByteCardContent = ({
   onNewerClick,
   onOlderClick,
   renderHeaderRight,
+  pageIndex,
 }: ByteCardContentProps) => {
   const NewerButton = newerByte ? (
     onNewerClick ? (
@@ -124,8 +126,17 @@ const ByteCardContent = ({
             className="flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111] overflow-hidden shadow-sm text-xs"
           >
             <div className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
-              <span className="font-bold text-slate-700 dark:text-slate-300">byte</span>
+              <span className="font-bold text-slate-700 dark:text-slate-300">
+                {pageIndex !== undefined ? 'page' : 'byte'}
+              </span>
             </div>
+            {pageIndex !== undefined && (
+              <div className="px-2 py-0.5 bg-white dark:bg-[#0a0a0a] border-r border-slate-200 dark:border-slate-700">
+                <span className="font-mono !normal-case text-slate-600 dark:text-slate-400">
+                  {pageIndex}
+                </span>
+              </div>
+            )}
             <div className="px-2 py-0.5 flex items-center gap-1 bg-white dark:bg-[#0a0a0a]">
               <span className="text-slate-400 dark:text-slate-500 font-sans">#</span>
               <span className="font-mono !normal-case text-slate-600 dark:text-slate-400 tracking-wider">

@@ -10,9 +10,10 @@ import TrackView from '@/components/shared/TrackView'
 
 type ByteModalProps = {
   bytes: Byte[]
+  pageNumber: number
 }
 
-const ByteModal = ({ bytes }: ByteModalProps) => {
+const ByteModal = ({ bytes, pageNumber }: ByteModalProps) => {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -103,6 +104,7 @@ const ByteModal = ({ bytes }: ByteModalProps) => {
               olderByte={olderByte}
               isHovered={isModalHovered}
               direction={direction}
+              pageIndex={pageNumber}
               onNewerClick={goToNewer}
               onOlderClick={goToOlder}
               renderHeaderRight={() => (

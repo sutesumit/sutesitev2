@@ -6,12 +6,14 @@ import { motion as m, AnimatePresence } from 'framer-motion'
 import { Link, Check, X } from 'lucide-react'
 import type { Blip } from '@/types/blip'
 import BlipCardContent from './BlipCardContent'
+import TrackView from '@/components/shared/TrackView'
 
 type BlipModalProps = {
   blips: Blip[]
+  pageNumber: number
 }
 
-const BlipModal = ({ blips }: BlipModalProps) => {
+const BlipModal = ({ blips, pageNumber }: BlipModalProps) => {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -102,6 +104,7 @@ const BlipModal = ({ blips }: BlipModalProps) => {
               olderBlip={olderBlip}
               isHovered={isModalHovered}
               direction={direction}
+              pageIndex={pageNumber}
               onNewerClick={goToNewer}
               onOlderClick={goToOlder}
               renderHeaderRight={() => (
@@ -148,6 +151,7 @@ const BlipModal = ({ blips }: BlipModalProps) => {
                 </div>
               )}
             />
+            <TrackView type="blip" identifier={activeBlip.blip_serial} />
           </m.div>
         </m.div>
       )}

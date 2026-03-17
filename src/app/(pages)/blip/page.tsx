@@ -62,7 +62,7 @@ const BlipPage = async (props: Props) => {
       </div>
 
       <Suspense fallback={null}>
-        <BlipModal blips={blips} />
+        <BlipModal blips={blips} pageNumber={page} />
       </Suspense>
 
       <PaginationControls 

@@ -58,7 +58,7 @@ const BytePage = async (props: Props) => {
       </div>
 
       <Suspense fallback={null}>
-        <ByteModal bytes={bytes} />
+        <ByteModal bytes={bytes} pageNumber={page} />
       </Suspense>
 
       <PaginationControls 

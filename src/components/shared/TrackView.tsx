@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
-type ContentType = 'bloq' | 'byte' | 'project';
+type ContentType = 'bloq' | 'byte' | 'blip' | 'project';
 
 interface TrackViewProps {
     type: ContentType;
@@ -28,6 +28,10 @@ export default function TrackView({ type, identifier }: TrackViewProps) {
     useEffect(() => {
         if (type === 'byte') {
             fetch(`/api/byte/views/${identifier}`, {
+                method: 'POST',
+            }).catch(console.error);
+        } else if (type === 'blip') {
+            fetch(`/api/blip/views/${identifier}`, {
                 method: 'POST',
             }).catch(console.error);
         }

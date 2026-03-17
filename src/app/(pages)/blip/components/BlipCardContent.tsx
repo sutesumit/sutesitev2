@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Undo2 } from 'lucide-react';
 import type { Blip } from '@/types/blip';
 import { BloqBackground } from '@/app/(pages)/bloq/components/BloqCard/parts';
 import ClapsCounter from '@/components/shared/ClapsCounter';
+import ViewCounter from '@/components/shared/ViewCounter';
 
 type BlipCardContentProps = {
   blip: Blip;
@@ -19,6 +20,7 @@ type BlipCardContentProps = {
   onNewerClick?: () => void;
   onOlderClick?: () => void;
   renderHeaderRight?: () => React.ReactNode;
+  pageIndex?: number;
 };
 
 export function formatFullDate(dateString: string): string {
@@ -55,6 +57,7 @@ const BlipCardContent = ({
   onNewerClick,
   onOlderClick,
   renderHeaderRight,
+  pageIndex,
 }: BlipCardContentProps) => {
   const NewerButton = newerBlip ? (
     onNewerClick ? (
@@ -123,8 +126,17 @@ const BlipCardContent = ({
             className="flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111] overflow-hidden shadow-sm text-xs"
           >
             <div className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
-              <span className="font-bold text-slate-700 dark:text-slate-300">blip</span>
+              <span className="font-bold text-slate-700 dark:text-slate-300">
+                {pageIndex !== undefined ? 'page' : 'blip'}
+              </span>
             </div>
+            {pageIndex !== undefined && (
+              <div className="px-2 py-0.5 bg-white dark:bg-[#0a0a0a] border-r border-slate-200 dark:border-slate-700">
+                <span className="font-mono !normal-case text-slate-600 dark:text-slate-400">
+                  {pageIndex}
+                </span>
+              </div>
+            )}
             <div className="px-2 py-0.5 flex items-center gap-1 bg-white dark:bg-[#0a0a0a]">
               <span className="text-slate-400 dark:text-slate-500 font-sans">#</span>
               <span className="font-mono !normal-case text-slate-600 dark:text-slate-400 tracking-wider">
@@ -212,12 +224,19 @@ const BlipCardContent = ({
             </m.time>
           </AnimatePresence>
         </div>
-        <ClapsCounter
-          postId={blip.id}
-          postType="blip"
-          interactive={true}
-          className="text-xs opacity-80"
-        />
+        <div className="flex items-center gap-3">
+          <ViewCounter
+            type="blip"
+            identifier={blip.blip_serial}
+            className="text-xs flex opacity-80"
+          />
+          <ClapsCounter
+            postId={blip.id}
+            postType="blip"
+            interactive={true}
+            className="text-xs opacity-80"
+          />
+        </div>
       </div>
     </>
   );

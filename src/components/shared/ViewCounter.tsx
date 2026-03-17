@@ -4,7 +4,7 @@ import ScrambleText from "@/components/shared/ScrambleText";
 import { Eye, EyeClosed } from "lucide-react";
 import { useState, useEffect } from "react";
 
-type ContentType = 'bloq' | 'byte' | 'project';
+type ContentType = 'bloq' | 'byte' | 'blip' | 'project';
 
 interface ViewCounterProps {
     type: ContentType;
@@ -15,6 +15,7 @@ interface ViewCounterProps {
 const apiPaths: Record<ContentType, (id: string) => string> = {
     bloq: (slug) => `/api/bloq/views/${slug}`,
     byte: (serial) => `/api/byte/views/${serial}`,
+    blip: (serial) => `/api/blip/views/${serial}`,
     project: (slug) => `/api/project/views/${slug}`,
 };
 
