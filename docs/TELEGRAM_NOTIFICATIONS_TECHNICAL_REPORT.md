@@ -151,10 +151,21 @@ Visitor → Website → POST /api/visit → Database (visits table)
 
 **Message Format**:
 ```
-👤 New visitor!
-Location: Mumbai, India
-Source: https://google.com
+👤 👋 returning (3x)
+📍 Mumbai, Maharashtra, India
+💻 Desktop
+🌐 192.168.1.1
+🔗 https://google.com
 ```
+
+**Fields**:
+| Field | Description | Example |
+|-------|-------------|---------|
+| 👤 Status | New or returning visitor with visit count | `👋 returning (3x)` or `✨ new` |
+| 📍 Location | City, Region, Country | `Mumbai, Maharashtra, India` |
+| 💻 Device | Device type parsed from user-agent | `Desktop`, `Mobile`, `Tablet` |
+| 🌐 IP | Visitor's IP address | `192.168.1.1` |
+| 🔗 Source | Referrer or direct | `google.com` or `direct` |
 
 ### 2. Blip Channel Broadcast
 
@@ -333,18 +344,37 @@ X-Key: <BLOQ_API_KEY>
 
 export async function POST(request: Request) {
   const body = await request.json();
+  const userAgent = request.headers.get('user-agent');
+  const deviceType = parseDeviceType(userAgent);
   
-  // Step 2: API inserts visit to database
+  // Step 2: Check if returning visitor and count visits
+  const { data: existingVisits } = await supabase
+    .from('visits')
+    .select('id')
+    .eq('ip', body.ip);
+  
+  const isReturning = (existingVisits?.length ?? 0) > 0;
+  const visitCount = (existingVisits?.length ?? 0) + 1;
+  
+  // Step 3: Insert visit to database
   await supabase.from('visits').insert([visitorData]);
   
-  // Step 3: API calls notifyVisitor() in background
+  // Step 4: API calls notifyVisitor() in background
   const notifyPromise = notifyVisitor(
-    { city: body.city, country: body.country_code, ip: body.ip },
+    { 
+      city: body.city, 
+      country: body.country_code, 
+      region: body.region,
+      ip: body.ip,
+      deviceType,
+      isReturning,
+      visitCount,
+    },
     body.referrer
   );
   notifyPromise.catch((err) => console.error("Visitor notification error:", err));
   
-  // Step 7: Returns response to client
+  // Step 8: Returns response to client
   return NextResponse.json({ ... });
 }
 ```
@@ -377,7 +407,15 @@ export async function shouldNotifyVisitor(visitor: { ip?: string }): Promise<boo
   return timeDiff > MINUTE_1_MS;
 }
 
-export async function notifyVisitor(visitor: { city?: string; country?: string; region?: string; ip?: string }, referrer?: string): Promise<void> {
+export async function notifyVisitor(visitor: { 
+  city?: string; 
+  country?: string; 
+  region?: string; 
+  ip?: string;
+  deviceType?: string;
+  isReturning?: boolean;
+  visitCount?: number;
+}, referrer?: string): Promise<void> {
   // Step 4: Check rate limiting
   const shouldNotify = await shouldNotifyVisitor(visitor);
   if (!shouldNotify) {
@@ -550,9 +588,22 @@ Message templates for all notification types.
 
 **Key Templates**:
 ```typescript
-replies.visitorNotification(visitor, referrer)  // Visitor alerts
+replies.visitorNotification(visitor, referrer)  // Visitor alerts with device, IP, returning status
 replies.channelBlip(serial, content)             // Blip broadcasts
 replies.channelBloq(slug, title, tags)           // Bloq broadcasts
+```
+
+**Visitor Notification Data**:
+```typescript
+visitor: {
+  city?: string;       // "Mumbai"
+  country?: string;    // "India"
+  region?: string;     // "Maharashtra"
+  ip?: string;         // "192.168.1.1"
+  deviceType?: string; // "Desktop" | "Mobile" | "Tablet"
+  isReturning?: boolean;  // true if IP seen before
+  visitCount?: number;    // number of visits from this IP
+}
 ```
 
 ### src/lib/telegram/formatters.ts
@@ -572,8 +623,11 @@ Visit tracking endpoint.
 
 **Responsibilities**:
 - Accept visitor location data
+- Parse device type from user-agent header
+- Check if visitor is returning (by IP lookup)
+- Count total visits from this IP
 - Insert visit to database
-- Trigger background notification
+- Trigger background notification with enriched data
 - Return visitor statistics
 
 ### src/app/api/blip/route.ts

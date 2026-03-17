@@ -5,9 +5,24 @@ import { noStoreHeaders } from "@/lib/api/constants";
 import { jsonError } from "@/lib/api/responses";
 import { notifyVisitor } from "@/lib/telegram/notifications";
 
+function parseDeviceType(userAgent: string | null): string {
+    if (!userAgent) return 'Unknown';
+    
+    const ua = userAgent.toLowerCase();
+    
+    if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
+        if (ua.includes('tablet') || ua.includes('ipad')) return 'Tablet';
+        return 'Mobile';
+    }
+    if (ua.includes('tablet') || ua.includes('ipad')) return 'Tablet';
+    return 'Desktop';
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+        const userAgent = request.headers.get('user-agent');
+        const deviceType = parseDeviceType(userAgent);
 
         const visitorData = body.ip ? {
             ip: body.ip,
@@ -23,12 +38,28 @@ export async function POST(request: Request) {
         } : null;
 
         if (visitorData) {
+            const { data: existingVisits } = await supabase
+                .from('visits')
+                .select('id')
+                .eq('ip', body.ip);
+
+            const isReturning = (existingVisits?.length ?? 0) > 0;
+            const visitCount = (existingVisits?.length ?? 0) + 1;
+
             await supabase
                 .from('visits')
                 .insert([visitorData]);
 
             const notifyPromise = notifyVisitor(
-                { city: body.city, country: body.country_code, ip: body.ip },
+                {
+                    city: body.city,
+                    country: body.country_code,
+                    region: body.region,
+                    ip: body.ip,
+                    deviceType,
+                    isReturning,
+                    visitCount,
+                },
                 body.referrer
             );
             notifyPromise.catch((err) => console.error("Visitor notification error:", err));

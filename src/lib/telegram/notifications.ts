@@ -1,7 +1,15 @@
-import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
+type VisitorInfo = {
+    city?: string;
+    country?: string;
+    region?: string;
+    ip?: string;
+    deviceType?: string;
+    isReturning?: boolean;
+    visitCount?: number;
+};
 
-export async function notifyVisitor(visitor: { city?: string; country?: string; region?: string; ip?: string }, referrer?: string): Promise<void> {
-  console.log("[Telegram] notifyVisitor called", { visitor, referrer });
+export async function notifyVisitor(visitor: VisitorInfo, referrer?: string): Promise<void> {
+    console.log("[Telegram] notifyVisitor called", { visitor, referrer });
 
   const allowedUserIds = process.env.TELEGRAM_ALLOWED_USER_IDS;
   console.log("[Telegram] TELEGRAM_ALLOWED_USER_IDS:", allowedUserIds);

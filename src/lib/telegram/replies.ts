@@ -37,9 +37,27 @@ export const replies = {
     const tagsStr = tags && tags.length > 0 ? `\nTags: ${tags.join(', ')}` : '';
     return `📝 ${title}\n<a href="https://www.sumitsute.com/bloq/${slug}">Read more</a>${tagsStr}`;
   },
-  visitorNotification: (visitor: { city?: string; country?: string; region?: string; ip?: string }, referrer?: string) => {
-    const location = [visitor.city, visitor.country].filter(Boolean).join(', ') || 'Unknown location';
+  visitorNotification: (visitor: { 
+    city?: string; 
+    country?: string; 
+    region?: string; 
+    ip?: string;
+    deviceType?: string;
+    isReturning?: boolean;
+    visitCount?: number;
+  }, referrer?: string) => {
+    const locationParts = [visitor.city, visitor.region, visitor.country].filter(Boolean);
+    const location = locationParts.length > 0 ? locationParts.join(', ') : 'Unknown location';
     const source = referrer || 'direct';
-    return `👤 New visitor!\nLocation: ${location}\nSource: ${source}`;
+    const returning = visitor.isReturning ? '👋 returning' : '✨ new';
+    const countStr = visitor.visitCount && visitor.visitCount > 1 ? ` (${visitor.visitCount}x)` : '';
+    const device = visitor.deviceType || 'Unknown';
+    const ip = visitor.ip || 'Unknown IP';
+    
+    return `👤 <b>${returning}${countStr}</b>
+📍 ${location}
+💻 ${device}
+🌐 <code>${ip}</code>
+🔗 ${source}`;
   },
 } as const;
