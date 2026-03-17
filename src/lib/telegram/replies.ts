@@ -33,4 +33,13 @@ export const replies = {
     "All new blips get broadcast there instantly.",
   channelBlip: (serial: string, content: string) =>
     `🤖: <a href="https://www.sumitsute.com/blip/${serial}">${content}</a>`,
+  channelBloq: (title: string, slug: string, tags?: string[]) => {
+    const tagsStr = tags && tags.length > 0 ? `\nTags: ${tags.join(', ')}` : '';
+    return `📝 ${title}\n<a href="https://www.sumitsute.com/bloq/${slug}">Read more</a>${tagsStr}`;
+  },
+  visitorNotification: (visitor: { city?: string; country?: string; region?: string; ip?: string }, referrer?: string) => {
+    const location = [visitor.city, visitor.country].filter(Boolean).join(', ') || 'Unknown location';
+    const source = referrer || 'direct';
+    return `👤 New visitor!\nLocation: ${location}\nSource: ${source}`;
+  },
 } as const;

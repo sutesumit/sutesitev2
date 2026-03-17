@@ -1,4 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { initBot } from "@/lib/telegram-bot";
+import { replies } from "@/lib/telegram-replies";
 import type { Blip } from "@/types/blip";
 import { validateApiKey } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse } from "@/lib/api/responses";
@@ -39,6 +41,20 @@ export async function POST(req: Request) {
     if (error) {
       console.error("Error creating blip:", error);
       return jsonError("Failed to create blip", 500);
+    }
+
+    const channelId = process.env.TELEGRAM_CHANNEL_ID;
+    if (channelId) {
+      try {
+        const bot = await initBot();
+        await bot.api.sendMessage(
+          channelId,
+          replies.channelBlip(data.blip_serial, `${data.term}: ${data.meaning}`),
+          { parse_mode: "HTML" }
+        );
+      } catch (broadcastError) {
+        console.error("Failed to broadcast to channel:", broadcastError);
+      }
     }
 
     return jsonSuccess({ blip: data as Blip }, 201);

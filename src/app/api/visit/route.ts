@@ -3,28 +3,35 @@ import { supabase } from "@/lib/supabaseClient";
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { noStoreHeaders } from "@/lib/api/constants";
 import { jsonError } from "@/lib/api/responses";
+import { notifyVisitor } from "@/lib/telegram/notifications";
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        if (body.ip) {
+        const visitorData = body.ip ? {
+            ip: body.ip,
+            network: body.network,
+            city: body.city || null,
+            region: body.region || null,
+            country: body.country_code || null,
+            postal: body.postal || null,
+            latitude: body.latitude || null,
+            longitude: body.longitude || null,
+            org: body.org || null,
+            timezone: body.timezone || null,
+        } : null;
+
+        if (visitorData) {
             await supabase
                 .from('visits')
-                .insert([
-                    {
-                        ip: body.ip,
-                        network: body.network,
-                        city: body.city || null,
-                        region: body.region || null,
-                        country: body.country_code || null,
-                        postal: body.postal || null,
-                        latitude: body.latitude || null,
-                        longitude: body.longitude || null,
-                        org: body.org || null,
-                        timezone: body.timezone || null,
-                    }
-                ]);
+                .insert([visitorData]);
+
+            const notifyPromise = notifyVisitor(
+                { city: body.city, country: body.country_code, ip: body.ip },
+                body.referrer
+            );
+            notifyPromise.catch((err) => console.error("Visitor notification error:", err));
         }
 
         const queryClient = await getSupabaseServerClient();

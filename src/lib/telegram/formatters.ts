@@ -9,3 +9,8 @@ export function formatBlip(blip: { blip_serial: string; term: string; meaning: s
   const timeStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   return `<code>${blip.blip_serial}.</code> <b>${blip.term}</b>: ${blip.meaning}\n<i>${timeStr}</i>`;
 }
+
+export function formatBloq(bloq: { title: string; summary?: string; slug: string; tags?: string[]; category?: string }): string {
+  const tagsStr = bloq.tags && bloq.tags.length > 0 ? `Tags: ${bloq.tags.join(', ')}` : '';
+  return `📝 ${bloq.title}\n${bloq.summary || ''}\n<a href="https://www.sumitsute.com/bloq/${bloq.slug}">Read more</a>\n${tagsStr}`;
+}
