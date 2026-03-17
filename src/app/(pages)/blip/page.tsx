@@ -55,7 +55,7 @@ const BlipPage = async (props: Props) => {
         ) : (
           <div className="grid grid-cols-1 gap-2">
             {blips.map((blip) => (
-              <BlipCard key={blip.id} blip={blip} />
+              <BlipCard key={blip.id} blip={blip} pageNumber={page} />
             ))}
           </div>
         )}

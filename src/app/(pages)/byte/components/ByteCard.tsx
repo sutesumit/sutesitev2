@@ -12,6 +12,7 @@ import ViewCounter from "@/components/shared/ViewCounter";
 type ByteCardProps = {
   byte: Byte;
   className?: string;
+  pageNumber?: number;
 };
 
 function formatRelativeTime(dateString: string): string {
@@ -34,11 +35,12 @@ function formatRelativeTime(dateString: string): string {
   }).toLowerCase();
 }
 
-const ByteCard = ({ byte, className }: ByteCardProps) => {
+const ByteCard = ({ byte, className, pageNumber = 1 }: ByteCardProps) => {
   const router = useRouter();
 
   const openModal = () => {
-    router.push(`/byte?byte=${byte.byte_serial}`, { scroll: false });
+    const pageParam = pageNumber > 1 ? `&page=${pageNumber}` : '';
+    router.push(`/byte?byte=${byte.byte_serial}${pageParam}`, { scroll: false });
   };
 
   return (

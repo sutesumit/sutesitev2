@@ -25,8 +25,9 @@ const BlipModal = ({ blips, pageNumber }: BlipModalProps) => {
   const olderBlip = currentIndex >= 0 && currentIndex < blips.length - 1 ? blips[currentIndex + 1] : null
 
   const close = useCallback(() => {
-    router.push('/blip', { scroll: false })
-  }, [router])
+    const pageParam = pageNumber > 1 ? `?page=${pageNumber}` : '';
+    router.push(`/blip${pageParam}`, { scroll: false })
+  }, [router, pageNumber])
 
   const [isCopied, setIsCopied] = useState(false)
   const [isModalHovered, setIsModalHovered] = useState(false)
@@ -44,16 +45,18 @@ const BlipModal = ({ blips, pageNumber }: BlipModalProps) => {
   const goToNewer = useCallback(() => {
     if (newerBlip) {
       setDirection(-1)
-      router.push(`/blip?blip=${newerBlip.blip_serial}`, { scroll: false })
+      const pageParam = pageNumber > 1 ? `&page=${pageNumber}` : '';
+      router.push(`/blip?blip=${newerBlip.blip_serial}${pageParam}`, { scroll: false })
     }
-  }, [newerBlip, router])
+  }, [newerBlip, router, pageNumber])
 
   const goToOlder = useCallback(() => {
     if (olderBlip) {
       setDirection(1)
-      router.push(`/blip?blip=${olderBlip.blip_serial}`, { scroll: false })
+      const pageParam = pageNumber > 1 ? `&page=${pageNumber}` : '';
+      router.push(`/blip?blip=${olderBlip.blip_serial}${pageParam}`, { scroll: false })
     }
-  }, [olderBlip, router])
+  }, [olderBlip, router, pageNumber])
 
   useEffect(() => {
     if (!activeBlip) return

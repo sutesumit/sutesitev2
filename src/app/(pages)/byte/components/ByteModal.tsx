@@ -25,8 +25,9 @@ const ByteModal = ({ bytes, pageNumber }: ByteModalProps) => {
   const olderByte = currentIndex >= 0 && currentIndex < bytes.length - 1 ? bytes[currentIndex + 1] : null
 
   const close = useCallback(() => {
-    router.push('/byte', { scroll: false })
-  }, [router])
+    const pageParam = pageNumber > 1 ? `?page=${pageNumber}` : '';
+    router.push(`/byte${pageParam}`, { scroll: false })
+  }, [router, pageNumber])
 
   const [isCopied, setIsCopied] = useState(false)
   const [isModalHovered, setIsModalHovered] = useState(false)
@@ -44,16 +45,18 @@ const ByteModal = ({ bytes, pageNumber }: ByteModalProps) => {
   const goToNewer = useCallback(() => {
     if (newerByte) {
       setDirection(-1)
-      router.push(`/byte?byte=${newerByte.byte_serial}`, { scroll: false })
+      const pageParam = pageNumber > 1 ? `&page=${pageNumber}` : '';
+      router.push(`/byte?byte=${newerByte.byte_serial}${pageParam}`, { scroll: false })
     }
-  }, [newerByte, router])
+  }, [newerByte, router, pageNumber])
 
   const goToOlder = useCallback(() => {
     if (olderByte) {
       setDirection(1)
-      router.push(`/byte?byte=${olderByte.byte_serial}`, { scroll: false })
+      const pageParam = pageNumber > 1 ? `&page=${pageNumber}` : '';
+      router.push(`/byte?byte=${olderByte.byte_serial}${pageParam}`, { scroll: false })
     }
-  }, [olderByte, router])
+  }, [olderByte, router, pageNumber])
 
   useEffect(() => {
     if (!activeByte) return

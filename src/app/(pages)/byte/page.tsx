@@ -51,7 +51,7 @@ const BytePage = async (props: Props) => {
         ) : (
           <div className="grid grid-cols-1 gap-2">
             {bytes.map((byte) => (
-              <ByteCard key={byte.id} byte={byte} />
+              <ByteCard key={byte.id} byte={byte} pageNumber={page} />
             ))}
           </div>
         )}

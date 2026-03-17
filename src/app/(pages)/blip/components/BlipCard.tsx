@@ -5,11 +5,14 @@ import type { Blip } from "@/types/blip";
 import { cn } from "@/lib/utils";
 import { motion as m } from "framer-motion";
 import { BloqBackground } from "@/app/(pages)/bloq/components/BloqCard/parts";
+import ClapsCounter from "@/components/shared/ClapsCounter";
 import { useRouter } from "next/navigation";
+import ViewCounter from "@/components/shared/ViewCounter";
 
 type BlipCardProps = {
   blip: Blip;
   className?: string;
+  pageNumber?: number;
 };
 
 function formatRelativeTime(dateString: string): string {
@@ -32,11 +35,12 @@ function formatRelativeTime(dateString: string): string {
   }).toLowerCase();
 }
 
-const BlipCard = ({ blip, className }: BlipCardProps) => {
+const BlipCard = ({ blip, className, pageNumber = 1 }: BlipCardProps) => {
   const router = useRouter();
 
   const openModal = () => {
-    router.push(`/blip?blip=${blip.blip_serial}`, { scroll: false });
+    const pageParam = pageNumber > 1 ? `&page=${pageNumber}` : '';
+    router.push(`/blip?blip=${blip.blip_serial}${pageParam}`, { scroll: false });
   };
 
   return (
@@ -81,6 +85,17 @@ const BlipCard = ({ blip, className }: BlipCardProps) => {
             <time className="text-xs text-slate-400 dark:text-slate-600 whitespace-nowrap">
               {formatRelativeTime(blip.created_at)}
             </time>
+            <ViewCounter
+              type="blip"
+              identifier={blip.blip_serial}
+              className="text-xs flex opacity-80"
+            />
+            <ClapsCounter
+              postId={blip.id}
+              postType="blip"
+              interactive={true}
+              className="text-xs opacity-80"
+            />
           </span>
         </div>
       </m.div>
