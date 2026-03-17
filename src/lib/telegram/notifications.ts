@@ -26,18 +26,26 @@ export async function shouldNotifyVisitor(visitor: { ip?: string }): Promise<boo
 }
 
 export async function notifyVisitor(visitor: { city?: string; country?: string; region?: string; ip?: string }, referrer?: string): Promise<void> {
+  console.log("[Telegram] notifyVisitor called", { visitor, referrer });
+
   const allowedUserIds = process.env.TELEGRAM_ALLOWED_USER_IDS;
+  console.log("[Telegram] TELEGRAM_ALLOWED_USER_IDS:", allowedUserIds);
+
   if (!allowedUserIds) {
     return;
   }
 
   const userIds = allowedUserIds.split(',').map(id => id.trim());
   const chatId = userIds[0];
+  console.log("[Telegram] chatId being used:", chatId);
+
   if (!chatId) {
     return;
   }
 
   const shouldNotify = await shouldNotifyVisitor(visitor);
+  console.log("[Telegram] shouldNotify result:", shouldNotify);
+
   if (!shouldNotify) {
     return;
   }
@@ -52,7 +60,8 @@ export async function notifyVisitor(visitor: { city?: string; country?: string; 
       replies.visitorNotification(visitor, referrer),
       { parse_mode: "HTML" }
     );
+    console.log("[Telegram] Notification sent successfully");
   } catch (error) {
-    console.error("Failed to notify owner:", error);
+    console.error("[Telegram] Failed to notify owner:", error);
   }
 }
