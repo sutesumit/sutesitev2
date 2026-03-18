@@ -8,10 +8,9 @@
 4. [Notification Types](#notification-types)
 5. [API Endpoints](#api-endpoints)
 6. [Code Flow](#code-flow)
-7. [Rate Limiting](#rate-limiting)
-8. [Key Files](#key-files)
-9. [Error Handling](#error-handling)
-10. [Testing](#testing)
+7. [Key Files](#key-files)
+8. [Error Handling](#error-handling)
+9. [Testing](#testing)
 
 ---
 
@@ -43,7 +42,7 @@ src/
 │       ├── index.ts                               # Public exports
 │       ├── middleware/
 │       │   └── auth.ts                           # User authentication
-│       ├── notifications.ts                       # Notification logic + rate limiting
+│       ├── notifications.ts                       # Notification logic
 │       ├── replies.ts                             # Message templates
 │       ├── repository.ts                          # Database operations
 │       └── commands/
@@ -141,13 +140,12 @@ Visitor → Website → POST /api/visit → Database (visits table)
                                          ▼
                                    notifyVisitor()
                                          │
-                    ┌────────────────────┼────────────────────┐
-                    ▼                                         ▼
-           Rate Limiting Check                      TELEGRAM_ALLOWED_USER_IDS
-           (1 minute)                                    (User 1)
-                    │                                         │
-                    ▼                                         ▼
-           Allow/Deny                                    Telegram Message
+                                         ▼
+                              TELEGRAM_ALLOWED_USER_IDS
+                                   (First User)
+                                         │
+                                         ▼
+                                Telegram Message
 ```
 
 **Message Format**:
@@ -420,53 +418,23 @@ export async function POST(request: Request) {
 ```
 
 ```typescript
-// Step 4: notifyVisitor checks rate limit (1 min)
+// Step 4: notifyVisitor sends notification
 // File: src/lib/telegram/notifications.ts
 
-const MINUTE_1_MS = 60 * 1000;
-
-export async function shouldNotifyVisitor(visitor: { ip?: string }): Promise<boolean> {
-  const supabase = getSupabaseServerClient();
-  
-  // Get last visit from database
-  const { data } = await supabase
-    .from('visits')
-    .select('created_at')
-    .order('created_at', { ascending: false })
-    .limit(1);
-  
-  if (!data || data.length === 0) {
-    return true; // First visitor ever
-  }
-  
-  const lastVisit = new Date(data[0].created_at);
-  const now = new Date();
-  const timeDiff = now.getTime() - lastVisit.getTime();
-  
-  // Step 4 (continued): Check if enough time has passed
-  return timeDiff > MINUTE_1_MS;
-}
-
-export async function notifyVisitor(visitor: { 
-  city?: string; 
-  country?: string; 
-  region?: string; 
+export async function notifyVisitor(visitor: {
+  city?: string;
+  country?: string;
+  region?: string;
   ip?: string;
   deviceType?: string;
   isReturning?: boolean;
   visitCount?: number;
 }, referrer?: string): Promise<void> {
-  // Step 4: Check rate limiting
-  const shouldNotify = await shouldNotifyVisitor(visitor);
-  if (!shouldNotify) {
-    return; // Skip notification
-  }
-  
   // Step 5: Get first user from TELEGRAM_ALLOWED_USER_IDS
   const allowedUserIds = process.env.TELEGRAM_ALLOWED_USER_IDS;
   const userIds = allowedUserIds.split(',').map(id => id.trim());
   const chatId = userIds[0];
-  
+
   // Step 5 (continued): Send message to user
   const bot = await initBot();
   await bot.api.sendMessage(
@@ -559,68 +527,18 @@ export async function POST(req: Request) {
 
 ---
 
-## Rate Limiting
-
-### Visitor Notifications
-
-**Limit**: One notification per minute (60,000 milliseconds)
-
-**Implementation**:
-```typescript
-// File: src/lib/telegram/notifications.ts
-
-const MINUTE_1_MS = 60 * 1000;
-
-export async function shouldNotifyVisitor(visitor: { ip?: string }): Promise<boolean> {
-  try {
-    const supabase = getSupabaseServerClient();
-    const { data } = await supabase
-      .from('visits')
-      .select('created_at')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (!data || data.length === 0) {
-      return true; // Always notify for first visitor
-    }
-
-    const lastVisit = new Date(data[0].created_at);
-    const now = new Date();
-    const timeDiff = now.getTime() - lastVisit.getTime();
-
-    return timeDiff > MINUTE_1_MS;
-  } catch {
-    return true; // Fail open - notify if rate check fails
-  }
-}
-```
-
-**Behavior**:
-- If there are no previous visits, notification is always sent
-- If the last visit was more than 1 minute ago, notification is sent
-- If the last visit was within 1 minute, notification is skipped
-- If rate limiting check fails, notifications are sent (fail-open pattern)
-
-### Channel Broadcasts
-
-No rate limiting is applied to channel broadcasts. Each blip or bloq creation triggers an immediate broadcast.
-
----
-
 ## Key Files
 
 ### src/lib/telegram/notifications.ts
 
-Core notification logic with rate limiting.
+Core notification logic for visitor alerts.
 
 **Exports**:
-- `shouldNotifyVisitor(visitor)` - Check if visitor notification should be sent
 - `notifyVisitor(visitor, referrer)` - Send visitor notification to owner
 
 **Key Features**:
-- Rate limiting (1 minute between notifications)
-- Fail-open pattern for error handling
 - Uses first user from `TELEGRAM_ALLOWED_USER_IDS`
+- Graceful error handling
 
 ### src/lib/telegram/replies.ts
 
@@ -629,8 +547,8 @@ Message templates for all notification types.
 **Key Templates**:
 ```typescript
 replies.visitorNotification(visitor, referrer)  // Visitor alerts with device, IP, returning status
-replies.channelBlip(serial, content)             // Blip broadcasts
-replies.channelBloq(slug, title, tags)           // Bloq broadcasts
+replies.channelBlip(serial, content)             // Blip/Byte broadcasts
+replies.channelBloq(title, slug, tags)           // Bloq broadcasts
 ```
 
 **Visitor Notification Data**:
@@ -723,7 +641,6 @@ try {
 |----------|----------|
 | Telegram API failure | Log error, continue execution |
 | Database error | Return JSON error with message |
-| Rate limit check fails | Fail open - allow notification |
 | Missing env variables | Gracefully skip operation |
 | Invalid API key | Return 401 unauthorized |
 
@@ -739,7 +656,6 @@ The test suite contains **61 test cases** covering:
 - **Telegram Replies**: 14 tests
 - **Formatters**: 12 tests
 - **Edge Cases**: 14 tests
-- **Rate Limiting**: 4 tests
 - **Error Handling**: 3 tests
 - **Handler Channel Broadcast**: 6 tests
 
@@ -823,21 +739,6 @@ it('should handle Unicode characters in content', () => {
 });
 ```
 
-#### Rate Limiting Tests
-```typescript
-it('should return true for first visitor (no previous visits)', () => {
-  const lastVisitTime = null;
-  const result = !lastVisitTime || (Date.now() - new Date(lastVisitTime).getTime()) > MINUTE_1_MS;
-  expect(result).toBe(true);
-});
-
-it('should return false within 1 minute', () => {
-  const lastVisitTime = new Date(Date.now() - 30 * 1000).toISOString();
-  const result = !lastVisitTime || (Date.now() - new Date(lastVisitTime).getTime()) > MINUTE_1_MS;
-  expect(result).toBe(false);
-});
-```
-
 ---
 
 ## Appendix
@@ -861,7 +762,8 @@ it('should return false within 1 minute', () => {
 | Table | Used By | Description |
 |-------|---------|-------------|
 | `visits` | /api/visit | Visitor tracking |
-| `blips` | /api/blip | Blip storage |
+| `bytes` | bot handlers | Byte storage (short thoughts) |
+| `blips` | /api/blip | Blip storage (term:meaning pairs) |
 | `bloq_views` | /api/bloq | Bloq storage |
 
 ---

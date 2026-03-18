@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         const bot = await initBot();
         await bot.api.sendMessage(
           channelId,
-          replies.channelBloq(data.slug, data.title, data.tags),
+          replies.channelBloq(data.title, data.slug, data.tags),
           { parse_mode: "HTML" }
         );
       } catch (broadcastError) {
