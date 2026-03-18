@@ -16,9 +16,10 @@
 
 ## Overview
 
-The Telegram Notification System provides real-time notifications about website activity through a Telegram bot. It delivers three types of notifications:
+The Telegram Notification System provides real-time notifications about website activity through a Telegram bot. It delivers four types of notifications:
 
 - **Visitor Notifications**: Alerts the site owner when someone visits the website
+- **Byte Channel Broadcasts**: Notifies subscribers when a new byte (short thought) is created
 - **Blip Channel Broadcasts**: Notifies subscribers when a new blip (term:meaning pair) is created
 - **Bloq Channel Broadcasts**: Notifies subscribers when a new bloq (blog article) is published
 
@@ -51,6 +52,8 @@ src/
 │   └── api/
 │       ├── visit/
 │       │   └── route.ts                          # Visit tracking endpoint
+│       ├── byte/
+│       │   └── route.ts                          # Byte CRUD endpoint
 │       ├── blip/
 │       │   └── route.ts                          # Blip CRUD endpoint
 │       └── bloq/
@@ -60,37 +63,41 @@ src/
 ### Component Connection Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           CLIENTS                                        │
-├──────────────────┬──────────────────┬───────────────────────────────────┤
-│   Website       │   Blip API        │   Bloq API                       │
-│   (POST /visit) │   (POST /api/blip)│   (POST /api/bloq)               │
-└────────┬────────┴────────┬──────────┴───────────────┬─────────────────┘
-         │                 │                             │
-         ▼                 ▼                             ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        API LAYER                                         │
-├──────────────────┬──────────────────┬───────────────────────────────────┤
-│ /api/visit       │ /api/blip        │ /api/bloq                        │
-│ route.ts         │ route.ts         │ route.ts                         │
-└────────┬────────┴────────┬──────────┴───────────────┬─────────────────┘
-         │                 │                             │
-         ▼                 ▼                             ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     NOTIFICATION LAYER                                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│  notifyVisitor()           broadcastChannelBlip()   broadcastChannelBloq()│
-│  (notifications.ts)        (blip route.ts)          (bloq route.ts)     │
-└────────┬────────────────────┬────────────────────────┬─────────────────┘
-         │                    │                        │
-         ▼                    ▼                        ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    TELEGRAM BOT LAYER                                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│  initBot() (bot.ts) - Uses Grammy library                               │
-│  - Sends messages to user (TELEGRAM_ALLOWED_USER_IDS)                 │
-│  - Broadcasts to channel (TELEGRAM_CHANNEL_ID)                         │
-└─────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                           CLIENTS                                           │
+├──────────────────┬──────────────────┬──────────────────┬───────────────────┤
+│   Website        │   Byte API       │   Blip API       │   Bloq API       │
+│   (POST /visit)  │   (POST /api/byte)│  (POST /api/blip)│  (POST /api/bloq)│
+└────────┬─────────┴────────┬─────────┴────────┬─────────┴────────┬─────────┘
+         │                  │                  │                  │
+         ▼                  ▼                  ▼                  ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        API LAYER                                            │
+├──────────────────┬──────────────────┬──────────────────┬───────────────────┤
+│ /api/visit       │ /api/byte        │ /api/blip        │ /api/bloq        │
+│ route.ts         │ route.ts         │ route.ts         │ route.ts         │
+└────────┬─────────┴────────┬─────────┴────────┬─────────┴────────┬─────────┘
+         │                  │                  │                  │
+         ▼                  ▼                  ▼                  ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                     NOTIFICATION LAYER                                      │
+├────────────────────────────────────────────────────────────────────────────┤
+│  notifyVisitor()      broadcastChannelByte()  broadcastChannelBlip()       │
+│  (notifications.ts)   (byte route.ts)         (blip route.ts)              │
+│                       (handlers.ts)           (handlers.ts)                 │
+│                                                            ┌───────────────┤
+│                       broadcastChannelBloq()               │               │
+│                       (bloq route.ts)                      │               │
+└────────┬─────────────────────┬──────────────────┬──────────┴───────────────┘
+         │                     │                  │
+         ▼                     ▼                  ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                    TELEGRAM BOT LAYER                                       │
+├────────────────────────────────────────────────────────────────────────────┤
+│  initBot() (bot.ts) - Uses Grammy library                                  │
+│  - Sends messages to user (TELEGRAM_ALLOWED_USER_IDS)                    │
+│  - Broadcasts to channel (TELEGRAM_CHANNEL_ID)                            │
+└────────────────────────────────────────────────────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -166,11 +173,64 @@ Visitor → Website → POST /api/visit → Database (visits table)
 | 🌐 IP | Visitor's IP address | `192.168.1.1` |
 | 🔗 Source | Referrer or direct | `google.com` or `direct` |
 
-### 2. Blip Channel Broadcast
+### 2. Byte Channel Broadcast
+
+**Trigger**: When a byte is created via POST `/api/byte` or via Telegram bot `/byte` command or direct message
+
+**API Flow**:
+```
+Client → POST /api/byte → Validate API Key
+                              │
+                              ▼
+                         Database (bytes table)
+                              │
+                              ▼
+                    TELEGRAM_CHANNEL_ID
+                              │
+                              ▼
+                    Channel Message
+```
+
+**Bot Command Flow**:
+```
+Telegram User → /byte content → handleByte()
+                                      │
+                                      ▼
+                                 Database (bytes table)
+                                      │
+                                      ▼
+                               TELEGRAM_CHANNEL_ID
+                                      │
+                                      ▼
+                               Channel Message
+```
+
+**Direct Message Flow**:
+```
+Telegram User → any text → handleMessage()
+                                  │
+                                  ▼
+                           Database (bytes table)
+                                  │
+                                  ▼
+                          TELEGRAM_CHANNEL_ID
+                                  │
+                                  ▼
+                          Channel Message
+```
+
+**Message Format**:
+```
+🤖: <a href="https://www.sumitsute.com/blip/001">Test byte content</a>
+```
+
+**Note**: Bytes are stored in the `bytes` table but displayed at `/blip/{serial}` URL.
+
+### 3. Blip Channel Broadcast
 
 **Trigger**: When a blip is created via POST `/api/blip` or via Telegram bot `/blip` command
 
-**Flow**:
+**API Flow**:
 ```
 Client → POST /api/blip → Validate API Key
                               │
@@ -203,32 +263,7 @@ Telegram User → /blip term:meaning → handleBlip()
 🤖: <a href="https://www.sumitsute.com/blip/001">API: Application Programming Interface</a>
 ```
 
-### 2b. Byte Channel Broadcast
-
-**Trigger**: When a byte is created via Telegram bot `/byte` command or direct message
-
-**Flow**:
-```
-Telegram User → /byte content → handleByte()
-                                      │
-                                      ▼
-                                 Database (bytes table)
-                                      │
-                                      ▼
-                               TELEGRAM_CHANNEL_ID
-                                      │
-                                      ▼
-                               Channel Message
-```
-
-**Message Format**:
-```
-🤖: <a href="https://www.sumitsute.com/blip/001">Test byte content</a>
-```
-
-**Note**: Bytes are stored in the `bytes` table but displayed at `/blip/{serial}` URL.
-
-### 3. Bloq Channel Broadcast
+### 4. Bloq Channel Broadcast
 
 **Trigger**: When a bloq is published via POST `/api/bloq`
 
