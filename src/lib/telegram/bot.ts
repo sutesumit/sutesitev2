@@ -33,8 +33,8 @@ export async function initBot(): Promise<Bot<MyContext>> {
   await botInstance.api.setMyCommands([...BOT_COMMANDS]);
 
   botInstance.command("start", handleStart);
-  botInstance.command("byte", handleByte);
-  botInstance.command("blip", handleBlip);
+  botInstance.command("byte", (ctx) => handleByte(ctx, botInstance!));
+  botInstance.command("blip", (ctx) => handleBlip(ctx, botInstance!));
   botInstance.command("list", handleList);
   botInstance.command("get", handleGet);
   botInstance.command("edit", handleEdit);

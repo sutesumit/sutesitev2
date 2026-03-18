@@ -36,7 +36,8 @@ src/
 ├── lib/
 │   └── telegram/
 │       ├── __tests__/
-│       │   └── telegram-notifications.test.ts    # 55 test cases
+│       │   ├── telegram-notifications.test.ts    # 55 test cases
+│       │   └── handlers.test.ts                  # 6 test cases for channel broadcast
 │       ├── bot.ts                                 # Bot initialization
 │       ├── formatters.ts                          # Message formatting
 │       ├── index.ts                               # Public exports
@@ -46,7 +47,7 @@ src/
 │       ├── replies.ts                             # Message templates
 │       ├── repository.ts                          # Database operations
 │       └── commands/
-│           └── handlers.ts                       # Bot command handlers
+│           └── handlers.ts                       # Bot command handlers (with channel broadcast)
 ├── app/
 │   └── api/
 │       ├── visit/
@@ -169,7 +170,7 @@ Visitor → Website → POST /api/visit → Database (visits table)
 
 ### 2. Blip Channel Broadcast
 
-**Trigger**: When a blip is created via POST `/api/blip`
+**Trigger**: When a blip is created via POST `/api/blip` or via Telegram bot `/blip` command
 
 **Flow**:
 ```
@@ -185,10 +186,49 @@ Client → POST /api/blip → Validate API Key
                     Channel Message
 ```
 
+**Bot Command Flow**:
+```
+Telegram User → /blip term:meaning → handleBlip()
+                                           │
+                                           ▼
+                                      Database (blips table)
+                                           │
+                                           ▼
+                                    TELEGRAM_CHANNEL_ID
+                                           │
+                                           ▼
+                                    Channel Message
+```
+
 **Message Format**:
 ```
 🤖: <a href="https://www.sumitsute.com/blip/001">API: Application Programming Interface</a>
 ```
+
+### 2b. Byte Channel Broadcast
+
+**Trigger**: When a byte is created via Telegram bot `/byte` command or direct message
+
+**Flow**:
+```
+Telegram User → /byte content → handleByte()
+                                      │
+                                      ▼
+                                 Database (bytes table)
+                                      │
+                                      ▼
+                               TELEGRAM_CHANNEL_ID
+                                      │
+                                      ▼
+                               Channel Message
+```
+
+**Message Format**:
+```
+🤖: <a href="https://www.sumitsute.com/blip/001">Test byte content</a>
+```
+
+**Note**: Bytes are stored in the `bytes` table but displayed at `/blip/{serial}` URL.
 
 ### 3. Bloq Channel Broadcast
 
@@ -693,7 +733,7 @@ try {
 
 ### Test Coverage
 
-The test suite contains **55 test cases** covering:
+The test suite contains **61 test cases** covering:
 
 - **Message Formatting**: 22 tests
 - **Telegram Replies**: 14 tests
@@ -701,6 +741,7 @@ The test suite contains **55 test cases** covering:
 - **Edge Cases**: 14 tests
 - **Rate Limiting**: 4 tests
 - **Error Handling**: 3 tests
+- **Handler Channel Broadcast**: 6 tests
 
 ### Running Tests
 
@@ -710,6 +751,43 @@ npm test
 
 # Run telegram tests specifically
 npm test -- telegram
+
+# Run handler broadcast tests
+npm test -- handlers.test.ts
+```
+
+### Handler Broadcast Tests
+
+Tests for channel broadcast behavior in `/byte` and `/blip` commands:
+
+```typescript
+describe('handleByte', () => {
+  it('broadcasts to channel on success', async () => {
+    // Verifies bot.api.sendMessage is called with channel ID
+  });
+
+  it('skips broadcast if no TELEGRAM_CHANNEL_ID', async () => {
+    // Verifies no broadcast when env var is not set
+  });
+
+  it('handles broadcast errors gracefully', async () => {
+    // Verifies errors are logged but don't break the command
+  });
+});
+
+describe('handleBlip', () => {
+  it('broadcasts to channel on success', async () => {
+    // Verifies bot.api.sendMessage is called with channel ID
+  });
+
+  it('includes term:meaning in message', async () => {
+    // Verifies the full term:meaning is in the broadcast
+  });
+
+  it('skips broadcast if no TELEGRAM_CHANNEL_ID', async () => {
+    // Verifies no broadcast when env var is not set
+  });
+});
 ```
 
 ### Test Categories

@@ -14,7 +14,7 @@ export async function handleStart(ctx: Context): Promise<void> {
   await ctx.reply(replies.startIntro);
 }
 
-export async function handleByte(ctx: Context): Promise<void> {
+export async function handleByte(ctx: Context, bot: Bot<Context>): Promise<void> {
   if (!isAllowed(ctx.from?.id ?? 0)) {
     await ctx.reply(replies.unauthorized);
     return;
@@ -35,12 +35,25 @@ export async function handleByte(ctx: Context): Promise<void> {
   try {
     const byte = await createByte(content);
     await ctx.reply(replies.byteCreated(byte.byte_serial), { parse_mode: "HTML" });
+
+    const channelId = process.env.TELEGRAM_CHANNEL_ID;
+    if (channelId) {
+      try {
+        await bot.api.sendMessage(
+          channelId,
+          replies.channelBlip(byte.byte_serial, byte.content),
+          { parse_mode: "HTML" }
+        );
+      } catch (broadcastError) {
+        console.error("Failed to broadcast to channel:", broadcastError);
+      }
+    }
   } catch {
     await ctx.reply(replies.createFailed);
   }
 }
 
-export async function handleBlip(ctx: Context): Promise<void> {
+export async function handleBlip(ctx: Context, bot: Bot<Context>): Promise<void> {
   if (!isAllowed(ctx.from?.id ?? 0)) {
     await ctx.reply(replies.unauthorized);
     return;
@@ -76,6 +89,19 @@ export async function handleBlip(ctx: Context): Promise<void> {
   try {
     const blip = await createBlip(term, meaning);
     await ctx.reply(replies.blipCreated(blip.blip_serial), { parse_mode: "HTML" });
+
+    const channelId = process.env.TELEGRAM_CHANNEL_ID;
+    if (channelId) {
+      try {
+        await bot.api.sendMessage(
+          channelId,
+          replies.channelBlip(blip.blip_serial, `${term}:${meaning}`),
+          { parse_mode: "HTML" }
+        );
+      } catch (broadcastError) {
+        console.error("Failed to broadcast to channel:", broadcastError);
+      }
+    }
   } catch {
     await ctx.reply(replies.createFailed);
   }
