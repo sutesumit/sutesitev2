@@ -6,22 +6,23 @@
 2. [Architecture](#architecture)
 3. [Environment Variables](#environment-variables)
 4. [Notification Types](#notification-types)
-5. [API Endpoints](#api-endpoints)
-6. [Code Flow](#code-flow)
-7. [Key Files](#key-files)
-8. [Error Handling](#error-handling)
-9. [Testing](#testing)
+5. [Bot Initialization](#bot-initialization)
+6. [API Endpoints](#api-endpoints)
+7. [Code Flow](#code-flow)
+8. [Key Files](#key-files)
+9. [Error Handling](#error-handling)
+10. [Testing](#testing)
+11. [Future Scope](#future-scope)
 
 ---
 
 ## Overview
 
-The Telegram Notification System provides real-time notifications about website activity through a Telegram bot. It delivers four types of notifications:
+The Telegram Notification System provides real-time notifications about website activity through a Telegram bot. It delivers three types of notifications:
 
 - **Visitor Notifications**: Alerts the site owner when someone visits the website
 - **Byte Channel Broadcasts**: Notifies subscribers when a new byte (short thought) is created
 - **Blip Channel Broadcasts**: Notifies subscribers when a new blip (term:meaning pair) is created
-- **Bloq Channel Broadcasts**: Notifies subscribers when a new bloq (blog article) is published
 
 The system uses the [Grammy](https://grammy.dev/) library for Telegram Bot API interactions and stores notifications in a Supabase database.
 
@@ -38,12 +39,12 @@ src/
 │       ├── __tests__/
 │       │   ├── telegram-notifications.test.ts    # 55 test cases
 │       │   └── handlers.test.ts                  # 6 test cases for channel broadcast
-│       ├── bot.ts                                 # Bot initialization
+│       ├── bot.ts                                 # Bot initialization (singleton)
 │       ├── formatters.ts                          # Message formatting
 │       ├── index.ts                               # Public exports
 │       ├── middleware/
 │       │   └── auth.ts                           # User authentication
-│       ├── notifications.ts                       # Notification logic
+│       ├── notifications.ts                       # Visitor notification logic
 │       ├── replies.ts                             # Message templates
 │       ├── repository.ts                          # Database operations
 │       └── commands/
@@ -56,8 +57,9 @@ src/
 │       │   └── route.ts                          # Byte CRUD endpoint
 │       ├── blip/
 │       │   └── route.ts                          # Blip CRUD endpoint
-│       └── bloq/
-│           └── route.ts                          # Bloq publish endpoint
+│       └── telegram/
+│           └── webhook/
+│               └── route.ts                      # Telegram webhook endpoint
 ```
 
 ### Component Connection Diagram
@@ -66,16 +68,16 @@ src/
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                           CLIENTS                                           │
 ├──────────────────┬──────────────────┬──────────────────┬───────────────────┤
-│   Website        │   Byte API       │   Blip API       │   Bloq API       │
-│   (POST /visit)  │   (POST /api/byte)│  (POST /api/blip)│  (POST /api/bloq)│
+│   Website        │   Byte API       │   Blip API       │   Telegram       │
+│   (POST /visit)  │   (POST /api/byte)│  (POST /api/blip)│  (Webhook)       │
 └────────┬─────────┴────────┬─────────┴────────┬─────────┴────────┬─────────┘
          │                  │                  │                  │
          ▼                  ▼                  ▼                  ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                        API LAYER                                            │
 ├──────────────────┬──────────────────┬──────────────────┬───────────────────┤
-│ /api/visit       │ /api/byte        │ /api/blip        │ /api/bloq        │
-│ route.ts         │ route.ts         │ route.ts         │ route.ts         │
+│ /api/visit       │ /api/byte        │ /api/blip        │ /api/telegram/   │
+│ route.ts         │ route.ts         │ route.ts         │ webhook/route.ts │
 └────────┬─────────┴────────┬─────────┴────────┬─────────┴────────┬─────────┘
          │                  │                  │                  │
          ▼                  ▼                  ▼                  ▼
@@ -85,10 +87,7 @@ src/
 │  notifyVisitor()      broadcastChannelByte()  broadcastChannelBlip()       │
 │  (notifications.ts)   (byte route.ts)         (blip route.ts)              │
 │                       (handlers.ts)           (handlers.ts)                 │
-│                                                            ┌───────────────┤
-│                       broadcastChannelBloq()               │               │
-│                       (bloq route.ts)                      │               │
-└────────┬─────────────────────┬──────────────────┬──────────┴───────────────┘
+└────────┬─────────────────────┬──────────────────┬───────────────────────────┘
          │                     │                  │
          ▼                     ▼                  ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -97,14 +96,16 @@ src/
 │  initBot() (bot.ts) - Uses Grammy library                                  │
 │  - Sends messages to user (TELEGRAM_ALLOWED_USER_IDS)                    │
 │  - Broadcasts to channel (TELEGRAM_CHANNEL_ID)                            │
+│  - Handles incoming commands via webhook                                   │
 └────────────────────────────────────────────────────────────────────────────┘
          │
          ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      TELEGRAM API                                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│  https://api.telegram.org/bot<token>/sendMessage                        │
-└─────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                      TELEGRAM API                                           │
+├────────────────────────────────────────────────────────────────────────────┤
+│  https://api.telegram.org/bot<token>/sendMessage                           │
+│  https://api.telegram.org/bot<token>/setWebhook                            │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -115,10 +116,7 @@ src/
 |----------|----------|-------------|
 | `TELEGRAM_BOT_TOKEN` | Yes | Bot API token from @BotFather |
 | `TELEGRAM_ALLOWED_USER_IDS` | Yes | Comma-separated list of user IDs that can interact with the bot |
-| `TELEGRAM_CHANNEL_ID` | No | Channel ID for broadcasting blips and bloqs |
-| `BLOQ_API_KEY` | Yes* | API key for publishing bloqs via `/api/bloq` |
-
-*Only required when using the `/api/bloq` endpoint.
+| `TELEGRAM_CHANNEL_ID` | No | Channel ID for broadcasting bytes and blips |
 
 ### Configuration Example
 
@@ -129,7 +127,6 @@ TELEGRAM_ALLOWED_USER_IDS=123456789,987654321
 
 # Optional
 TELEGRAM_CHANNEL_ID=-1001234567890
-BLOQ_API_KEY=your-secure-api-key-here
 ```
 
 ---
@@ -159,7 +156,7 @@ Visitor → Website → POST /api/visit → Database (visits table)
 ```
 👤 👋 returning (3x)
 📍 Mumbai, Maharashtra, India
-💻 Desktop
+💻 iPhone
 🌐 192.168.1.1
 🔗 https://google.com
 ```
@@ -169,9 +166,25 @@ Visitor → Website → POST /api/visit → Database (visits table)
 |-------|-------------|---------|
 | 👤 Status | New or returning visitor with visit count | `👋 returning (3x)` or `✨ new` |
 | 📍 Location | City, Region, Country | `Mumbai, Maharashtra, India` |
-| 💻 Device | Device type parsed from user-agent | `Desktop`, `Mobile`, `Tablet` |
+| 💻 Device | Device type parsed from user-agent | `iPhone`, `Android`, `Windows`, `Mac`, etc. |
 | 🌐 IP | Visitor's IP address | `192.168.1.1` |
 | 🔗 Source | Referrer or direct | `google.com` or `direct` |
+
+**Device Type Parsing**:
+The system parses the User-Agent header to identify specific devices:
+
+| Device | Detection |
+|--------|-----------|
+| `iPhone` | `iphone` in user-agent |
+| `iPad` | `ipad` in user-agent |
+| `Mac` | `macintosh` or `mac os x` in user-agent |
+| `Android` | `android` without tablet indicators |
+| `Android Tablet` | `android` with `tablet` or `tab` |
+| `Windows` | `windows` in user-agent |
+| `Linux` | `linux` in user-agent |
+| `Chromebook` | `cros` or `chromebook` in user-agent |
+| `Mobile` | `mobile` fallback |
+| `Desktop` | Default fallback |
 
 ### 2. Byte Channel Broadcast
 
@@ -263,29 +276,86 @@ Telegram User → /blip term:meaning → handleBlip()
 🤖: <a href="https://www.sumitsute.com/blip/001">API: Application Programming Interface</a>
 ```
 
-### 4. Bloq Channel Broadcast
+---
 
-**Trigger**: When a bloq is published via POST `/api/bloq`
+## Bot Initialization
 
-**Flow**:
-```
-Client → POST /api/bloq → Validate BLOQ_API_KEY
-                              │
-                              ▼
-                         Database (bloq_views table)
-                              │
-                              ▼
-                    TELEGRAM_CHANNEL_ID
-                              │
-                              ▼
-                    Channel Message
+### The `initBot()` Function
+
+The bot uses a **singleton pattern** to ensure only one bot instance exists throughout the application lifecycle.
+
+```typescript
+// File: src/lib/telegram/bot.ts
+
+let botInstance: Bot<MyContext> | null = null;
+
+export async function initBot(): Promise<Bot<MyContext>> {
+  // Return cached instance if it exists
+  if (botInstance) {
+    await botInstance.api.setMyCommands([...BOT_COMMANDS]);
+    return botInstance;
+  }
+
+  // Create new instance (only runs once)
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    throw new Error("TELEGRAM_BOT_TOKEN not configured");
+  }
+
+  botInstance = new Bot<MyContext>(token);
+  await botInstance.init();
+
+  // Register command menu with Telegram
+  await botInstance.api.setMyCommands([...BOT_COMMANDS]);
+
+  // Register command handlers
+  botInstance.command("start", handleStart);
+  botInstance.command("byte", (ctx) => handleByte(ctx, botInstance!));
+  botInstance.command("blip", (ctx) => handleBlip(ctx, botInstance!));
+  botInstance.command("list", handleList);
+  botInstance.command("get", handleGet);
+  botInstance.command("edit", handleEdit);
+  botInstance.command("del", handleDel);
+  
+  // Catch-all for non-command messages
+  botInstance.on("message", (ctx) => handleMessage(ctx, botInstance!));
+
+  return botInstance;
+}
 ```
 
-**Message Format**:
+### Why Singleton?
+
+| Reason | Explanation |
+|--------|-------------|
+| **Handler registration** | Grammy handlers are registered once per instance |
+| **Connection state** | Bot maintains internal state for API calls |
+| **Efficiency** | Avoid recreating the bot on every webhook call |
+| **Consistency** | Same handlers apply to all incoming messages |
+
+### When `initBot()` is Called
+
+1. **Webhook receives message** → `initBot()` → `bot.handleUpdate(update)` → handlers run
+2. **Visitor notification** → `initBot()` → `bot.api.sendMessage()`
+3. **Channel broadcast** → `initBot()` → `bot.api.sendMessage()`
+
+Each call after the first returns the cached `botInstance`.
+
+### Two Modes of Bot Operation
+
+**Mode 1: Outgoing Messages (Your code initiates)**
+```typescript
+// Send notification to user or channel
+const bot = await initBot();
+await bot.api.sendMessage(chatId, "Hello!", { parse_mode: "HTML" });
 ```
-📝 My New Article
-<a href="https://www.sumitsute.com/bloq/my-new-article">Read more</a>
-Tags: react, nextjs
+
+**Mode 2: Incoming Messages (Telegram initiates)**
+```typescript
+// Telegram POSTs to /api/telegram/webhook
+// Your code handles the update
+const bot = await initBot();
+await bot.handleUpdate(update);  // Routes to appropriate handler
 ```
 
 ---
@@ -294,7 +364,7 @@ Tags: react, nextjs
 
 ### POST /api/visit
 
-Track a website visit and optionally notify the owner.
+Track a website visit and notify the owner.
 
 **Request**:
 ```json
@@ -322,6 +392,41 @@ Track a website visit and optionally notify the owner.
 ```
 
 **Authentication**: None (public endpoint)
+
+### POST /api/byte
+
+Create a new byte and broadcast to the channel.
+
+**Headers**:
+```
+K: <api-key>
+# or
+X-Key: <api-key>
+```
+
+**Request**:
+```json
+{
+  "content": "Just had a great idea for a new project"
+}
+```
+
+**Response** (201 Created):
+```json
+{
+  "success": true,
+  "data": {
+    "byte": {
+      "id": "uuid",
+      "byte_serial": "042",
+      "content": "Just had a great idea for a new project",
+      "created_at": "2026-03-18T10:00:00Z"
+    }
+  }
+}
+```
+
+**Authentication**: API key via `K` or `X-Key` header
 
 ### POST /api/blip
 
@@ -362,48 +467,18 @@ X-Key: <api-key>
 
 **Authentication**: API key via `K` or `X-Key` header
 
-### POST /api/bloq
+### POST /api/telegram/webhook
 
-Publish a new bloq and broadcast to the channel.
+Handle incoming messages from Telegram.
 
-**Headers**:
-```
-K: <BLOQ_API_KEY>
-# or
-X-Key: <BLOQ_API_KEY>
-```
+**Request**: Telegram Update object (JSON)
 
-**Request**:
+**Response**:
 ```json
-{
-  "title": "Understanding React Server Components",
-  "slug": "understanding-rsc",
-  "summary": "A deep dive into React Server Components",
-  "tags": ["react", "nextjs", "server-components"],
-  "category": "technology"
-}
+{ "ok": true }
 ```
 
-**Response** (201 Created):
-```json
-{
-  "success": true,
-  "data": {
-    "bloq": {
-      "id": "uuid",
-      "title": "Understanding React Server Components",
-      "slug": "understanding-rsc",
-      "summary": "A deep dive into React Server Components",
-      "tags": ["react", "nextjs", "server-components"],
-      "category": "technology",
-      "created_at": "2026-03-18T10:00:00Z",
-      "updated_at": "2026-03-18T10:00:00Z"
-    }
-  }
-}
-```
-
-**Authentication**: `BLOQ_API_KEY` via `K` or `X-Key` header
+**Authentication**: None (Telegram posts directly)
 
 ---
 
@@ -418,7 +493,7 @@ X-Key: <BLOQ_API_KEY>
 export async function POST(request: Request) {
   const body = await request.json();
   const userAgent = request.headers.get('user-agent');
-  const deviceType = parseDeviceType(userAgent);
+  const deviceType = parseDeviceType(userAgent);  // e.g., "iPhone", "Windows"
   
   // Step 2: Check if returning visitor and count visits
   const { data: existingVisits } = await supabase
@@ -447,7 +522,7 @@ export async function POST(request: Request) {
   );
   notifyPromise.catch((err) => console.error("Visitor notification error:", err));
   
-  // Step 8: Returns response to client
+  // Step 5: Returns response to client
   return NextResponse.json({ ... });
 }
 ```
@@ -465,12 +540,10 @@ export async function notifyVisitor(visitor: {
   isReturning?: boolean;
   visitCount?: number;
 }, referrer?: string): Promise<void> {
-  // Step 5: Get first user from TELEGRAM_ALLOWED_USER_IDS
   const allowedUserIds = process.env.TELEGRAM_ALLOWED_USER_IDS;
   const userIds = allowedUserIds.split(',').map(id => id.trim());
   const chatId = userIds[0];
 
-  // Step 5 (continued): Send message to user
   const bot = await initBot();
   await bot.api.sendMessage(
     chatId,
@@ -519,50 +592,21 @@ export async function POST(req: Request) {
 }
 ```
 
-### Bloq Publishing Flow
-
-```typescript
-// File: src/app/api/bloq/route.ts
-
-export async function POST(req: Request) {
-  // Step a: Validate BLOQ_API_KEY
-  const authHeader = req.headers.get("K") || req.headers.get("X-Key");
-  const expectedKey = process.env.BLOQ_API_KEY;
-  
-  if (!expectedKey || authHeader !== expectedKey) {
-    return unauthorizedResponse();
-  }
-  
-  const body = await req.json();
-  const { title, slug, summary, tags, category } = body;
-  
-  // Step b: Insert to database
-  const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("bloq_views")
-    .insert({ title, slug, summary, tags, category })
-    .select("id, title, slug, summary, tags, category, created_at, updated_at")
-    .single();
-  
-  // Step c: Broadcast to TELEGRAM_CHANNEL_ID
-  const channelId = process.env.TELEGRAM_CHANNEL_ID;
-  if (channelId) {
-    const bot = await initBot();
-    await bot.api.sendMessage(
-      channelId,
-      replies.channelBloq(data.slug, data.title, data.tags),
-      { parse_mode: "HTML" }
-    );
-  }
-  
-  // Step d: Return response
-  return jsonSuccess({ bloq: data }, 201);
-}
-```
-
 ---
 
 ## Key Files
+
+### src/lib/telegram/bot.ts
+
+Bot initialization with singleton pattern.
+
+**Exports**:
+- `initBot()` - Get or create the bot instance
+
+**Key Features**:
+- Singleton pattern for efficiency
+- Registers all command handlers
+- Sets up command menu with Telegram
 
 ### src/lib/telegram/notifications.ts
 
@@ -583,7 +627,6 @@ Message templates for all notification types.
 ```typescript
 replies.visitorNotification(visitor, referrer)  // Visitor alerts with device, IP, returning status
 replies.channelBlip(serial, content)             // Blip/Byte broadcasts
-replies.channelBloq(title, slug, tags)           // Bloq broadcasts
 ```
 
 **Visitor Notification Data**:
@@ -593,7 +636,7 @@ visitor: {
   country?: string;    // "India"
   region?: string;     // "Maharashtra"
   ip?: string;         // "192.168.1.1"
-  deviceType?: string; // "Desktop" | "Mobile" | "Tablet"
+  deviceType?: string; // "iPhone", "Android", "Windows", etc.
   isReturning?: boolean;  // true if IP seen before
   visitCount?: number;    // number of visits from this IP
 }
@@ -607,8 +650,21 @@ Formatting functions for displaying content.
 ```typescript
 formatByte(byte)    // Format a byte for display
 formatBlip(blip)    // Format a blip for display
-formatBloq(bloq)    // Format a bloq for display
 ```
+
+### src/lib/telegram/commands/handlers.ts
+
+Bot command handlers with channel broadcast.
+
+**Handlers**:
+- `handleStart` - Show help
+- `handleByte` - Create byte + broadcast
+- `handleBlip` - Create blip + broadcast
+- `handleList` - List bytes/blips
+- `handleGet` - Get specific item
+- `handleEdit` - Edit item
+- `handleDel` - Delete item
+- `handleMessage` - Catch-all for creating bytes
 
 ### src/app/api/visit/route.ts
 
@@ -633,15 +689,15 @@ Blip CRUD endpoint with broadcasting.
 - Broadcast to Telegram channel
 - Return created blip
 
-### src/app/api/bloq/route.ts
+### src/app/api/byte/route.ts
 
-Bloq publishing endpoint with broadcasting.
+Byte CRUD endpoint with broadcasting.
 
 **Responsibilities**:
-- Validate `BLOQ_API_KEY`
-- Publish bloq to database
+- Validate API key
+- Create byte in database
 - Broadcast to Telegram channel
-- Return published bloq
+- Return created byte
 
 ---
 
@@ -741,38 +797,92 @@ describe('handleBlip', () => {
 });
 ```
 
-### Test Categories
+---
 
-#### Message Formatting Tests
-```typescript
-it('should format blip with serial and content', () => {
-  const result = replies.channelBlip('001', 'Test content');
-  expect(result).toContain('001');
-  expect(result).toContain('Test content');
-});
+## Future Scope
 
-it('should format bloq with tags', () => {
-  const result = replies.channelBloq('Test Title', 'test-slug', ['react', 'nextjs']);
-  expect(result).toContain('react');
-  expect(result).toContain('nextjs');
-});
+### 1. Daily Visitor Digest (Cron Job)
+
+Instead of real-time visitor notifications, send a consolidated daily report.
+
+**Proposed Implementation**:
+- Create `/api/cron/visitor-digest` endpoint
+- Query visits from last 24 hours
+- Send summary message with:
+  - Total visits
+  - Unique visitors
+  - Top locations
+  - Device breakdown
+
+**Message Format**:
+```
+📊 Daily Visitor Digest
+
+👥 47 visits (32 unique)
+
+📍 Top locations:
+  • Mumbai, India (12x)
+  • Delhi, India (8x)
+  • New York, USA (5x)
+
+💻 Devices: 25 iPhone, 12 Windows, 8 Android, 2 Mac
+
+🗓️ Last 24 hours
 ```
 
-#### Edge Case Tests
-```typescript
-it('should handle very long content in channelBlip', () => {
-  const longContent = 'a'.repeat(1000);
-  const result = replies.channelBlip('001', longContent);
-  expect(result).toContain(longContent);
-});
+**Trigger Options**:
+- Vercel Cron Jobs (if deployed on Vercel)
+- GitHub Actions scheduled workflow
+- External cron service (cron-job.org)
 
-it('should handle Unicode characters in content', () => {
-  const content = 'Hello 🌍 世界 مرحبا';
-  const result = replies.channelBlip('001', content);
-  expect(result).toContain('Hello');
-  expect(result).toContain('🌍');
-});
+### 2. Bloq Publication Notification (GitHub Actions)
+
+When a new bloq is published (MDX file added), broadcast to the channel.
+
+**Proposed Implementation**:
+```yaml
+# .github/workflows/notify-bloq.yml
+name: Notify New Bloq
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/content/bloqs/**/index.mdx'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Get new bloq info
+        run: |
+          # Extract bloq metadata from new/modified MDX files
+          # Send Telegram notification via API
 ```
+
+**Message Format**:
+```
+📝 Understanding React Server Components
+<a href="https://www.sumitsute.com/bloq/understanding-rsc">Read more</a>
+Tags: react, nextjs
+```
+
+### 3. CLI Tool for Content Management
+
+A separate command-line interface for managing bytes and blips without Telegram.
+
+**Proposed Features**:
+- `blip "content"` - Create byte
+- `blip "term:meaning"` - Create blip
+- `blips` - List recent items
+- `blip-edit <serial>` - Edit item
+- `blip-del <serial>` - Delete item
+
+**Note**: This is documented in a separate article.
 
 ---
 
@@ -788,18 +898,17 @@ it('should handle Unicode characters in content', () => {
 | Variable | Used By | Description |
 |----------|---------|-------------|
 | `TELEGRAM_BOT_TOKEN` | bot.ts | Bot authentication |
-| `TELEGRAM_ALLOWED_USER_IDS` | notifications.ts | Owner user IDs |
-| `TELEGRAM_CHANNEL_ID` | blip/bloq routes | Broadcast channel |
-| `BLOQ_API_KEY` | bloq route | Bloq publishing auth |
+| `TELEGRAM_ALLOWED_USER_IDS` | notifications.ts, handlers.ts | Owner user IDs |
+| `TELEGRAM_CHANNEL_ID` | byte/blip routes, handlers.ts | Broadcast channel |
 
 ### Database Tables
 
 | Table | Used By | Description |
 |-------|---------|-------------|
 | `visits` | /api/visit | Visitor tracking |
-| `bytes` | bot handlers | Byte storage (short thoughts) |
-| `blips` | /api/blip | Blip storage (term:meaning pairs) |
-| `bloq_views` | /api/bloq | Bloq storage |
+| `bytes` | /api/byte, bot handlers | Byte storage (short thoughts) |
+| `blips` | /api/blip, bot handlers | Blip storage (term:meaning pairs) |
+| `bloq_views` | /api/bloq/views/[slug] | Bloq view counter |
 
 ---
 

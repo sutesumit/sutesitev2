@@ -27,10 +27,6 @@ export const replies = {
     "/get <byte|blip> <serial> – Pull up a specific item\n" +
     "/edit <byte|blip> <serial> <text> – Rewrite history\n" +
     "/del <byte|blip> <serial> – Erase the evidence",
-  subscribeIntro:
-    "Want to catch every blip as it drops?\n\n" +
-    "Join the channel: @blipbotlive\n\n" +
-    "All new blips get broadcast there instantly.",
   channelBlip: (serial: string, content: string) =>
     `🤖: <a href="https://www.sumitsute.com/blip/${serial}">${content}</a>`,
   channelBloq: (title: string, slug: string, tags?: string[]) => {

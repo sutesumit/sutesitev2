@@ -10,11 +10,24 @@ function parseDeviceType(userAgent: string | null): string {
     
     const ua = userAgent.toLowerCase();
     
-    if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
-        if (ua.includes('tablet') || ua.includes('ipad')) return 'Tablet';
-        return 'Mobile';
+    // Apple devices
+    if (ua.includes('ipad')) return 'iPad';
+    if (ua.includes('iphone')) return 'iPhone';
+    if (ua.includes('macintosh') || ua.includes('mac os x')) return 'Mac';
+    
+    // Android devices
+    if (ua.includes('android')) {
+        if (ua.includes('tablet') || ua.includes('tab')) return 'Android Tablet';
+        return 'Android';
     }
-    if (ua.includes('tablet') || ua.includes('ipad')) return 'Tablet';
+    
+    // Desktop OS
+    if (ua.includes('windows')) return 'Windows';
+    if (ua.includes('linux')) return 'Linux';
+    if (ua.includes('cros') || ua.includes('chromebook')) return 'Chromebook';
+    
+    // Fallbacks
+    if (ua.includes('mobile')) return 'Mobile';
     return 'Desktop';
 }
 

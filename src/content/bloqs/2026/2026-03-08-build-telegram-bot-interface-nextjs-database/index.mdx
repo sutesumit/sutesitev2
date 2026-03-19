@@ -1,7 +1,7 @@
 ---
 title: "The Bot That Talks to My Database"
 publishedAt: "2026-03-08"
-summary: "I built two interfaces for posting blips: terminal commands and a Telegram bot. Polling, webhooks, middleware, and now a public channel that broadcasts every new blip."
+summary: "I built a Telegram bot for posting blips. Polling, webhooks, middleware, and a public channel that broadcasts every new byte and blip."
 slug: "build-telegram-bot-interface-nextjs-database"
 tags:
   - typescript
@@ -21,11 +21,9 @@ featured: false
 
 So I have these [blips](/blip). Short posts, 280 characters. Like tweets, but mine. No algorithm. No engagement metrics. No "you might also like." Just thoughts, in order, on a page I own.
 
-Posting one used to mean curl. Terminal. API key. Fine for a robot, annoying for a human on a phone walking to get coffee.
+This article is about the Telegram bot I built to manage them. How it works, what I learned building it.
 
-Now there are two interfaces. Terminal commands for when I'm working and don't need Telegram distractions. And Telegram bot for when I'm already distracted. Same database, same blips, different entry points depending on where I am.
-
-This article is about the Telegram bot. How it works, what I learned building it. The curl stuff is boring. HTTP calls. You know HTTP.
+*Note: I also have a CLI tool for managing bytes and blips from the terminal. That's documented in a separate article. This one focuses purely on the Telegram bot setup.*
 
 ---
 
@@ -390,7 +388,7 @@ Multiple entry points, one broadcast:
 1. **Telegram bot `/byte` command.** Creates byte, then broadcasts.
 2. **Telegram bot direct message.** Creates byte, then broadcasts.
 3. **Telegram bot `/blip` command.** Creates blip, then broadcasts.
-4. **CLI via API route.** Creates blip, then broadcasts.
+4. **API route.** Creates byte or blip, then broadcasts.
 
 Same channel. Same format. Doesn't matter how the item was created.
 
@@ -399,6 +397,25 @@ SCREENSHOT PLACEHOLDER: The @blipbotlive channel showing several broadcasted byt
 */}
 
 The bot needs to be a channel admin with "Post Messages" permission. I learned this the hard way. Items weren't showing up. Checked logs. Nothing. Turns out Telegram silently drops messages from non-admin bots. No error. Just silence.
+
+---
+
+## Visitor Notifications
+
+The bot also notifies me when someone visits my website. Location, device, returning status.
+
+**Message Format**:
+```
+👤 👋 returning (3x)
+📍 Mumbai, Maharashtra, India
+💻 iPhone
+🌐 192.168.1.1
+🔗 google.com
+```
+
+The device type is parsed from the User-Agent header. Instead of generic "Mobile" or "Desktop", I get specific: `iPhone`, `iPad`, `Mac`, `Android`, `Android Tablet`, `Windows`, `Linux`, `Chromebook`.
+
+This helps me understand who's reading without being overwhelmed by raw User-Agent strings.
 
 ---
 
@@ -416,25 +433,11 @@ The bot needs to be a channel admin with "Post Messages" permission. I learned t
 
 ---
 
-## Two Interfaces
-
-There are two ways to post now.
-
-**Terminal.** Curl commands hitting the API directly. `blip "content=thought"` creates one. `blips` lists them. Fast when I'm already in a terminal, which is most of the time when working.
-
-**Telegram.** The bot. Open the app, type, done. Fast when I'm not at a computer. Walking, in bed, at a cafe.
-
-Both hit the same database. Both broadcast to the channel. Both are instant. No switching contexts, no waiting, no friction.
-
-The curl commands live in a separate file. Shell aliases. `blip`, `blips`, `blip-get`, `blip-edit`, `blip-del`. I'm not putting them in this article because they're not interesting. Just HTTP calls with an auth header. That's it. That's the whole thing. Okay fine, the real reason is security.
-
----
-
 ## Why This Matters
 
 The whole point: I can post a thought the moment I form it.
 
-Before: idea strikes → try to remember it → find terminal → remember the curl syntax → craft the command → post. By step 3, the idea might be gone. Or diluted. Or I got distracted by something else. Or I convinced myself it wasn't that good anyway.
+Before: idea strikes → try to remember it → find a way to capture it → forget half of it by the time I'm ready.
 
 Now: idea strikes → open Telegram → type → done. Three seconds. The thought is captured before my brain can talk me out of it.
 
@@ -444,9 +447,50 @@ The bot isn't the point. The bytes aren't the point. The blips aren't the point.
 
 ---
 
+## Future Ideas
+
+### Daily Visitor Digest
+
+Instead of real-time notifications for every visitor, send a consolidated daily report.
+
+```
+📊 Daily Visitor Digest
+
+👥 47 visits (32 unique)
+
+📍 Top locations:
+  • Mumbai, India (12x)
+  • Delhi, India (8x)
+  • New York, USA (5x)
+
+💻 Devices: 25 iPhone, 12 Windows, 8 Android, 2 Mac
+
+🗓️ Last 24 hours
+```
+
+This would reduce notification noise while still keeping me informed. Could be implemented with a cron job or GitHub Actions scheduled workflow.
+
+### Bloq Publication Notifications
+
+When I publish a new bloq (blog article), broadcast to the channel automatically.
+
+Since bloqs are MDX files committed to the repo, a GitHub Action could detect new files and send a notification:
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/content/bloqs/**/index.mdx'
+```
+
+This would make the channel a one-stop feed for all new content: bytes, blips, and bloqs.
+
+---
+
 ## A Note on Security
 
-Both interfaces require auth. The API uses a secret key in a header. The bot uses a whitelist of Telegram user IDs.
+The bot uses a whitelist of Telegram user IDs for auth. The API uses a secret key in a header.
 
 The security model is simple: if you have my phone or my laptop, you can post. If you have neither, you can't.
 
