@@ -1,13 +1,13 @@
 ---
 title: "The Bot That Talks to My Database"
 publishedAt: "2026-03-08"
-summary: "I built a Telegram bot for posting blips. Polling, webhooks, middleware, and a public channel that broadcasts every new byte and blip."
+summary: "I built a Telegram bot for posting bytes and blips from my phone. Webhooks, singleton patterns, and a public channel that broadcasts my thoughts whether I like it or not."
 slug: "build-telegram-bot-interface-nextjs-database"
 tags:
   - typescript
   - backend
   - nextjs
-  - ai
+  - architecture
 authors:
   - Sumit Sute
 category: "Engineering"
@@ -19,164 +19,222 @@ featured: false
 
 > "The best interface is the one you already have open."
 
-So I have these [blips](/blip). Short posts, 280 characters. Like tweets, but mine. No algorithm. No engagement metrics. No "you might also like." Just thoughts, in order, on a page I own.
+So I have these [bytes](/blip). Short thoughts, 280 characters max. Like tweets, but mine. No algorithm deciding what I should see. No "you might also like" suggestions for content I already liked. Just thoughts, in order, on a page I own. The views and claps are there if I want to check them, but they don't define what shows up in anyone's feed.
 
-This article is about the Telegram bot I built to manage them. How it works, what I learned building it.
+And then I have [blips](/blip). Term:meaning pairs. Dictionary entries for concepts I want to remember. Structured knowledge dumps, the kind of thing you'd put in a wiki if you had the patience for wikis.
 
-*Note: I also have a CLI tool for managing bytes and blips from the terminal. That's documented in a separate article. This one focuses purely on the Telegram bot setup.*
+And then there's [bloqs](/bloq). These articles. Longer form. The ones where I pretend I know what I'm talking about. Just like this one.
+
+This bloq piece is about the Telegram bot I built to manage the first two. How it works, the design decisions, the dead ends I walked into face-first.
+
+There's also a CLI tool for managing bytes and blips from the terminal. Shell aliases, curl commands, the whole nerd package. That's documented separately. This article is about the bot, which is for when I'm not feeling particularly nerdy.
 
 ---
 
-## Telegram Bots, Quickly
+## What the Bot Does
 
-You talk to [@BotFather](https://t.me/botfather) on Telegram. Yes, that's a real account. Yes, the name is ridiculous. Send `/newbot`, pick a name, get a token.
+I open Telegram on my phone. I type. Things happen in my database.
 
-That token is your bot's password. Lose it and the bot is orphaned forever. Telegram doesn't do password resets. Parental rights are permanent.
+That's the pitch. The implementation is slightly more involved.
 
-With the token, you call Telegram's API. `sendMessage` to reply. `getUpdates` to fetch messages. It's HTTP. JSON in, JSON out. Nothing fancy, just REST API.
+**Bytes and blips.** I send `/byte trying to center a div using CSS grid and black magic` or `/blip CORS: The browser's way of telling you no, for your own good.`. The bot parses it, stores it, and broadcasts it to a public channel. More on that in a bit.
 
-Bots are peculiar accounts. They won't message you first, they speak only so fast (rate limits), and they mostly listen for commands (the `/` kind). Otherwise, they're just code talking to Telegram's servers and masquerading as a user.
+**Visitor pings.** Someone lands on my site, I get a notification. Where they're from, what device they're using, whether they've been here before. Useful for knowing if anyone actually reads this stuff. Which, spoiler, is usually "yes, three people, and one of them is my mom." Hi mom.
+
+The channel is [@blipbotlive](https://t.me/blipbotlive). Public. Anyone can follow. Every time I post a byte or blip, it shows up there. My inner monologue, now with subscribers. This is either brilliant or deeply concerning. Possibly both.
+
+---
+
+## The Architecture
+
+Here's what we're working with:
+
+```text
+┌───────────────────────────────────────────────────────────────────────────┐
+│                           CLIENTS                                         │
+├──────────────────┬──────────────────┬──────────────────┬──────────────────┤
+│   Website        │   Byte API       │   Blip API       │   Telegram       │
+│   (POST /visit)  │   (POST /byte)   │   (POST /blip)   │   (Webhook)      │
+└────────┬─────────┴────────┬─────────┴────────┬─────────┴────────┬─────────┘
+         │                  │                  │                  │
+         ▼                  ▼                  ▼                  ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                        API LAYER (Next.js App Router)                     │
+├──────────────────┬──────────────────┬──────────────────┬──────────────────┤
+│ /api/visit       │ /api/byte        │ /api/blip        │ /api/telegram/   │
+│ route.ts         │ route.ts         │ route.ts         │ webhook/route.ts │
+└────────┬─────────┴────────┬─────────┴────────┬─────────┴────────┬─────────┘
+         │                  │                  │                  │
+         ▼                  ▼                  ▼                  ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                     NOTIFICATION LAYER                                    │
+├───────────────────────────────────────────────────────────────────────────┤
+│  notifyVisitor()      broadcastChannelByte()  broadcastChannelBlip()      │
+└───────────────────────────────────────────────────────────────────────────┘
+         │                     │                  │
+         ▼                     ▼                  ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    TELEGRAM BOT (Singleton)                               │
+│  initBot() → Returns cached instance or creates new one                   │
+└───────────────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                      TELEGRAM API                                         │
+│  sendMessage, setWebhook, setMyCommands                                   │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+Four entry points. Three notification types. One bot instance. Simple enough that I almost understood it on the first try.
+
+The bot doesn't care where the request comes from. Webhook from Telegram, API call from the website, visitor tracking from the frontend. Same bot, same handlers, same Supabase database sitting in the back, judging my life choices.
+
+---
+
+## The Singleton Pattern
+
+Here's something I got wrong at first. And by "at first" I mean "for longer than I'd like to admit."
+
+Every time a webhook hit my server, I was creating a new bot instance. New Grammy Bot object. New handler registrations. Every. Single. Request.
+
+```typescript
+// What I was doing (embarrassing)
+export async function POST(req: Request) {
+  const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN)
+  bot.command('start', handleStart)
+  bot.command('byte', handleByte)
+  // ... register all handlers again, like a fool ...
+  await bot.handleUpdate(update)
+}
+```
+
+This works. Technically. The bot responds. Messages get processed. But it's wasteful in a way that would make a garbage collector weep.
+
+Grammy handlers are meant to be registered once. The bot maintains internal state for API calls, connection pooling, the works. Recreating it on every webhook is like restarting your Express server for every HTTP request. You wouldn't do that. I did that. For weeks.
+
+Fixed with a singleton:
+
+```typescript
+// src/lib/telegram/bot.ts
+let botInstance: Bot<MyContext> | null = null
+
+export async function initBot(): Promise<Bot<MyContext>> {
+  // Return cached instance if it exists
+  if (botInstance) {
+    await botInstance.api.setMyCommands([...BOT_COMMANDS])
+    return botInstance
+  }
+
+  // Create new instance (only runs once, finally)
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  if (!token) throw new Error("TELEGRAM_BOT_TOKEN not configured")
+
+  botInstance = new Bot<MyContext>(token)
+  await botInstance.init()
+
+  // Register handlers once, like a sane person
+  botInstance.command("start", handleStart)
+  botInstance.command("byte", (ctx) => handleByte(ctx, botInstance!))
+  botInstance.command("blip", (ctx) => handleBlip(ctx, botInstance!))
+  botInstance.command("list", handleList)
+  botInstance.command("get", handleGet)
+  botInstance.command("edit", handleEdit)
+  botInstance.command("del", handleDel)
+  botInstance.on("message", (ctx) => handleMessage(ctx, botInstance!))
+
+  return botInstance
+}
+```
+
+First call creates the bot. Every call after returns the cached instance. The handlers are registered once. My server stops doing unnecessary work. Everyone wins, especially my cloud bill.
+
+Why call `setMyCommands` every time even with the cached instance? The command menu, the thing that pops up when you type `/` in Telegram, is registered with Telegram's servers. If I add a new command, I want it to show up immediately without waiting for a server restart. The call is idempotent, meaning calling it ten times has the same effect as calling it once. No harm in repeating it. Unlike my mistakes.
+
+---
+
+## Two Modes of Operation
+
+The bot does two fundamentally different things. This confused me at first because they feel the same but flow in opposite directions. Like a two-way street where I kept walking into traffic.
+
+**Mode 1: Outgoing.** My code initiates. I want to send a message to someone.
+
+```typescript
+const bot = await initBot()
+await bot.api.sendMessage(chatId, "Hello!", { parse_mode: "HTML" })
+```
+
+This is how visitor notifications work. Someone visits the site, the `/api/visit` route calls `notifyVisitor()`, which gets the bot and sends a message to my Telegram. I'm pushing information out.
+
+**Mode 2: Incoming.** Telegram initiates. Someone messaged the bot.
+
+```typescript
+// Telegram POSTs to /api/telegram/webhook
+const bot = await initBot()
+await bot.handleUpdate(update)  // Routes to the right handler
+```
+
+This is how commands work. I send `/byte hello world` from my phone, Telegram POSTs to my webhook, I hand the update to the bot, grammy routes it to the byte handler. Telegram is pushing information in.
+
+Same bot instance. Different directions. The singleton makes this clean because both modes need the same handlers registered. Whether I'm sending a notification or receiving a command, I call `initBot()` and get the same object. Consistency is nice when it happens by design instead of accident.
 
 ---
 
 ## Polling vs Webhooks
 
-Okay so someone messages your bot. How does your code know?
+Someone messages your bot. How does your code know?
 
-Two ways.
+Two ways. One is annoying. The other requires setup. Pick your poison.
 
 ### Polling
 
-Your code keeps asking: "Any new messages?"
+Your code keeps asking Telegram: "Any new messages? How about now? Now?"
 
 ```text
 You: Anything?
 Telegram: No.
-(wait)
+(wait 1 second)
 You: Anything?
 Telegram: No.
-(wait)
-You: Anything?
-Telegram: No.
-(wait)
+(wait 1 second)
 You: Anything?
 Telegram: YES FINALLY User 123 said "hello".
 ```
 
-It works. It's simple. The downside is you're making calls constantly, even when nobody loves your bot enough to message it. And there's a small delay between when the message arrives and when you ask for it.
+It works. It's simple. The downside is you're making HTTP calls constantly, even when nobody has messaged your bot in three weeks because you forgot to tell anyone it exists. Not that I speak from experience.
 
-Think of it like checking the fridge. You keep opening it, hoping something new appeared. Nothing does. But you check anyway.
+Think of it like checking the fridge. You keep opening it, hoping something new appeared. Nothing did. But you check anyway, because maybe this time there's cake. There's never cake.
 
 ### Webhooks
 
 You give Telegram a URL. When a message arrives, Telegram POSTs to that URL.
 
 ```text
-User sends message → Telegram → POST to your URL → You handle it
+User sends message → Telegram servers → POST /api/telegram/webhook → You handle it
 ```
 
-No polling. No wasted calls. Real-time. Your server sleeps until there's work.
+No polling. No wasted calls. Real-time. Your server sleeps until there's actual work to do.
 
-The catch: your URL needs to be public. Telegram can't POST to `localhost:3000`.
-
-### What Webhooks Actually Are
-
-A webhook is just: someone else's server calling your server.
-
-That's it. It's an HTTP POST request. You expose an endpoint. They hit it when something happens.
-
-You've seen this pattern before:
-
-- **Stripe:** Payment succeeds → POST to your `/webhooks/stripe` endpoint
-- **GitHub:** Push to repo → POST to your `/webhooks/github` endpoint
-- **Slack:** Someone mentions @bot → POST to your `/webhooks/slack` endpoint
-- **Telegram:** Someone messages bot → POST to your `/webhooks/telegram` endpoint
-
-Same pattern. Different services. They all push events to you instead of you pulling from them.
-
-### Rule of Thumb
-
-**Use webhooks when:** You control a server and want real-time updates from external services.
-
-**Use polling when:** You're behind a firewall, don't have a public URL, or the service doesn't support webhooks.
-
-Most production apps use webhooks. Most local development uses polling (or a tunnel like ngrok to fake a public URL).
+The catch: your URL needs to be public and HTTPS. Telegram can't POST to `localhost:3000`. In development, you either use a tunnel like ngrok, or you fall back to polling. Or you deploy to production and debug there like a cowboy. I've done all three.
 
 ### What I Use
 
-Webhooks in production. The bot lives at `/api/telegram/webhook`. Telegram POSTs there.
+Webhooks in production. The bot lives at `/api/telegram/webhook`. Telegram POSTs there whenever someone sends a command.
 
-Polling exists for local dev. Run `npm run bot`, it polls. Useful before you have HTTPS set up. I don't use it anymore.
+I have polling code sitting around for local development. Useful before you have a deployed URL with HTTPS. Don't use it anymore because, well, I have a deployed URL with HTTPS now. Progress.
 
 ---
 
-## Grammy and Middleware
+## The Handler Order Bug
 
-I use [grammy](https://grammy.dev/) for the bot. TypeScript framework. Handles the API plumbing.
-
-You know middleware. Express has it. Redux has it. It's everywhere. A chain of functions, each doing one thing, passing control to the next.
-
-### When Middleware Helps
-
-Cross-cutting concerns. Stuff that applies to multiple handlers:
-
-- Auth (is this user allowed?)
-- Logging (what happened?)
-- Error handling (what broke?)
-- Rate limiting (slow down)
-
-Without middleware, each handler repeats this logic. With middleware, it's centralized. Register once, applies everywhere.
-
-### When Middleware Hurts
-
-Over-abstraction. Not everything needs a chain.
-
-If you have two handlers and they share nothing, middleware is overhead. You're adding complexity for theoretical future flexibility that never arrives.
-
-I've built middleware systems for apps with three routes. Waste of time. The indirection cost more than the duplication would have.
-
-### This Bot
-
-The bot has:
-
-- 7 command handlers (`/start`, `/byte`, `/blip`, `/list`, `/get`, `/edit`, `/del`)
-- 1 message handler (catch-all for creating bytes)
-
-Shared logic: auth check. That's it. Every handler checks if the user ID is whitelisted.
-
-Could I use middleware for this? Yes. Grammy supports it:
-
-```text
-bot.use(authMiddleware)
-bot.command('start', handler)
-bot.on('message', handler)
-```
-
-Did I? No. I put the check in each handler. Seven lines, repeated eight times.
-
-Why? Because the bot is small. The auth check is one line. If it grows to ten handlers, I'll extract it. Until then, explicit is fine. The duplication is visible. The abstraction would hide it.
-
-### The Real Lesson
-
-Middleware isn't good or bad. It's a tradeoff.
-
-**Pros:** DRY, centralized logic, easy to add new cross-cutting concerns.
-**Cons:** Indirection, harder to trace execution, overkill for small apps.
-
-My instinct now: wait for the third duplication. First time: just write it. Second time: copy it. Third time: maybe extract. Often the third time never comes.
-
-### The Order Bug
-
-Grammy runs handlers in registration order. First match wins.
+Grammy runs handlers in registration order. First match wins. This is documented. I did not read the documentation. This is becoming a theme.
 
 I wrote this:
 
 ```typescript
-// Wrong order
+// Wrong order, very wrong
 bot.on('message', async (ctx) => {
   // This catches EVERY message, including /start, /list, etc.
-  const text = ctx.message.text
-  await createByte(text)
+  await createByte(ctx.message.text)
 })
 
 bot.command('start', async (ctx) => {
@@ -187,35 +245,25 @@ bot.command('start', async (ctx) => {
 
 Sent `/start` to the bot. It created a byte with content "/start".
 
-Not what I wanted.
+Not what I wanted. But technically, it did exactly what I told it to do. The computer was right. I was wrong. The classic story.
 
-The `bot.on('message')` handler matches any message. Commands are messages. So `/start` hit the message handler first, got treated as byte content, done. The command handler never saw it.
+The `bot.on('message')` handler matches any message. Commands are messages. So `/start` hit the message handler first, got treated as byte content, done. The command handler never saw it. Ghosted by my own code.
 
 Fixed:
 
 ```typescript
-// Right order
-bot.command('start', async (ctx) => {
-  await ctx.reply('Hello!')
-})
-
-bot.command('list', async (ctx) => {
-  const bytes = await getBytes()
-  await ctx.reply(formatBytes(bytes))
-})
-
+// Right order, finally
+bot.command('start', handleStart)
+bot.command('byte', handleByte)
+bot.command('blip', handleBlip)
 // ... other commands ...
 
-bot.on('message', async (ctx) => {
-  // Now this only catches non-command messages
-  const text = ctx.message.text
-  await createByte(text)
-})
+bot.on('message', handleMessage)  // Catch-all, registered last
 ```
 
 Specific first. Generic last. The catch-all only runs if nothing else matched.
 
-This isn't specific to grammy. Express routes work the same way. So do Redux reducers. So does any system where you register handlers that match patterns. Order matters when multiple patterns could match the same input.
+This isn't specific to grammy. Express routes work the same way. So do Redux reducers. Any system where you register handlers that match patterns has this property. Order matters when multiple patterns could match the same input. Learn this once, apply it everywhere, still forget it occasionally.
 
 ---
 
@@ -223,7 +271,7 @@ This isn't specific to grammy. Express routes work the same way. So do Redux red
 
 The bot doesn't use sessions. At all.
 
-Originally I thought `/edit` would be conversational:
+Originally I thought `/edit` would be conversational, like a little chat:
 
 ```text
 Me: /edit a3
@@ -232,7 +280,7 @@ Me: new thought
 Bot: Updated!
 ```
 
-Two messages. State between them. The bot remembers we're in "edit mode" for byte a3.
+Two messages. State between them. The bot remembers we're in "edit mode" for byte a3. Somewhere in memory, a flag is set. A timeout is ticking. Complexity is accumulating. Bugs are breeding in dark corners.
 
 Then I thought: why?
 
@@ -241,131 +289,63 @@ Me: /edit byte a3 new thought
 Bot: Updated!
 ```
 
-One message. Parse the type, serial, and new content. Done. No state. No memory. No "cancel" command for abandoned edits. No timeout logic. No session cleanup.
+One message. Parse the type, serial, and new content. Done. No state. No memory. No "cancel" command for abandoned edits. No timeout logic. No session cleanup. No bugs where the bot thinks I'm still editing something I forgot about three days ago.
 
-The bot is stateless. Each message is independent. It doesn't remember the previous message. It doesn't care about the next one. It just handles what's in front of it.
+*(Side note: this is exactly how LLM chat interfaces work. When you're talking to an AI, it feels like it "remembers" the conversation. It doesn't. The API is completely stateless. Every time you ask a follow-up question, the app bundles up your entire chat history and sends it again, essentially saying "here is everything we've ever talked about, please pretend you remember this and answer the next question." The AI has the memory of a goldfish; the client just keeps reminding it what happened. My bot just skips the illusion.)*
 
-This is simpler. Whether it's better depends on what you're building. For a CRUD bot posting 280-character thoughts, stateless is the way.
+The bot is stateless. Each message is independent. It doesn't remember the previous message. It doesn't care about the next one. It just handles what's in front of it. A lot like me before coffee.
+
+This is simpler. Whether it's better depends on what you're building. For a CRUD bot posting 280-character thoughts about toast and React Server Components, stateless is absolutely the way. For something more complex, you might need sessions. But start without them. Add complexity when you need it, not before.
 
 ---
 
 ## Auth
 
-The bot is public. If you know the bot's username, you can find it on Telegram. Anyone can send it a message.
+The bot is public. If you know its username, you can find it on Telegram. Anyone can send it a message.
 
-But only whitelisted users get a response.
+But only I get a response.
 
-Telegram sends the user's ID with every message. Can't be faked. I check it against a list:
+Telegram sends the user's ID with every message. Can't be faked, can't be spoofed, it's just there. I check it against an environment variable:
 
 ```text
 TELEGRAM_ALLOWED_USER_IDS=123456789,987654321
 ```
 
-If your ID matches, you're in. If not, "Unauthorized."
+If your ID matches, you're in. If not, "Unauthorized." Cold. Unfeeling. Exactly how auth should be for a personal toy.
 
-No JWT. No OAuth. No login flow. Just: is this number in the list?
+No JWT. No OAuth. No login flow. No "forgot password" emails. Just: is this number in the list?
 
-For a personal bot, this is enough. The bot is public, the API is private.
-
-{/*
-SCREENSHOT PLACEHOLDER: Unauthorized response when non-whitelisted user tries to use the bot
-*/}
-
-### Wait, Aren't Webhooks Public Too?
-
-Yes. The webhook URL (`/api/telegram/webhook`) is public. Anyone could POST to it.
-
-But here's the thing: Telegram signs every webhook request with a secret. You verify the signature before processing.
-
-```text
-POST /api/telegram/webhook
-Header: X-Telegram-Bot-Api-Secret-Token: <secret>
-Body: { "message": { ... } }
-```
-
-You set the secret when you register the webhook. Telegram includes it in every request. You check it on your end. If it doesn't match, you reject the request.
-
-This is how production webhooks work:
-
-- **Stripe:** Signs requests with your webhook secret. You verify the signature.
-- **GitHub:** Sends a hash of the payload with your secret. You verify the hash.
-- **Slack:** Includes a timestamp and signature. You verify both.
-
-The pattern: public URL, private verification. Anyone can knock. Only the right key opens the door.
-
-For this bot, I skipped signature verification. Lazy? Maybe. But the user ID whitelist already gates access. Even if someone forged a Telegram request, they'd need a whitelisted user ID to do anything useful.
+For a personal bot that posts my thoughts to my channel, this is enough. The security model is: if you have my phone, you can post to my blog. If you don't have my phone, you can't. Simple. Probably wrong in seventeen ways I haven't thought of. But simple.
 
 ---
 
 ## The Commands
 
 ```text
-| Command                    | What it does              |
-|----------------------------|----------------------------|
-| `/start`                   | Help text                  |
-| `/byte <content>`          | Create a short thought     |
-| `/blip <term>:<meaning>`   | Create a term:meaning pair |
-| `/list <byte|blip>`        | List recent items          |
-| `/get <byte|blip> <serial>`| Show specific item         |
-| `/edit <byte|blip> <serial> <content>` | Update item    |
-| `/del <byte|blip> <serial>`| Delete item               |
-| any text                   | Create new byte            |
+| Command                              | What it does              |
+|--------------------------------------|---------------------------|
+| `/start`                             | Help text                 |
+| `/byte <content>`                    | Create a short thought    |
+| `/blip <term>:<meaning>`             | Create term:meaning pair  |
+| `/list <byte|blip>`                  | List recent items         |
+| `/get <byte|blip> <serial>`          | Show specific item        |
+| `/edit <byte|blip> <serial> <text>`  | Update item               |
+| `/del <byte|blip> <serial>`          | Delete item               |
+| any text                             | Create new byte           |
 ```
 
-All single-message. No conversations. Stateless.
+Two content types:
 
-There are two content types:
+- **Bytes**: Short thoughts, just text. Created with `/byte` or by sending any message that isn't a command. The catch-all handler turns it into a byte. Lazy? Efficient. Same thing, really.
+- **Blips**: Term:meaning pairs, like dictionary entries. Created with `/blip term:meaning`. Structured knowledge dumps. The kind of thing you'd put in a wiki if you had the patience for wikis. I do not have the patience for wikis.
 
-- **Bytes**: Short thoughts, just text. Created with `/byte` or by sending any message.
-- **Blips**: Term:meaning pairs, like dictionary entries. Created with `/blip term:meaning`.
-
-{/*
-SCREENSHOT PLACEHOLDERS:
-1. /start command showing the help text with all commands listed
-2. Creating a byte with /byte command and the success response
-3. Creating a blip with /blip command showing term:meaning format
-*/}
-
----
-
-## The Menu
-
-Telegram bots can register a command menu. Type `/` and suggestions appear.
-
-```typescript
-await bot.api.setMyCommands([
-  { command: "start", description: "Show help" },
-  { command: "byte", description: "Create a byte (short thought)" },
-  { command: "blip", description: "Create a blip (term:meaning)" },
-  { command: "list", description: "List bytes or blips" },
-  { command: "get", description: "Get a byte or blip" },
-  { command: "edit", description: "Edit a byte or blip" },
-  { command: "del", description: "Delete a byte or blip" },
-])
-```
-
-{/*
-SCREENSHOT PLACEHOLDER: Telegram command menu showing all available commands when typing /
-*/}
-
-One catch: the bot instance is cached across webhook calls. `setMyCommands` only ran on first init. After deploying, the menu didn't appear.
-
-Fixed by calling it on every webhook, cached or not:
-
-```typescript
-if (botInstance) {
-  await botInstance.api.setMyCommands([...])
-  return botInstance
-}
-```
-
-It's idempotent. No harm in calling it repeatedly.
+All single-message. No conversations. Stateless. I type, the bot responds, we move on with our lives.
 
 ---
 
 ## Channel Broadcast
 
-Every new byte and blip gets posted to [@blipbotlive](https://t.me/blipbotlive). A public channel. Anyone can follow.
+Every new byte and blip gets posted to [@blipbotlive](https://t.me/blipbotlive). A public Telegram channel. Anyone can follow. My inner monologue, now with an audience I didn't ask for but secretly wanted.
 
 The broadcast happens right after the item is created:
 
@@ -385,51 +365,40 @@ if (channelId) {
 
 Multiple entry points, one broadcast:
 
-1. **Telegram bot `/byte` command.** Creates byte, then broadcasts.
-2. **Telegram bot direct message.** Creates byte, then broadcasts.
-3. **Telegram bot `/blip` command.** Creates blip, then broadcasts.
-4. **API route.** Creates byte or blip, then broadcasts.
+1. **Telegram bot `/byte` command.** I type `/byte something something`, it creates a byte, then broadcasts.
+2. **Telegram bot direct message.** I just type "something something", the catch-all handler creates a byte, then broadcasts.
+3. **Telegram bot `/blip` command.** I type `/blip API: Application Programming Interface`, it creates a blip, then broadcasts.
+4. **API route.** Something hits `/api/byte` or `/api/blip` directly, it creates the item, then broadcasts.
 
-Same channel. Same format. Doesn't matter how the item was created.
+Same channel. Same format. Doesn't matter how the item was created or who created it. Well, "who" is always me, because auth. But theoretically, if I let other people use this, it would work the same way.
 
-{/*
-SCREENSHOT PLACEHOLDER: The @blipbotlive channel showing several broadcasted bytes and blips with links
-*/}
-
-The bot needs to be a channel admin with "Post Messages" permission. I learned this the hard way. Items weren't showing up. Checked logs. Nothing. Turns out Telegram silently drops messages from non-admin bots. No error. Just silence.
+The bot needs to be a channel admin with "Post Messages" permission. I learned this the hard way. Items weren't showing up in the channel. Checked logs. Nothing. Turns out Telegram silently drops messages from non-admin bots. No error. No warning. Just silence. The bot equivalent of being ignored at a party. I've been there, bot. I've been there.
 
 ---
 
 ## Visitor Notifications
 
-The bot also notifies me when someone visits my website. Location, device, returning status.
+Briefly: when someone visits my site, I get a Telegram message. Location, device type, whether they've been here before. The frontend calls `/api/visit`, the backend sends me a notification.
 
-**Message Format**:
-```
-👤 👋 returning (3x)
-📍 Mumbai, Maharashtra, India
-💻 iPhone
-🌐 192.168.1.1
-🔗 google.com
-```
+I won't bore you with the details. The interesting part is that it exists at all. Most personal sites are ghost towns. You publish something, you have no idea if anyone reads it. Analytics exist, but they're numbers on a dashboard. A notification on my phone feels different. Real. Someone was here. Right now. Reading my words.
 
-The device type is parsed from the User-Agent header. Instead of generic "Mobile" or "Desktop", I get specific: `iPhone`, `iPad`, `Mac`, `Android`, `Android Tablet`, `Windows`, `Linux`, `Chromebook`.
-
-This helps me understand who's reading without being overwhelmed by raw User-Agent strings.
+Is this useful? Sometimes. Is it satisfying? Absolutely. Is it slightly narcissistic? Also yes. But this is my personal site, I'm allowed.
 
 ---
 
 ## What I Learned
 
-**Webhooks over polling for production.** Polling works, but webhooks are cleaner. Your server only wakes up when there's work.
+**Singleton for bot instances.** Grammy handlers are registered once. Don't recreate the bot on every webhook call. Cache it. Your server will thank you. Your cloud bill will thank you.
 
-**Middleware order matters.** Register specific handlers before generic ones. The chain runs in order. Learn this by breaking it once.
+**Webhooks over polling for production.** Polling works, but webhooks are cleaner. Your server only wakes up when there's work. It's the difference between checking your email every 30 seconds and getting a push notification.
 
-**Stateless is simpler.** Sessions add complexity. If you can avoid them, avoid them. `/edit byte a3 text` is one message. No state needed.
+**Handler order matters.** Register specific handlers before generic ones. The chain runs in order. Learn this by breaking it once, like I did, then never forgetting. Or forgetting and breaking it again. Patterns repeat.
 
-**User ID is free auth.** Telegram sends it. Use it. Keep your JWTs for something else.
+**Stateless is simpler.** Sessions add complexity. If you can avoid them, avoid them. `/edit byte a3 new text` is one message. No state needed. No bugs about stale state.
 
-**Bot admins need permissions.** A bot can't post to a channel unless it's an admin with post permissions. Telegram doesn't error. It just drops the message. Check permissions first.
+**User ID is free auth.** Telegram sends it with every message. Use it. Keep your JWTs for something that actually needs them.
+
+**Bot admins need permissions.** A bot can't post to a channel unless it's an admin with post permissions. Telegram doesn't error. It just drops the message. Check permissions before you spend an hour debugging nothing. Ask me how I know.
 
 ---
 
@@ -437,23 +406,29 @@ This helps me understand who's reading without being overwhelmed by raw User-Age
 
 The whole point: I can post a thought the moment I form it.
 
-Before: idea strikes → try to remember it → find a way to capture it → forget half of it by the time I'm ready.
+Before: `idea strikes → try to remember it → find my laptop → open a terminal → remember the curl syntax → craft the command → post`. By step four, the idea is diluted or gone or I've convinced myself it wasn't that good anyway. Self-doubt is faster than typing.
 
-Now: idea strikes → open Telegram → type → done. Three seconds. The thought is captured before my brain can talk me out of it.
+Now: `idea strikes → open Telegram → type → done`. Three seconds. The thought is captured before my brain can talk me out of it.
 
-This is what good tools do. They get out of the way. They reduce the gap between "I have a thought" and "the thought is saved."
+This is what good tools do. They get out of the way. They reduce the gap between "I have a thought" and "the thought is saved." The friction isn't the typing. The friction is everything between the thought and the typing.
 
-The bot isn't the point. The bytes aren't the point. The blips aren't the point. The architecture isn't the point. Capturing thoughts while they're fresh is the point. Everything else is just infrastructure.
+The bot isn't the point. The architecture definitely isn't the point, despite the 2,000 words I just spent obsessing over it. The point is capturing thoughts before they evaporate. The infrastructure is just an elaborate coping mechanism I built because writing actual prose is terrifying, and configuring webhooks feels safe.
 
 ---
 
-## Future Ideas
+## What's Next
+
+The system works. But there's more to build. Always more to build. The curse of being a developer who uses their own tools.
 
 ### Daily Visitor Digest
 
-Instead of real-time notifications for every visitor, send a consolidated daily report.
+Right now, every visitor triggers a notification. Real-time. Instant. Which is great until it isn't.
 
-```
+Some days I get forty visitors. That's forty notifications. My phone buzzes forty times, and I check it forty times like a tragic protagonist waiting for a text back. It's flattering that people read this stuff, but I fundamentally built an anxiety machine that vibrates every time a Google crawler indexes my CSS.
+
+The solution: a daily digest instead of real-time pings.
+
+```text
 📊 Daily Visitor Digest
 
 👥 47 visits (32 unique)
@@ -468,23 +443,144 @@ Instead of real-time notifications for every visitor, send a consolidated daily 
 🗓️ Last 24 hours
 ```
 
-This would reduce notification noise while still keeping me informed. Could be implemented with a cron job or GitHub Actions scheduled workflow.
+One message instead of forty-seven. The signal-to-noise ratio improves dramatically. My sanity improves (marginally).
+
+**How it would work:**
+
+A cron job. Scheduled task. Something that runs at a specific time every day and does a thing.
+
+The implementation would be an API endpoint, say `/api/cron/visitor-digest`, that:
+1. Queries the `visits` table for the last 24 hours
+2. Aggregates by location, device, unique vs returning
+3. Formats a summary message
+4. Sends it via the bot
+
+**Triggering the cron:**
+
+Option A: **Vercel Cron Jobs**. If the site is on Vercel, you can define scheduled functions in `vercel.json`:
+
+```json
+{
+  "crons": [{
+    "path": "/api/cron/visitor-digest",
+    "schedule": "0 9 * * *"
+  }]
+}
+```
+
+Runs at 9 AM UTC every day. Vercel handles the scheduling. Very civilized.
+
+Option B: **GitHub Actions**. A scheduled workflow in the repo:
+
+```yaml
+name: Daily Visitor Digest
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 9 AM UTC daily
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger digest
+        run: curl -X POST https://sumitsute.com/api/cron/visitor-digest
+```
+
+Option C: **External cron service**. cron-job.org, EasyCron, whatever. Point it at the endpoint. Old school but reliable.
+
+The endpoint would need some auth, obviously. A secret header or something. Otherwise anyone could trigger it and I'd get random digests at 3 AM. Which sounds like a feature, but is definitely a bug.
 
 ### Bloq Publication Notifications
 
-When I publish a new bloq (blog article), broadcast to the channel automatically.
+This is the missing piece. Bytes and blips broadcast to the channel. Bloqs, these longer articles, don't.
 
-Since bloqs are MDX files committed to the repo, a GitHub Action could detect new files and send a notification:
+Which is silly. Bloqs are the most substantial content. They should be the first thing to broadcast. Instead, I publish an article and... silence. The channel is quiet. The subscribers are oblivious. It's just a private moment between me and the automated scripts scraping the web. If you're a Googlee web crawler reading this: Hello, bot. Hope you like the CSS.
+
+The challenge: bloqs aren't created through an API. They're MDX files I write in my editor and commit to the repo. No webhook. No bot involved. Just git push and the site rebuilds.
+
+The solution: GitHub Actions.
+
+**How it would work:**
+
+A workflow that triggers on pushes to main, specifically when MDX files in the bloqs directory change:
 
 ```yaml
+# .github/workflows/notify-bloq.yml
+name: Notify New Bloq
+
 on:
   push:
     branches: [main]
     paths:
       - 'src/content/bloqs/**/index.mdx'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need to compare with previous commit
+
+      - name: Detect new bloqs
+        id: detect
+        run: |
+          # Get files added (not modified) in this commit
+          NEW_BLOQS=$(git diff --name-only --diff-filter=A HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
+          echo "bloqs=$NEW_BLOQS" >> $GITHUB_OUTPUT
+
+      - name: Extract frontmatter and notify
+        if: steps.detect.outputs.bloqs != ''
+        run: |
+          for bloq in ${{ steps.detect.outputs.bloqs }}; do
+            # Extract title, slug, tags from frontmatter
+            TITLE=$(grep '^title:' "$bloq" | head -1 | sed 's/title: *//')
+            SLUG=$(grep '^slug:' "$bloq" | head -1 | sed 's/slug: *//')
+            TAGS=$(grep '^tags:' "$bloq" -A 10 | grep '  - ' | sed 's/  - //' | tr '\n' ',' | sed 's/,$//')
+
+            # Send Telegram notification via the API
+            curl -X POST https://sumitsute.com/api/telegram/broadcast \
+              -H "Content-Type: application/json" \
+              -H "X-Webhook-Secret: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" \
+              -d "{\"type\": \"bloq\", \"title\": \"$TITLE\", \"slug\": \"$SLUG\", \"tags\": \"$TAGS\"}"
+          done
 ```
 
-This would make the channel a one-stop feed for all new content: bytes, blips, and bloqs.
+The workflow:
+1. Triggers when MDX files are added to the bloqs directory
+2. Extracts frontmatter from new files (title, slug, tags)
+3. Calls an API endpoint that broadcasts to the Telegram channel
+
+The message format would match the existing style:
+
+```text
+📝 The Bot That Talks to My Database
+<a href="https://www.sumitsute.com/bloq/build-telegram-bot-interface-nextjs-database">Read more</a>
+Tags: typescript, backend, nextjs, architecture
+```
+
+Suddenly the channel becomes a complete feed. Bytes for quick thoughts. Blips for definitions. Bloqs for longer writing. Everything in one place. The dream of a unified content pipeline, achieved through sheer stubbornness.
+
+**Why GitHub Actions and not a webhook?**
+
+Because bloqs don't have a webhook. They're static files. The "event" is a git push. GitHub Actions is the natural place to respond to git events.
+
+Could I add a webhook to my CMS? I don't have a CMS. The files are the CMS. Git is the database. This is simpler than it sounds, and also more complicated than it should be. The best solutions usually are.
+
+### CLI Tool
+
+Already built. Shell aliases that hit the API directly.
+
+```bash
+byte "just had a thought about toast"
+byte ls
+byte get 042
+```
+
+Fast when I'm already in a terminal, which is most of the time when I'm working. The bot is for when I'm not working. Walking, in bed, at a cafe, pretending to have a life.
+
+That's documented separately. Different interface, same database. The whole point is multiple ways in, same data coming out.
 
 ---
 
@@ -492,8 +588,12 @@ This would make the channel a one-stop feed for all new content: bytes, blips, a
 
 The bot uses a whitelist of Telegram user IDs for auth. The API uses a secret key in a header.
 
-The security model is simple: if you have my phone or my laptop, you can post. If you have neither, you can't.
+The security model is: if you have my phone, you can post to my blog. If you have my laptop, you can post to my blog. If you have neither, you can't.
 
-That's it. That's the whole security model. No zero-trust, no defense in depth, no principle of least privilege. Just: physical access to my devices.
+That's it. No zero-trust architecture. No defense in depth. No principle of least privilege. Just physical access to my devices.
 
-Is this enterprise-grade? No. Is it sufficient for a personal microblogging tool? Absolutely.
+Is this enterprise-grade? Absolutely not. An intern could poke holes in it. But this isn't an enterprise. It's a personal blog. The worst case scenario is someone posts "I am a hackerman" to my bytes feed. Embarrassing? Yes. Existentially threatening? No. My reputation can survive a hackerman incident.
+
+Security is about threat modeling. What are you protecting? From whom? At what cost? For a personal microblogging tool, the threat model is "my friends finding my phone unlocked." The solution is "they already know where I live."
+
+Over-engineering security for a personal project is its own kind of failure. You spend more time on auth than on the thing you're building. The bot exists to capture thoughts. Let it capture thoughts. Worry about security when you have something worth stealing.
