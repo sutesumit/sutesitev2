@@ -15,9 +15,10 @@ const BOT_COMMANDS = [
   { command: "del", description: "Delete a byte or blip" },
 ] as const;
 
+export { BOT_COMMANDS };
+
 export async function initBot(): Promise<Bot<MyContext>> {
   if (botInstance) {
-    await botInstance.api.setMyCommands([...BOT_COMMANDS]);
     return botInstance;
   }
 
@@ -29,8 +30,6 @@ export async function initBot(): Promise<Bot<MyContext>> {
   botInstance = new Bot<MyContext>(token);
 
   await botInstance.init();
-
-  await botInstance.api.setMyCommands([...BOT_COMMANDS]);
 
   botInstance.command("start", handleStart);
   botInstance.command("byte", (ctx) => handleByte(ctx, botInstance!));

@@ -21,13 +21,13 @@ featured: false
 
 So I have these [bytes](/blip). Short thoughts, 280 characters max. Like tweets, but mine. No algorithm deciding what I should see. No "you might also like" suggestions for content I already liked. Just thoughts, in order, on a page I own. The views and claps are there if I want to check them, but they don't define what shows up in anyone's feed.
 
-And then I have [blips](/blip). Term:meaning pairs. Dictionary entries for concepts I want to remember. Structured knowledge dumps, the kind of thing you'd put in a wiki if you had the patience for wikis.
+And then I have [blips](/blip). `term:meaning` pairs. Dictionary entries for concepts I want to remember. Structured knowledge dumps, the kind of thing you'd put in a wiki if you had the patience for wikis.
 
 And then there's [bloqs](/bloq). These articles. Longer form. The ones where I pretend I know what I'm talking about. Just like this one.
 
 This bloq piece is about the Telegram bot I built to manage the first two. How it works, the design decisions, the dead ends I walked into face-first.
 
-There's also a CLI tool for managing bytes and blips from the terminal. Shell aliases, curl commands, the whole nerd package. That's documented separately. This article is about the bot, which is for when I'm not feeling particularly nerdy.
+There's also a CLI tool for managing bytes and blips from the terminal. Shell aliases, curl commands, the whole nerd package. That's documented separately. This bloq piece is about the bot, which is for when I'm not feeling particularly nerdy.
 
 ---
 
@@ -37,9 +37,15 @@ I open Telegram on my phone. I type. Things happen in my database.
 
 That's the pitch. The implementation is slightly more involved.
 
-**Bytes and blips.** I send `/byte trying to center a div using CSS grid and black magic` or `/blip CORS: The browser's way of telling you no, for your own good.`. The bot parses it, stores it, and broadcasts it to a public channel. More on that in a bit.
+<img src="/telegram_bot_screenshots/blipbot_1.jpg" alt="Screenshot of Telegram bot conversation showing /byte and /blip commands in action" />
+###
+
+**Bytes and blips.** I send `/byte trying to center a div using CSS grid and black magic` or `/blip CORS:The browser's way of telling you no, for your own good.`. The bot parses it, stores it, and broadcasts it to a public channel. More on that in a bit.
 
 **Visitor pings.** Someone lands on my site, I get a notification. Where they're from, what device they're using, whether they've been here before. Useful for knowing if anyone actually reads this stuff. Which, spoiler, is usually "yes, three people, and one of them is my mom." Hi mom.
+
+<img src="/telegram_bot_screenshots/blipchannel_2.jpg" alt="Screenshot of Telegram bot conversation showing /byte and /blip commands in action" />
+###
 
 The channel is [@blipbotlive](https://t.me/blipbotlive). Public. Anyone can follow. Every time I post a byte or blip, it shows up there. My inner monologue, now with subscribers. This is either brilliant or deeply concerning. Possibly both.
 
@@ -110,7 +116,7 @@ export async function POST(req: Request) {
 
 This works. Technically. The bot responds. Messages get processed. But it's wasteful in a way that would make a garbage collector weep.
 
-Grammy handlers are meant to be registered once. The bot maintains internal state for API calls, connection pooling, the works. Recreating it on every webhook is like restarting your Express server for every HTTP request. You wouldn't do that. I did that. For weeks.
+[Grammy](https://grammy.dev/) (our Telegram Bot Framework here) handlers are meant to be registered once. The bot maintains internal state for API calls, connection pooling, the works. Recreating it on every webhook is like restarting your Express server for every HTTP request. You wouldn't do that. I did that. For weeks.
 
 Fixed with a singleton:
 
@@ -148,7 +154,7 @@ export async function initBot(): Promise<Bot<MyContext>> {
 
 First call creates the bot. Every call after returns the cached instance. The handlers are registered once. My server stops doing unnecessary work. Everyone wins, especially my cloud bill.
 
-Why call `setMyCommands` every time even with the cached instance? The command menu, the thing that pops up when you type `/` in Telegram, is registered with Telegram's servers. If I add a new command, I want it to show up immediately without waiting for a server restart. The call is idempotent, meaning calling it ten times has the same effect as calling it once. No harm in repeating it. Unlike my mistakes.
+**Update**:  I ultimately removed the setMyCommands call from the cached path. Because fixing the bot instantiation but still wildly pinging Telegram to update a static menu was the definition of a half-measure. The call was idempotent, which is just developer-speak for "it didn't break anything, it just wasted electricity." It's now in a setup script (npm run telegram:setup).
 
 ---
 
@@ -291,7 +297,7 @@ Bot: Updated!
 
 One message. Parse the type, serial, and new content. Done. No state. No memory. No "cancel" command for abandoned edits. No timeout logic. No session cleanup. No bugs where the bot thinks I'm still editing something I forgot about three days ago.
 
-*(Side note: this is exactly how LLM chat interfaces work. When you're talking to an AI, it feels like it "remembers" the conversation. It doesn't. The API is completely stateless. Every time you ask a follow-up question, the app bundles up your entire chat history and sends it again, essentially saying "here is everything we've ever talked about, please pretend you remember this and answer the next question." The AI has the memory of a goldfish; the client just keeps reminding it what happened. My bot just skips the illusion.)*
+> This is exactly how LLM chat interfaces work. When you're talking to an AI, it feels like it "remembers" the conversation. It doesn't. The API is completely stateless. Every time you ask a follow-up question, the app bundles up your entire chat history and sends it again, essentially saying "here is everything we've ever talked about, please pretend you remember this and answer the next question." The AI has the memory of a goldfish; the client just keeps reminding it what happened. My bot just skips the illusion.
 
 The bot is stateless. Each message is independent. It doesn't remember the previous message. It doesn't care about the next one. It just handles what's in front of it. A lot like me before coffee.
 
@@ -317,6 +323,8 @@ No JWT. No OAuth. No login flow. No "forgot password" emails. Just: is this numb
 
 For a personal bot that posts my thoughts to my channel, this is enough. The security model is: if you have my phone, you can post to my blog. If you don't have my phone, you can't. Simple. Probably wrong in seventeen ways I haven't thought of. But simple.
 
+**Update**: So... about that airtight security model. It turns out my "bouncer" was only checking IDs on the way out, not on the way in. The user ID whitelist only stopped the bot from replying, but anyone with Postman and a dream could still forge a webhook request and post thoughts directly to my database. My front door was essentially a bead curtain. I've since added actual webhook authentication. See the walk of shame in the security section at the end.
+
 ---
 
 ## The Commands
@@ -340,6 +348,9 @@ Two content types:
 - **Blips**: Term:meaning pairs, like dictionary entries. Created with `/blip term:meaning`. Structured knowledge dumps. The kind of thing you'd put in a wiki if you had the patience for wikis. I do not have the patience for wikis.
 
 All single-message. No conversations. Stateless. I type, the bot responds, we move on with our lives.
+
+<img src="/telegram_bot_screenshots/blipbot_2.jpg" alt="Screenshot of Telegram bot conversation showing /byte and /blip commands in action" />
+###
 
 ---
 
@@ -372,7 +383,10 @@ Multiple entry points, one broadcast:
 
 Same channel. Same format. Doesn't matter how the item was created or who created it. Well, "who" is always me, because auth. But theoretically, if I let other people use this, it would work the same way.
 
-The bot needs to be a channel admin with "Post Messages" permission. I learned this the hard way. Items weren't showing up in the channel. Checked logs. Nothing. Turns out Telegram silently drops messages from non-admin bots. No error. No warning. Just silence. The bot equivalent of being ignored at a party. I've been there, bot. I've been there.
+The bot needs to be a channel admin with "Post Messages" permission. Also, if an uninvited stranger happens to find the bot and tries to strike up a conversation (or sneak a command in), they don't get a polite 403 error. They get a swift, customized rejection: "Nice try, but nope. This bot is not for you." If you're going to build an exclusive VIP club for one, your bouncer might as well have some attitude.
+
+<img src="/telegram_bot_screenshots/blipchannel_1.jpg" alt="Screenshot of @blipbotlive Telegram channel showing broadcasted bytes and blips" />
+###
 
 ---
 
@@ -444,6 +458,8 @@ The solution: a daily digest instead of real-time pings.
 ```
 
 One message instead of forty-seven. The signal-to-noise ratio improves dramatically. My sanity improves (marginally).
+
+[Placeholder: Screenshot of daily visitor digest notification showing aggregated stats]
 
 **How it would work:**
 
@@ -562,6 +578,8 @@ Tags: typescript, backend, nextjs, architecture
 
 Suddenly the channel becomes a complete feed. Bytes for quick thoughts. Blips for definitions. Bloqs for longer writing. Everything in one place. The dream of a unified content pipeline, achieved through sheer stubbornness.
 
+[Placeholder: Screenshot of Telegram channel showing mixed content types - bytes, blips, and bloq notifications]
+
 **Why GitHub Actions and not a webhook?**
 
 Because bloqs don't have a webhook. They're static files. The "event" is a git push. GitHub Actions is the natural place to respond to git events.
@@ -597,3 +615,59 @@ Is this enterprise-grade? Absolutely not. An intern could poke holes in it. But 
 Security is about threat modeling. What are you protecting? From whom? At what cost? For a personal microblogging tool, the threat model is "my friends finding my phone unlocked." The solution is "they already know where I live."
 
 Over-engineering security for a personal project is its own kind of failure. You spend more time on auth than on the thing you're building. The bot exists to capture thoughts. Let it capture thoughts. Worry about security when you have something worth stealing.
+
+---
+
+## Correction: I Was Wrong About Security
+
+When I first wrote this, I said the user ID whitelist was enough. It wasn't.
+
+The whitelist only controls who the *bot* responds to. It doesn't prevent someone from forging POST requests directly to `/api/telegram/webhook`. If someone discovered a whitelisted user ID (not hard—they could just message the bot and see if they get "Unauthorized"), they could craft a fake Telegram update and hit the webhook directly. The endpoint had no authentication.
+
+I've since fixed this with webhook secret authentication:
+
+### How It Works
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                     SETUP (one-time)                                │
+│                                                                     │
+│  Your machine ──setWebhook()──► Telegram Server                     │
+│  (with prod env vars)             (api.telegram.org)                │
+│                                                                     │
+│  Payload: {                                                         │
+│    url: "https://your-domain.com/api/telegram/webhook",             │
+│    secret_token: "sha256-hash-of-your-secret"                       │
+│  }                                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              Telegram Server (remembers this)                       │
+│                                                                     │
+│  "When I receive a message for this bot,                            │
+│   POST to the registered URL                                        │
+│   with X-Telegram-Bot-Api-Secret-Token: <hash>"                     │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ (when user messages your bot)
+┌─────────────────────────────────────────────────────────────────────┐
+│                     RUNTIME (every message)                         │
+│                                                                     │
+│  Telegram Server ──POST──► Your Webhook Endpoint                    │
+│                              (your-domain.com)                      │
+│                                                                     │
+│  Headers:                                                           │
+│    X-Telegram-Bot-Api-Secret-Token: <hash>                          │
+│                                                                     │
+│  Your endpoint verifies the hash before processing                  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Authentication Summary
+
+The webhook secret is only for Telegram-to-your-server communication. Your own API calls continue using the existing API key.
+
+This is the exact method Telegram outlines in their docs for securing webhooks. I ignored it because I thought my bouncer-at-the-exit strategy was genius. The original draft of this article aged worse than milk left on a radiator. Lesson learned: when the documentation says "we recommend you do this," what they actually mean is 
+
+> "Secure your endpoints immediately, unless your long-term goal was to quietly edit your own blogs out of shame."

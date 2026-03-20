@@ -116,6 +116,8 @@ src/
 |----------|----------|-------------|
 | `TELEGRAM_BOT_TOKEN` | Yes | Bot API token from @BotFather |
 | `TELEGRAM_ALLOWED_USER_IDS` | Yes | Comma-separated list of user IDs that can interact with the bot |
+| `TELEGRAM_WEBHOOK_SECRET` | Yes | Secret token for webhook authentication |
+| `TELEGRAM_PROD_WEBHOOK_URL` | Yes | Full URL to your webhook endpoint (production) |
 | `TELEGRAM_CHANNEL_ID` | No | Channel ID for broadcasting bytes and blips |
 
 ### Configuration Example
@@ -124,6 +126,8 @@ src/
 # Required
 TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_ALLOWED_USER_IDS=123456789,987654321
+TELEGRAM_WEBHOOK_SECRET=your-random-secret-string-here
+TELEGRAM_PROD_WEBHOOK_URL=https://yourdomain.com/api/telegram/webhook
 
 # Optional
 TELEGRAM_CHANNEL_ID=-1001234567890
@@ -292,7 +296,6 @@ let botInstance: Bot<MyContext> | null = null;
 export async function initBot(): Promise<Bot<MyContext>> {
   // Return cached instance if it exists
   if (botInstance) {
-    await botInstance.api.setMyCommands([...BOT_COMMANDS]);
     return botInstance;
   }
 
@@ -304,9 +307,6 @@ export async function initBot(): Promise<Bot<MyContext>> {
 
   botInstance = new Bot<MyContext>(token);
   await botInstance.init();
-
-  // Register command menu with Telegram
-  await botInstance.api.setMyCommands([...BOT_COMMANDS]);
 
   // Register command handlers
   botInstance.command("start", handleStart);
@@ -322,6 +322,9 @@ export async function initBot(): Promise<Bot<MyContext>> {
 
   return botInstance;
 }
+```
+
+**Note**: Bot commands are registered once during setup via `npm run telegram:setup`, not on every webhook call.
 ```
 
 ### Why Singleton?
@@ -473,12 +476,17 @@ Handle incoming messages from Telegram.
 
 **Request**: Telegram Update object (JSON)
 
+**Headers**:
+```
+X-Telegram-Webhook-Secret: <sha256-hash-of-webhook-secret>
+```
+
 **Response**:
 ```json
 { "ok": true }
 ```
 
-**Authentication**: None (Telegram posts directly)
+**Authentication**: Webhook secret via `X-Telegram-Webhook-Secret` header. The header must contain the SHA-256 hash of `TELEGRAM_WEBHOOK_SECRET`.
 
 ---
 
@@ -799,6 +807,183 @@ describe('handleBlip', () => {
 
 ---
 
+## Security
+
+### Mental Model: How Telegram Bot Security Works
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     SETUP (one-time)                                │
+│                                                                     │
+│  Your machine ──setWebhook()──► Telegram Server                    │
+│  (local or prod env vars)         (api.telegram.org)               │
+│                                                                     │
+│  Payload: {                                                         │
+│    url: "https://your-domain.com/api/telegram/webhook",            │
+│    secret_token: "sha256-hash-of-your-secret"                      │
+│  }                                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              Telegram Server (remembers this)                       │
+│                                                                     │
+│  "When I receive a message for this bot,                            │
+│   POST to https://your-domain.com/api/telegram/webhook             │
+│   with X-Telegram-Bot-Api-Secret-Token: <hash>"                    │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ (when user messages your bot)
+┌─────────────────────────────────────────────────────────────────────┐
+│                     RUNTIME (every message)                         │
+│                                                                     │
+│  Telegram Server ──POST──► Your Webhook Endpoint                   │
+│                              (your-domain.com)                      │
+│                                                                     │
+│  Headers:                                                           │
+│    X-Telegram-Bot-Api-Secret-Token: <hash>                         │
+│                                                                     │
+│  Body:                                                              │
+│    { update object with message content }                           │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Mental Model: Command Menu vs Handlers
+
+These are two separate things that shouldn't be conflated:
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  SETUP SCRIPT (run once)                                           │
+│                                                                    │
+│  telegram:setup ──► "Telegram, show these commands in menu"       │
+│                     [/start, /byte, /blip, ...]                   │
+│                                                                    │
+│  Stored on Telegram's servers - just UI metadata                  │
+└────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────┐
+│  YOUR DEPLOYED CODE (runs on every message)                        │
+│                                                                    │
+│  bot.ts:                                                           │
+│    bot.command("byte", handleByte)  ← executes here               │
+│    bot.command("blip", handleBlip)                                 │
+│    ...                                                             │
+│                                                                    │
+│  Lives on your server - actual logic                              │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+| What | Where | When it runs |
+|------|-------|--------------|
+| **Command menu** (what shows when typing `/`) | Registered via setup script → Telegram stores it | One-time setup |
+| **Command handlers** (what executes on `/byte`) | In `bot.ts` → Your deployed code | Every webhook call |
+
+### Authentication Summary
+
+| Endpoint | Auth Method | Env Var | Who uses it |
+|----------|-------------|---------|-------------|
+| `/api/telegram/webhook` | SHA-256 hash in `X-Telegram-Bot-Api-Secret-Token` header | `TELEGRAM_WEBHOOK_SECRET` | Telegram servers |
+| `/api/blip`, `/api/byte` | API key in `K` or `X-Key` header | `BLIP_SECRET_KEY` | You (via curl, CLI, etc.) |
+
+**Key insight:** The webhook secret is ONLY for Telegram-to-your-server communication. Your own API calls to `/api/blip` and `/api/byte` continue using the existing API key.
+
+### Webhook Authentication
+
+The webhook endpoint (`/api/telegram/webhook`) authenticates requests using a secret token:
+
+1. **Setup**: Generate a random secret and set it as `TELEGRAM_WEBHOOK_SECRET`
+2. **Registration**: Run `npm run telegram:setup` to register the webhook with Telegram, passing the SHA-256 hash of the secret
+3. **Verification**: Telegram includes the hash in the `X-Telegram-Bot-Api-Secret-Token` header
+4. **Validation**: The endpoint verifies the header matches the expected hash
+
+This prevents unauthorized parties from sending forged POST requests to your webhook endpoint.
+
+### User Authorization
+
+Within the bot, user authorization is handled via a whitelist:
+
+```typescript
+// File: src/lib/telegram/middleware/auth.ts
+const allowedIds = process.env.TELEGRAM_ALLOWED_USER_IDS?.split(',').map(id => id.trim()) ?? [];
+
+if (!allowedIds.includes(ctx.from?.id?.toString() ?? '')) {
+  return ctx.reply("Unauthorized.");
+}
+```
+
+Only users whose Telegram IDs are in `TELEGRAM_ALLOWED_USER_IDS` can interact with the bot.
+
+### Bot Token Security
+
+The bot token is the master key. If compromised, an attacker can:
+- Change the webhook URL
+- Send messages as your bot
+- Read messages sent to your bot
+- Modify bot settings
+
+**Common ways tokens get leaked:**
+1. Hardcoded in source code committed to public repos
+2. `.env` files accidentally committed
+3. CI/CD logs exposing environment variables
+4. Compromised Telegram account (via @BotFather)
+5. Server/hosting provider breach
+
+**Protection measures:**
+- Store in environment variables only
+- Add `.env*` to `.gitignore`
+- Use `git-secrets` or similar tools
+- Enable 2FA on your Telegram account
+- Rotate token if any suspicion of compromise
+
+### Setup Script
+
+The `npm run telegram:setup` script performs one-time setup:
+
+```bash
+# Run from local machine with production credentials
+TELEGRAM_BOT_TOKEN=xxx \
+TELEGRAM_PROD_WEBHOOK_URL=https://your-domain.com/api/telegram/webhook \
+TELEGRAM_WEBHOOK_SECRET=xxx \
+npm run telegram:setup
+```
+
+**What it does:**
+1. Registers bot commands with Telegram (`/start`, `/byte`, `/blip`, etc.)
+2. Sets the webhook URL with the secret hash
+3. Verifies the webhook is properly configured
+
+**Output:**
+```
+Bot: @yourbot
+
+1. Setting bot commands...
+   Commands set successfully
+
+2. Setting webhook...
+   Webhook set to: https://your-domain.com/api/telegram/webhook
+
+3. Verifying webhook...
+   Status: Active
+   URL: https://your-domain.com/api/telegram/webhook
+   Pending updates: 0
+
+Setup complete!
+```
+
+**When to run:**
+- Once after initial deployment
+- When changing your domain
+- When rotating the webhook secret
+- When adding new commands to the menu
+
+**When NOT needed:**
+- After code changes (handlers live in your deployed code)
+- After adding new features to existing commands
+- After bug fixes in handlers
+
+---
+
 ## Future Scope
 
 ### 1. Daily Visitor Digest (Cron Job)
@@ -900,6 +1085,8 @@ A separate command-line interface for managing bytes and blips without Telegram.
 | `TELEGRAM_BOT_TOKEN` | bot.ts | Bot authentication |
 | `TELEGRAM_ALLOWED_USER_IDS` | notifications.ts, handlers.ts | Owner user IDs |
 | `TELEGRAM_CHANNEL_ID` | byte/blip routes, handlers.ts | Broadcast channel |
+| `TELEGRAM_WEBHOOK_SECRET` | webhook/route.ts, setup script | Webhook authentication |
+| `TELEGRAM_PROD_WEBHOOK_URL` | setup script | Webhook endpoint URL (production) |
 
 ### Database Tables
 
