@@ -37,6 +37,13 @@ jobs:
             # Extract tags (multi-line)
             TAGS=$(sed -n '/^tags:/,/^[a-z]/p' "$bloq" | grep '  - ' | sed 's/  - //' | tr '\n' ',' | sed 's/,$//')
             
+            # Check if draft
+            DRAFT=$(grep '^draft:' "$bloq" | head -1 | sed 's/draft: *//')
+            if [ "$DRAFT" = "true" ]; then
+              echo "Skipping draft: $TITLE"
+              continue
+            fi
+            
             echo "Title: $TITLE"
             echo "Slug: $SLUG"
             echo "Tags: $TAGS"
