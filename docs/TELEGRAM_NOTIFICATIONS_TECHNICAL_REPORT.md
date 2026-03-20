@@ -478,7 +478,7 @@ Handle incoming messages from Telegram.
 
 **Headers**:
 ```
-X-Telegram-Webhook-Secret: <sha256-hash-of-webhook-secret>
+X-Telegram-Bot-Api-Secret-Token: <sha256-hash-of-webhook-secret>
 ```
 
 **Response**:
@@ -486,7 +486,7 @@ X-Telegram-Webhook-Secret: <sha256-hash-of-webhook-secret>
 { "ok": true }
 ```
 
-**Authentication**: Webhook secret via `X-Telegram-Webhook-Secret` header. The header must contain the SHA-256 hash of `TELEGRAM_WEBHOOK_SECRET`.
+**Authentication**: Webhook secret via `X-Telegram-Bot-Api-Secret-Token` header. The header must contain the SHA-256 hash of `TELEGRAM_WEBHOOK_SECRET`.
 
 ---
 
