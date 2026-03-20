@@ -1,0 +1,52 @@
+name: Notify New Bloq
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/content/bloqs/**/index.mdx'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect and notify new bloqs
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          BROADCAST_URL: https://sumitsute.com/api/telegram/broadcast
+        run: |
+          # Get files ADDED (not modified) in this commit
+          NEW_BLOQS=$(git diff --name-only --diff-filter=A HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
+          
+          if [ -z "$NEW_BLOQS" ]; then
+            echo "No new bloqs detected"
+            exit 0
+          fi
+          
+          for bloq in $NEW_BLOQS; do
+            echo "Processing: $bloq"
+            
+            # Extract frontmatter
+            TITLE=$(grep '^title:' "$bloq" | head -1 | sed 's/title: *["'"'"']\?//' | sed 's/["'"'"']$//')
+            SLUG=$(grep '^slug:' "$bloq" | head -1 | sed 's/slug: *//')
+            
+            # Extract tags (multi-line)
+            TAGS=$(sed -n '/^tags:/,/^[a-z]/p' "$bloq" | grep '  - ' | sed 's/  - //' | tr '\n' ',' | sed 's/,$//')
+            
+            echo "Title: $TITLE"
+            echo "Slug: $SLUG"
+            echo "Tags: $TAGS"
+            
+            # Send notification
+            curl -X POST "$BROADCAST_URL" \
+              -H "Content-Type: application/json" \
+              -H "X-Broadcast-Secret: $TELEGRAM_BOT_TOKEN" \
+              -d "{\"type\": \"bloq\", \"title\": \"$TITLE\", \"slug\": \"$SLUG\", \"tags\": \"$TAGS\"}" \
+              --fail --silent --show-error
+              
+            echo "Notification sent for: $TITLE"
+          done

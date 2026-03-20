@@ -2,7 +2,7 @@
 title: "The Bot That Talks to My Database"
 publishedAt: "2026-03-08"
 summary: "I built a Telegram bot for posting bytes and blips from my phone. Webhooks, singleton patterns, and a public channel that broadcasts my thoughts whether I like it or not."
-slug: "build-telegram-bot-interface-nextjs-database"
+slug: "telegram-bot-nextjs-webhook-experiement"
 tags:
   - typescript
   - backend
@@ -509,82 +509,112 @@ The endpoint would need some auth, obviously. A secret header or something. Othe
 
 ### Bloq Publication Notifications
 
-This is the missing piece. Bytes and blips broadcast to the channel. Bloqs, these longer articles, don't.
+Bytes and blips broadcast to the channel automatically. Bloqs—the longer articles you're reading now—were left out. Every time I published, silence. The channel subscribers had no idea something new existed.
 
-Which is silly. Bloqs are the most substantial content. They should be the first thing to broadcast. Instead, I publish an article and... silence. The channel is quiet. The subscribers are oblivious. It's just a private moment between me and the automated scripts scraping the web. If you're a Googlee web crawler reading this: Hello, bot. Hope you like the CSS.
+The challenge: bloqs are MDX files in the repo. There's no API call, no webhook trigger. The "event" is a git push. The solution: GitHub Actions.
 
-The challenge: bloqs aren't created through an API. They're MDX files I write in my editor and commit to the repo. No webhook. No bot involved. Just git push and the site rebuilds.
+**What we built:**
 
-The solution: GitHub Actions.
+Two parts. An API endpoint that receives notification requests, and a GitHub workflow that detects new bloqs and triggers it.
 
-**How it would work:**
-
-A workflow that triggers on pushes to main, specifically when MDX files in the bloqs directory change:
-
-```yaml
-# .github/workflows/notify-bloq.yml
-name: Notify New Bloq
-
-on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/content/bloqs/**/index.mdx'
-
-jobs:
-  notify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2  # Need to compare with previous commit
-
-      - name: Detect new bloqs
-        id: detect
-        run: |
-          # Get files added (not modified) in this commit
-          NEW_BLOQS=$(git diff --name-only --diff-filter=A HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
-          echo "bloqs=$NEW_BLOQS" >> $GITHUB_OUTPUT
-
-      - name: Extract frontmatter and notify
-        if: steps.detect.outputs.bloqs != ''
-        run: |
-          for bloq in ${{ steps.detect.outputs.bloqs }}; do
-            # Extract title, slug, tags from frontmatter
-            TITLE=$(grep '^title:' "$bloq" | head -1 | sed 's/title: *//')
-            SLUG=$(grep '^slug:' "$bloq" | head -1 | sed 's/slug: *//')
-            TAGS=$(grep '^tags:' "$bloq" -A 10 | grep '  - ' | sed 's/  - //' | tr '\n' ',' | sed 's/,$//')
-
-            # Send Telegram notification via the API
-            curl -X POST https://sumitsute.com/api/telegram/broadcast \
-              -H "Content-Type: application/json" \
-              -H "X-Webhook-Secret: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" \
-              -d "{\"type\": \"bloq\", \"title\": \"$TITLE\", \"slug\": \"$SLUG\", \"tags\": \"$TAGS\"}"
-          done
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  TRIGGER                                                            │
+│                                                                     │
+│  git push to main                                                   │
+│  with changes to src/content/bloqs/**/index.mdx                     │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  GITHUB ACTIONS WORKFLOW                                            │
+│                                                                     │
+│  1. Checkout repo (fetch-depth: 2 for diff)                         │
+│  2. Detect NEW bloq files (not modified)                            │
+│  3. Extract frontmatter (title, slug, tags)                         │
+│  4. Call API endpoint to broadcast                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  API ENDPOINT                                                       │
+│                                                                     │
+│  POST /api/telegram/broadcast                                       │
+│  - Validates secret header                                          │
+│  - Formats message                                                  │
+│  - Sends to TELEGRAM_CHANNEL_ID                                     │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  TELEGRAM CHANNEL                                                   │
+│                                                                     │
+│  📝 The Bot That Talks to My Database                               │
+│  <a href="https://sumitsute.com/bloq/...">Read more</a>             │
+│  Tags: typescript, backend, nextjs                                  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-The workflow:
-1. Triggers when MDX files are added to the bloqs directory
-2. Extracts frontmatter from new files (title, slug, tags)
-3. Calls an API endpoint that broadcasts to the Telegram channel
+**The workflow logic (pseudocode):**
 
-The message format would match the existing style:
+```text
+1. Trigger: On push to main, only when bloq MDX files change
+2. Checkout code with last 2 commits (for comparing changes)
+3. Run git diff to find NEW files (not edited):
+   git diff --name-only --diff-filter=A HEAD^ HEAD -- '**/index.mdx'
+4. For each new file:
+   a. Read the frontmatter
+   b. Extract: title, slug, tags
+   c. POST to /api/telegram/broadcast with:
+      - JSON body: { type, title, slug, tags }
+      - Header: X-Broadcast-Secret (your bot token)
+5. API endpoint receives request, validates secret
+6. API formats HTML message and sends to Telegram channel
+```
+
+The workflow only triggers on **new** bloqs, not edits. Modified files are ignored. This prevents duplicate notifications when you fix a typo.
+
+**GitHub Secrets:**
+
+The workflow needs access to your Telegram bot token. You add this as a secret in GitHub:
+
+1. Go to your repo → Settings → Secrets and variables → Actions
+2. Add a new secret: `TELEGRAM_BOT_TOKEN`
+3. Paste your bot token (from @BotFather or your `.env.local`)
+
+The workflow accesses it as `${{ secrets.TELEGRAM_BOT_TOKEN }}`. The secret never appears in logs or git history—GitHub injects it only at runtime.
+
+**Security model:**
+
+```text
+| Component             | Auth Method                                |
+|-----------------------|--------------------------------------------|
+| GitHub Actions → API  | `X-Broadcast-Secret` header with bot token |
+| API → Telegram        | Bot token (already configured)             |
+```
+
+The broadcast endpoint validates the incoming secret against `TELEGRAM_BOT_TOKEN`. If it matches, the broadcast proceeds. If not, 401 Unauthorized.
+
+**Cost:**
+
+GitHub Actions has a generous free tier for public repos (and personal accounts):
+
+- **2,000 minutes/month** of Linux runner time
+- **500 MB** of artifact storage
+
+This workflow runs for maybe 30-60 seconds per bloq. Even publishing 10 bloqs per month uses less than 10 minutes. That's 0.5% of the free allocation.
+
+In practical terms: free. Forever. For personal projects.
+
+**Message format:**
 
 ```text
 📝 The Bot That Talks to My Database
-<a href="https://www.sumitsute.com/bloq/build-telegram-bot-interface-nextjs-database">Read more</a>
+<a href="https://sumitsute.com/bloq/telegram-bot-nextjs-webhook-experiement">Read more</a>
 Tags: typescript, backend, nextjs, architecture
 ```
 
-Suddenly the channel becomes a complete feed. Bytes for quick thoughts. Blips for definitions. Bloqs for longer writing. Everything in one place. The dream of a unified content pipeline, achieved through sheer stubbornness.
-
-[Placeholder: Screenshot of Telegram channel showing mixed content types - bytes, blips, and bloq notifications]
-
-**Why GitHub Actions and not a webhook?**
-
-Because bloqs don't have a webhook. They're static files. The "event" is a git push. GitHub Actions is the natural place to respond to git events.
-
-Could I add a webhook to my CMS? I don't have a CMS. The files are the CMS. Git is the database. This is simpler than it sounds, and also more complicated than it should be. The best solutions usually are.
+Matches the existing channel style. Now the Telegram channel is a complete feed: bytes for quick thoughts, blips for definitions, bloqs for long-form writing. Everything in one place.
 
 ### CLI Tool
 
