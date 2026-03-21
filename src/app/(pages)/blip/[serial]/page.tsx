@@ -38,6 +38,34 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
   };
 }
 
+function DefinedTermJsonLd({ blip }: { blip: NonNullable<Awaited<ReturnType<typeof getBlipBySerial>>> }) {
+  const blipUrl = `${SITE_URL}/blip/${blip.blip_serial}`;
+
+  const jsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTerm',
+    name: blip.term,
+    description: blip.meaning,
+    url: blipUrl,
+    inDefinedTermSet: {
+      '@type': 'DefinedTermSet',
+      name: 'Blip Dictionary',
+      url: `${SITE_URL}/blip`,
+    },
+  };
+
+  if (blip.tags && blip.tags.length > 0) {
+    jsonLd.keywords = blip.tags.join(', ');
+  }
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
+
 const BlipPage = async ({ params }: { params: Promise<{ serial: string }> }) => {
   const { serial } = await params;
   
@@ -47,12 +75,12 @@ const BlipPage = async ({ params }: { params: Promise<{ serial: string }> }) => 
     notFound();
   }
 
-  // Use optimized adjacent query instead of fetching all blips
   const serialNumber = parseInt(blip.blip_serial, 10);
   const { newer: newerBlip, older: olderBlip } = await getAdjacentBlips(serialNumber);
 
   return (
     <div className="container flex flex-col min-h-screen justify-center p-10 font-roboto-mono lowercase">
+      <DefinedTermJsonLd blip={blip} />
       <BlipDetail blip={blip} newerBlip={newerBlip} olderBlip={olderBlip} />
     </div>
   );

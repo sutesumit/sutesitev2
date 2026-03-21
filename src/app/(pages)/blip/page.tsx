@@ -7,6 +7,7 @@ import IntroText from "./components/IntroText";
 import BlipModal from "./components/BlipModal";
 import BlipFilterPanel from "./components/BlipFilterPanel";
 import PaginationControls from "@/components/shared/PaginationControls";
+import { SITE_URL, SITE_NAME } from "@/config/metadata";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,19 @@ export const metadata: Metadata = {
   title: 'blip',
   description: 'terms and definitions from sumit sute',
   alternates: {
-    canonical: 'https://sumitsute.com/blip',
+    canonical: `${SITE_URL}/blip`,
+  },
+  openGraph: {
+    title: 'blip | sumit sute',
+    description: 'terms and definitions from sumit sute',
+    url: `${SITE_URL}/blip`,
+    siteName: SITE_NAME,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'blip | sumit sute',
+    description: 'terms and definitions from sumit sute',
   },
 };
 
