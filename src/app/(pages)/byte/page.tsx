@@ -7,6 +7,7 @@ import IntroText from "./components/IntroText";
 import ByteModal from "./components/ByteModal";
 import SearchBar from "@/components/shared/SearchBar";
 import PaginationControls from "@/components/shared/PaginationControls";
+import { SITE_URL, SITE_NAME } from "@/config/metadata";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,19 @@ export const metadata: Metadata = {
   title: 'byte',
   description: 'short thoughts, updates, and quick notes from sumit sute',
   alternates: {
-    canonical: 'https://sumitsute.com/byte',
+    canonical: `${SITE_URL}/byte`,
+  },
+  openGraph: {
+    title: 'byte | sumit sute',
+    description: 'short thoughts, updates, and quick notes from sumit sute',
+    url: `${SITE_URL}/byte`,
+    siteName: SITE_NAME,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'byte | sumit sute',
+    description: 'short thoughts, updates, and quick notes from sumit sute',
   },
 };
 

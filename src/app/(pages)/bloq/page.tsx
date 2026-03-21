@@ -4,8 +4,8 @@ import IntroCard from '@/components/shared/IntroCard';
 import IntroText from './components/IntroText';
 import DryKeysQuest from '@/games/dry-keys-quest';
 import BloqFeed from './components/BloqFeed';
-import { getBloqPostsPaginated, getAllCategories, getAllTags } from '@/lib/bloq';
-import { SITE_URL, pageMetadata } from '@/config/metadata';
+import { getBloqPostsPaginated, getAllCategories, getAllTags, getBloqPosts } from '@/lib/bloq';
+import { SITE_URL, SITE_NAME, SITE_AUTHOR, pageMetadata } from '@/config/metadata';
 import PaginationControls from '@/components/shared/PaginationControls';
 
 const { bloq } = pageMetadata;
@@ -17,12 +17,48 @@ export const metadata: Metadata = {
   openGraph: {
     title: bloq.ogTitle,
     description: bloq.ogDescription,
+    url: `${SITE_URL}/bloq`,
+    siteName: SITE_NAME,
+    type: 'website',
   },
   twitter: {
+    card: 'summary_large_image',
     title: bloq.ogTitle,
     description: bloq.ogDescription,
   },
 };
+
+function BlogJsonLd() {
+  const allPosts = getBloqPosts();
+  
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    name: 'Blog | Sumit Sute',
+    description: bloq.description,
+    url: `${SITE_URL}/bloq`,
+    author: {
+      '@type': 'Person',
+      name: SITE_AUTHOR,
+      url: SITE_URL,
+    },
+    blogPost: allPosts.slice(0, 10).map((post) => ({
+      '@type': 'BlogPosting',
+      headline: post.title,
+      url: `${SITE_URL}/bloq/${post.url}`,
+      datePublished: post.publishedAt,
+      dateModified: post.updatedAt || post.publishedAt,
+      description: post.summary,
+    })),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -46,6 +82,7 @@ const page = async (props: Props) => {
 
   return (
     <div className="container flex flex-col pb-10 px-2 sm:px-0">
+      <BlogJsonLd />
       <IntroCard className="mt-10">
         <DryKeysQuest />
         <IntroText />
