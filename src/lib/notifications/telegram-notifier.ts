@@ -1,4 +1,3 @@
-import { initBot } from "@/lib/telegram-bot";
 import type { Blip } from "@/types/blip";
 import type { Byte } from "@/types/byte";
 import {
@@ -14,6 +13,8 @@ import type {
 } from "./types";
 
 async function sendMessage(chatId: string, message: string): Promise<void> {
+  // Avoid a module initialization cycle between bot wiring and notifier wiring.
+  const { initBot } = await import("@/lib/telegram/bot");
   const bot = await initBot();
   await bot.api.sendMessage(chatId, message, { parse_mode: "HTML" });
 }
