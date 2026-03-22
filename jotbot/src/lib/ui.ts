@@ -1,14 +1,16 @@
 import chalk from 'chalk'
 import boxen from 'boxen'
 
+const palette = ['#ff0055', '#ff7a00', '#ffd500', '#00d4ff', '#7b5cff'];
+
 export const ASCII_LOGO = `
-${chalk.white('     ██╗')} ${chalk.bgRed.black(' ██████╗')} ${chalk.white(' ████████╗')} ${chalk.bgWhite.black('██████╗ ')} ${chalk.white(' ██████╗')} ${chalk.bgRed.black(' ████████╗')}
-${chalk.bgWhite.black('     ██║')} ${chalk.white('██╔═══██╗')} ${chalk.bgRed.black('╚══██╔══╝')} ${chalk.white('██╔══██╗')} ${chalk.bgWhite.black('██╔═══██╗')} ${chalk.white('╚══██╔══╝')}
-${chalk.white('     ██║')} ${chalk.bgRed.black('██║   ██║')} ${chalk.white('   ██║   ')} ${chalk.bgWhite.black('██████╔╝')} ${chalk.white('██║   ██║')} ${chalk.bgRed.black('   ██║   ')}
-${chalk.bgWhite.black('██   ██║')} ${chalk.white('██║   ██║')} ${chalk.bgRed.black('   ██║   ')} ${chalk.white('██╔══██╗')} ${chalk.bgWhite.black('██║   ██║')} ${chalk.white('   ██║   ')}
-${chalk.white('╚█████╔╝')} ${chalk.bgRed.black('╚██████╔╝')} ${chalk.white('   ██║   ')} ${chalk.bgWhite.black('██████╔╝')} ${chalk.white('╚██████╔╝')} ${chalk.bgRed.black('   ██║   ')}
-${chalk.bgWhite.black(' ╚════╝ ')} ${chalk.white(' ╚═════╝ ')} ${chalk.bgRed.black('   ╚═╝   ')} ${chalk.white('╚═════╝ ')} ${chalk.bgWhite.black(' ╚═════╝ ')} ${chalk.white('   ╚═╝   ')}
-`
+${chalk.hex('#ff0055')('     ██╗ ')}${chalk.hex('#ff0055')('██████╗ ')}${chalk.hex('#ffd500')('████████╗')}${chalk.hex('#00d4ff')('██████╗  ')}${chalk.hex('#00d4ff')('██████╗ ')}${chalk.hex('#ff0055')('████████╗')}
+${chalk.hex('#ff0055')('     ██║')}${chalk.hex('#ffd500')('██╔═══██╗')}${chalk.hex('#ffd500')('╚══██╔══╝')}${chalk.hex('#00d4ff')('██╔══██╗')}${chalk.hex('#00d4ff')('██╔═══██╗')}${chalk.hex('#ff0055')('╚══██╔══╝')}
+${chalk.hex('#ffd500')('     ██║')}${chalk.hex('#ffd500')('██║   ██║')}${chalk.hex('#00d4ff')('   ██║   ') }${chalk.hex('#00d4ff')('██████╔╝')}${chalk.hex('#ff0055')('██║   ██║')}${chalk.hex('#ff0055')('   ██║   ')}
+${chalk.hex('#ffd500')('██   ██║')}${chalk.hex('#00d4ff')('██║   ██║')}${chalk.hex('#00d4ff')('   ██║   ') }${chalk.hex('#ff0055')('██╔══██╗')}${chalk.hex('#ff0055')('██║   ██║')}${chalk.hex('#ffd500')('   ██║   ')}
+${chalk.hex('#00d4ff')('╚█████╔╝')}${chalk.hex('#00d4ff')('╚██████╔╝')}${chalk.hex('#ff0055')('   ██║   ') }${chalk.hex('#ff0055')('██████╔╝')}${chalk.hex('#ffd500')('╚██████╔╝')}${chalk.hex('#ffd500')('   ██║   ')}
+${chalk.hex('#00d4ff')(' ╚════╝  ') }${chalk.hex('#ff0055')('╚═════╝ ') }${chalk.hex('#ff0055')('   ╚═╝   ') }${chalk.hex('#ffd500')('╚═════╝ ') }${chalk.hex('#ffd500')(' ╚═════╝ ') }${chalk.hex('#00d4ff')('   ╚═╝   ')}
+`;
 
 export function showBanner(): void {
   console.log(ASCII_LOGO)
