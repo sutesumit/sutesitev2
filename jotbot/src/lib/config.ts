@@ -1,7 +1,7 @@
 import Conf from 'conf'
 
 const config = new Conf({
-  projectName: 'blip-cli',
+  projectName: 'jot',
   schema: {
     key: {
       type: 'string',
@@ -9,7 +9,7 @@ const config = new Conf({
     },
     url: {
       type: 'string',
-      default: 'https://sumitsute.com/api/blip'
+      default: 'https://sumitsute.com/api'
     }
   }
 })

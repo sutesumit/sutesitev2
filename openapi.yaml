@@ -1,0 +1,1042 @@
+openapi: 3.1.0
+info:
+  title: SuteSite API
+  description: Personal reference API documentation for sumitsute.com
+  version: 1.0.0
+  contact:
+    name: Sute
+
+servers:
+  - url: https://sumitsute.com
+    description: Production server
+
+tags:
+  - name: Blips
+    description: Short-form content management
+  - name: Bytes
+    description: Micro-content (280 char max)
+  - name: Views
+    description: View counter endpoints
+  - name: Claps
+    description: Fingerprint-based clap system
+  - name: Telegram
+    description: Telegram bot integration
+  - name: Analytics
+    description: Visitor tracking and GitHub activity
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: K
+      description: API key (also accepts X-Key header)
+    TelegramWebhookAuth:
+      type: apiKey
+      in: header
+      name: X-Telegram-Bot-Api-Secret-Token
+      description: SHA256 hash of TELEGRAM_WEBHOOK_SECRET
+    BroadcastAuth:
+      type: apiKey
+      in: header
+      name: X-Broadcast-Secret
+      description: Must match TELEGRAM_BROADCAST_SECRET
+
+  schemas:
+    Blip:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        blip_serial:
+          type: string
+        term:
+          type: string
+        meaning:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, blip_serial, term, meaning, tags, created_at, updated_at]
+
+    BlipInput:
+      type: object
+      properties:
+        term:
+          type: string
+        meaning:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required: [term, meaning]
+
+    Byte:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        byte_serial:
+          type: string
+        content:
+          type: string
+          maxLength: 280
+        created_at:
+          type: string
+          format: date-time
+      required: [id, byte_serial, content, created_at]
+
+    ByteInput:
+      type: object
+      properties:
+        content:
+          type: string
+          maxLength: 280
+      required: [content]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    ViewsResponse:
+      type: object
+      properties:
+        views:
+          type: integer
+      required: [views]
+
+    ClapResponse:
+      type: object
+      properties:
+        userClaps:
+          type: integer
+        totalClaps:
+          type: integer
+        maxReached:
+          type: boolean
+      required: [userClaps, totalClaps, maxReached]
+
+    ClapInput:
+      type: object
+      properties:
+        fingerprint:
+          type: string
+      required: [fingerprint]
+
+    BroadcastInput:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bloq]
+        title:
+          type: string
+        slug:
+          type: string
+        tags:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+      required: [type, title, slug]
+
+    VisitInput:
+      type: object
+      properties:
+        ip:
+          type: string
+        network:
+          type: string
+        city:
+          type: string
+        region:
+          type: string
+        country_code:
+          type: string
+        postal:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        org:
+          type: string
+        timezone:
+          type: string
+        referrer:
+          type: string
+
+    VisitResponse:
+      type: object
+      properties:
+        lastVisitorLocation:
+          type: string
+          nullable: true
+        lastVisitTime:
+          type: string
+          format: date-time
+          nullable: true
+        visitorCount:
+          type: integer
+          nullable: true
+
+paths:
+  /api/blip:
+    get:
+      tags: [Blips]
+      summary: List all blips
+      responses:
+        '200':
+          description: List of blips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Blip'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Blips]
+      summary: Create a new blip
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlipInput'
+      responses:
+        '201':
+          description: Blip created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blip:
+                    $ref: '#/components/schemas/Blip'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/blip/{serial}:
+    parameters:
+      - name: serial
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Blip serial identifier
+
+    get:
+      tags: [Blips]
+      summary: Get a single blip
+      responses:
+        '200':
+          description: Blip details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blip:
+                    $ref: '#/components/schemas/Blip'
+        '404':
+          description: Blip not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Blips]
+      summary: Update a blip
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlipInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BlipInput'
+      responses:
+        '200':
+          description: Blip updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blip:
+                    $ref: '#/components/schemas/Blip'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Blip not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Blips]
+      summary: Delete a blip
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Blip deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/blip/views/{serial}:
+    parameters:
+      - name: serial
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Blip serial identifier
+
+    get:
+      tags: [Views]
+      summary: Get blip view count
+      responses:
+        '200':
+          description: View count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '404':
+          description: Blip not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Views]
+      summary: Increment blip view count
+      responses:
+        '200':
+          description: Updated view count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '404':
+          description: Blip not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/byte:
+    get:
+      tags: [Bytes]
+      summary: List all bytes
+      responses:
+        '200':
+          description: List of bytes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bytes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Byte'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Bytes]
+      summary: Create a new byte
+      description: Creates a byte with content up to 280 characters.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ByteInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ByteInput'
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '201':
+          description: Byte created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  byte:
+                    $ref: '#/components/schemas/Byte'
+        '400':
+          description: Validation error (content required, max 280 chars)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/byte/{serial}:
+    parameters:
+      - name: serial
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Byte serial identifier
+
+    get:
+      tags: [Bytes]
+      summary: Get a single byte
+      responses:
+        '200':
+          description: Byte details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  byte:
+                    $ref: '#/components/schemas/Byte'
+        '404':
+          description: Byte not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Bytes]
+      summary: Update a byte
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ByteInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ByteInput'
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Byte updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  byte:
+                    $ref: '#/components/schemas/Byte'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Byte not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Bytes]
+      summary: Delete a byte
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Byte deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/byte/views/{serial}:
+    parameters:
+      - name: serial
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Byte serial identifier
+
+    get:
+      tags: [Views]
+      summary: Get byte view count
+      responses:
+        '200':
+          description: View count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '404':
+          description: Byte not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Views]
+      summary: Increment byte view count
+      responses:
+        '200':
+          description: Updated view count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '404':
+          description: Byte not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/byte/{serial}/views:
+    parameters:
+      - name: serial
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Byte serial identifier
+
+    get:
+      tags: [Views]
+      summary: Get byte view count (alternate path)
+      responses:
+        '200':
+          description: View count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '404':
+          description: Byte not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Views]
+      summary: Increment byte view count (alternate path)
+      responses:
+        '200':
+          description: Updated view count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '404':
+          description: Byte not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/claps/{type}/{id}:
+    parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [bloq, blip, byte]
+        description: Post type
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Post identifier (serial for blip/byte, slug for bloq)
+
+    get:
+      tags: [Claps]
+      summary: Get clap count
+      parameters:
+        - name: fingerprint
+          in: query
+          required: false
+          schema:
+            type: string
+          description: User fingerprint to get personal clap count
+      responses:
+        '200':
+          description: Clap data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claps:
+                    type: integer
+                  userClaps:
+                    type: integer
+        '400':
+          description: Invalid post type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Claps]
+      summary: Add a clap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClapInput'
+      responses:
+        '200':
+          description: Clap recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClapResponse'
+        '400':
+          description: Invalid post type or missing fingerprint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/telegram/webhook:
+    post:
+      tags: [Telegram]
+      summary: Telegram bot webhook endpoint
+      description: Receives updates from Telegram. Auth uses SHA256 hash of TELEGRAM_WEBHOOK_SECRET.
+      security:
+        - TelegramWebhookAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Telegram Update object
+      responses:
+        '200':
+          description: Update processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/telegram/broadcast:
+    post:
+      tags: [Telegram]
+      summary: Broadcast to Telegram channel
+      description: Sends a bloq notification to the configured Telegram channel. Auth uses TELEGRAM_BROADCAST_SECRET.
+      security:
+        - BroadcastAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BroadcastInput'
+      responses:
+        '200':
+          description: Message broadcasted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  broadcast:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Unsupported broadcast type or invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/visit:
+    post:
+      tags: [Analytics]
+      summary: Track visitor
+      description: Records visitor data and returns info about previous visitors.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitInput'
+      responses:
+        '200':
+          description: Visit recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/github-activity:
+    get:
+      tags: [Analytics]
+      summary: Get GitHub contribution activity
+      description: "Fetches GitHub contribution data. Cached for 1 hour (revalidate: 3600)."
+      responses:
+        '200':
+          description: GitHub activity data
+          content:
+            application/json:
+              schema:
+                type: object
+                description: GitHub contribution data structure
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: string
+
+  /api/bloq/views/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Blog post slug
+
+    get:
+      tags: [Views]
+      summary: Get blog post view count
+      responses:
+        '200':
+          description: View count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Views]
+      summary: Increment blog post view count
+      responses:
+        '200':
+          description: Updated view count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/project/views/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Project slug
+
+    get:
+      tags: [Views]
+      summary: Get project view count
+      responses:
+        '200':
+          description: View count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Views]
+      summary: Increment project view count
+      responses:
+        '200':
+          description: Updated view count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

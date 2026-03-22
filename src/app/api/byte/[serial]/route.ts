@@ -1,7 +1,13 @@
-import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
-import type { Byte } from "@/types/byte";
+import { createByteService } from "@/lib/byte/service";
+import { AppError, NotFoundError, getErrorMessage } from "@/lib/core/errors";
+import type { ByteDetailResponse, DeleteResponse } from "@/lib/api/contracts";
 import { validateApiKey, parseContent, validateContentLength } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse, notFoundResponse } from "@/lib/api/responses";
+import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
+
+const service = createByteService({
+  notifier: telegramNotifier,
+});
 
 export async function GET(
   req: Request,
@@ -9,23 +15,16 @@ export async function GET(
 ) {
   try {
     const { serial } = await params;
-    const supabase = getSupabaseServerClient();
-    
-    const { data, error } = await supabase
-      .from("bytes")
-      .select("id, content, created_at, byte_serial")
-      .eq("byte_serial", serial)
-      .single();
-
-    if (error || !data) {
-      return notFoundResponse("Byte not found");
-    }
-
-    return jsonSuccess({ byte: data as Byte });
+    const byte = await service.getByteBySerial(serial);
+    return jsonSuccess<ByteDetailResponse>({ byte });
   } catch (error: unknown) {
     console.error("Error in byte GET by serial:", error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return jsonError(message, 500);
+
+    if (error instanceof NotFoundError) {
+      return notFoundResponse(error.message);
+    }
+
+    return jsonError(getErrorMessage(error), 500);
   }
 }
 
@@ -35,7 +34,7 @@ export async function PUT(
 ) {
   try {
     const authHeader = req.headers.get("K") || req.headers.get("X-Key");
-    
+
     if (!validateApiKey(authHeader)) {
       return unauthorizedResponse();
     }
@@ -43,28 +42,25 @@ export async function PUT(
     const { serial } = await params;
     const content = await parseContent(req);
     const validation = validateContentLength(content);
-    
+
     if (!validation.valid) {
       return jsonError(validation.error!, 400);
     }
 
-    const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase
-      .from("bytes")
-      .update({ content })
-      .eq("byte_serial", serial)
-      .select("id, content, created_at, byte_serial")
-      .single();
-
-    if (error || !data) {
-      return notFoundResponse("Byte not found or update failed");
-    }
-
-    return jsonSuccess({ byte: data as Byte });
+    const byte = await service.updateByte(serial, content);
+    return jsonSuccess<ByteDetailResponse>({ byte });
   } catch (error: unknown) {
     console.error("Error in byte PUT:", error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return jsonError(message, 500);
+
+    if (error instanceof NotFoundError) {
+      return notFoundResponse(error.message);
+    }
+
+    if (error instanceof AppError) {
+      return jsonError(error.message, error.status);
+    }
+
+    return jsonError(getErrorMessage(error), 500);
   }
 }
 
@@ -74,27 +70,21 @@ export async function DELETE(
 ) {
   try {
     const authHeader = req.headers.get("K") || req.headers.get("X-Key");
-    
+
     if (!validateApiKey(authHeader)) {
       return unauthorizedResponse();
     }
 
     const { serial } = await params;
-    const supabase = getSupabaseServerClient();
-    
-    const { error } = await supabase
-      .from("bytes")
-      .delete()
-      .eq("byte_serial", serial);
-
-    if (error) {
-      return jsonError("Failed to delete byte", 500);
-    }
-
-    return jsonSuccess({ success: true });
+    await service.deleteByte(serial);
+    return jsonSuccess<DeleteResponse>({ success: true });
   } catch (error: unknown) {
     console.error("Error in byte DELETE:", error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return jsonError(message, 500);
+
+    if (error instanceof NotFoundError) {
+      return notFoundResponse(error.message);
+    }
+
+    return jsonError(getErrorMessage(error), 500);
   }
 }

@@ -16,25 +16,28 @@ const SERIAL_PATTERN = /^[a-zA-Z0-9]{1,6}$/
 
 const showHelp = process.argv.includes('--help') || process.argv.includes('-h')
 const showVersion = process.argv.includes('--version') || process.argv.includes('-V')
-const noArgs = process.argv.length <= 2
 
-if (showHelp || showVersion || noArgs) {
+if (showHelp || showVersion) {
   showBanner()
 }
 
 const program = new Command()
 
 program
-  .name('blip')
-  .description('CLI for managing bytes (short thoughts) and blips (term:meaning definitions)')
+  .name('jot')
+  .description('CLI for managing bytes and blips')
   .version('1.0.0')
 
-program
-  .command('byte add <content...>')
+const byteCmd = program
+  .command('byte')
+  .description('Manage bytes')
+
+byteCmd
+  .command('add <content...>')
   .description('Create a new byte (short thought)')
   .action(async (contentParts: string[]) => {
     if (!hasApiKey()) {
-      renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+      renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
       process.exit(1)
     }
     const content = contentParts.join(' ')
@@ -58,12 +61,113 @@ program
     console.log(chalk.gray('   ') + chalk.cyan.bold(byte.byte_serial) + chalk.gray(' │ ') + chalk.white(byte.content) + chalk.gray(' │ ') + formatTimeAgo(byte.created_at))
   })
 
-program
-  .command('blip add <termMeaning>')
+byteCmd
+  .command('ls')
+  .description('List all bytes')
+  .option('--json', 'Output as JSON')
+  .action(async (options: { json?: boolean }) => {
+    const spinner = options.json ? null : (await import('ora')).default({ text: 'Fetching bytes...', spinner: 'dots' }).start()
+    const result = await listBytes()
+    if (result.error) {
+      spinner?.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner?.stop()
+    const bytes = result.data!.bytes
+    if (options.json) {
+      console.log(JSON.stringify(bytes, null, 2))
+      return
+    }
+    renderBytesTable(bytes)
+  })
+
+byteCmd
+  .command('get <serial>')
+  .description('Get a specific byte')
+  .option('--json', 'Output as JSON')
+  .action(async (serial: string, options: { json?: boolean }) => {
+    const spinner = options.json ? null : (await import('ora')).default({ text: 'Fetching byte...', spinner: 'dots' }).start()
+    const result = await getByte(serial)
+    if (result.error) {
+      spinner?.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner?.stop()
+    const byte = result.data!.byte
+    if (options.json) {
+      console.log(JSON.stringify(byte, null, 2))
+      return
+    }
+    renderByteBox(byte)
+  })
+
+byteCmd
+  .command('edit <serial> <content...>')
+  .description('Edit a byte')
+  .action(async (serial: string, contentParts: string[]) => {
+    if (!hasApiKey()) {
+      renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
+      process.exit(1)
+    }
+    const content = contentParts.join(' ')
+    if (content.length > 280) {
+      renderErrorBox('Content must be 280 characters or less')
+      process.exit(1)
+    }
+    const spinner = (await import('ora')).default({ text: 'Updating byte...', spinner: 'dots' }).start()
+    const result = await updateByte(serial, content.trim())
+    if (result.error) {
+      spinner.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner.succeed(chalk.green(`Updated ${serial}`))
+    const byte = result.data!.byte
+    console.log()
+    console.log(chalk.gray('   ') + chalk.cyan.bold(byte.byte_serial) + chalk.gray(' │ ') + chalk.white(byte.content))
+  })
+
+byteCmd
+  .command('rm <serial>')
+  .description('Delete a byte')
+  .option('-f, --force', 'Skip confirmation')
+  .action(async (serial: string, options: { force?: boolean }) => {
+    if (!hasApiKey()) {
+      renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
+      process.exit(1)
+    }
+    if (!options.force) {
+      const answers = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'confirm',
+          message: `Delete byte ${chalk.cyan(serial)}?`,
+          default: false
+        }
+      ])
+      if (!answers.confirm) {
+        console.log(chalk.gray('Cancelled'))
+        return
+      }
+    }
+    const spinner = (await import('ora')).default({ text: 'Deleting...', spinner: 'dots' }).start()
+    const result = await deleteByte(serial)
+    if (result.error) {
+      spinner.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner.succeed(chalk.green(`Deleted ${serial}`))
+  })
+
+const blipCmd = program
+  .command('blip')
+  .description('Manage blips')
+
+blipCmd
+  .command('add <termMeaning>')
   .description('Create a new blip (term:meaning pair). Format: "term:meaning"')
   .action(async (termMeaning: string) => {
     if (!hasApiKey()) {
-      renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+      renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
       process.exit(1)
     }
     const colonIndex = termMeaning.indexOf(':')
@@ -89,13 +193,120 @@ program
     console.log(chalk.gray('   ') + chalk.cyan.bold(blip.blip_serial) + chalk.gray(' │ ') + chalk.yellow(blip.term) + chalk.gray(':') + chalk.white(blip.meaning) + chalk.gray(' │ ') + formatTimeAgo(blip.created_at))
   })
 
+blipCmd
+  .command('ls')
+  .description('List all blips')
+  .option('--json', 'Output as JSON')
+  .action(async (options: { json?: boolean }) => {
+    const spinner = options.json ? null : (await import('ora')).default({ text: 'Fetching blips...', spinner: 'dots' }).start()
+    const result = await listBlipsGlossary()
+    if (result.error) {
+      spinner?.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner?.stop()
+    const blips = result.data!.blips
+    if (options.json) {
+      console.log(JSON.stringify(blips, null, 2))
+      return
+    }
+    renderBlipsGlossaryTable(blips)
+  })
+
+blipCmd
+  .command('get <serial>')
+  .description('Get a specific blip')
+  .option('--json', 'Output as JSON')
+  .action(async (serial: string, options: { json?: boolean }) => {
+    const spinner = options.json ? null : (await import('ora')).default({ text: 'Fetching blip...', spinner: 'dots' }).start()
+    const result = await getBlipGlossary(serial)
+    if (result.error) {
+      spinner?.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner?.stop()
+    const blip = result.data!.blip
+    if (options.json) {
+      console.log(JSON.stringify(blip, null, 2))
+      return
+    }
+    renderBlipGlossaryBox(blip)
+  })
+
+blipCmd
+  .command('edit <serial> <termMeaning>')
+  .description('Edit a blip. Format: "term:meaning"')
+  .action(async (serial: string, termMeaning: string) => {
+    if (!hasApiKey()) {
+      renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
+      process.exit(1)
+    }
+    const colonIndex = termMeaning.indexOf(':')
+    if (colonIndex === -1) {
+      renderErrorBox('Invalid format', 'Use "term:meaning" format')
+      process.exit(1)
+    }
+    const term = termMeaning.substring(0, colonIndex).trim()
+    const meaning = termMeaning.substring(colonIndex + 1).trim()
+    if (!term || !meaning) {
+      renderErrorBox('Both term and meaning are required')
+      process.exit(1)
+    }
+    const spinner = (await import('ora')).default({ text: 'Updating blip...', spinner: 'dots' }).start()
+    const result = await updateBlipGlossary(serial, term, meaning)
+    if (result.error) {
+      spinner.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner.succeed(chalk.green(`Updated ${serial}`))
+    const blip = result.data!.blip
+    console.log()
+    console.log(chalk.gray('   ') + chalk.cyan.bold(blip.blip_serial) + chalk.gray(' │ ') + chalk.yellow(blip.term) + chalk.gray(':') + chalk.white(blip.meaning))
+  })
+
+blipCmd
+  .command('rm <serial>')
+  .description('Delete a blip')
+  .option('-f, --force', 'Skip confirmation')
+  .action(async (serial: string, options: { force?: boolean }) => {
+    if (!hasApiKey()) {
+      renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
+      process.exit(1)
+    }
+    if (!options.force) {
+      const answers = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'confirm',
+          message: `Delete blip ${chalk.cyan(serial)}?`,
+          default: false
+        }
+      ])
+      if (!answers.confirm) {
+        console.log(chalk.gray('Cancelled'))
+        return
+      }
+    }
+    const spinner = (await import('ora')).default({ text: 'Deleting...', spinner: 'dots' }).start()
+    const result = await deleteBlipGlossary(serial)
+    if (result.error) {
+      spinner.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner.succeed(chalk.green(`Deleted ${serial}`))
+  })
+
 program
   .command('ls')
-  .description('List bytes or blips (default: bytes)')
-  .option('-t, --type <type>', 'Type to list: byte or blip', 'byte')
+  .description('List bytes or blips')
+  .option('-t, --type <type>', 'Type to list: byte or blip')
   .option('--json', 'Output as JSON')
   .action(async (options: { type?: string; json?: boolean }) => {
-    const type = options.type || 'byte'
+    const type = options.type
+    if (!type || (type !== 'byte' && type !== 'blip')) {
+      renderErrorBox('Invalid type', 'Use: jot ls --type byte or jot ls --type blip')
+      process.exit(1)
+    }
     if (type === 'blip') {
       const spinner = options.json ? null : (await import('ora')).default({ text: 'Fetching blips...', spinner: 'dots' }).start()
       const result = await listBlipsGlossary()
@@ -125,6 +336,46 @@ program
       }
       renderBytesTable(bytes)
     }
+  })
+
+program
+  .command('bytes')
+  .description('List all bytes')
+  .option('--json', 'Output as JSON')
+  .action(async (options: { json?: boolean }) => {
+    const spinner = options.json ? null : (await import('ora')).default({ text: 'Fetching bytes...', spinner: 'dots' }).start()
+    const result = await listBytes()
+    if (result.error) {
+      spinner?.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner?.stop()
+    const bytes = result.data!.bytes
+    if (options.json) {
+      console.log(JSON.stringify(bytes, null, 2))
+      return
+    }
+    renderBytesTable(bytes)
+  })
+
+program
+  .command('blips')
+  .description('List all blips')
+  .option('--json', 'Output as JSON')
+  .action(async (options: { json?: boolean }) => {
+    const spinner = options.json ? null : (await import('ora')).default({ text: 'Fetching blips...', spinner: 'dots' }).start()
+    const result = await listBlipsGlossary()
+    if (result.error) {
+      spinner?.fail(chalk.red(result.error))
+      process.exit(1)
+    }
+    spinner?.stop()
+    const blips = result.data!.blips
+    if (options.json) {
+      console.log(JSON.stringify(blips, null, 2))
+      return
+    }
+    renderBlipsGlossaryTable(blips)
   })
 
 program
@@ -173,7 +424,7 @@ program
   .argument('<content...>', 'New content')
   .action(async (type: string, serial: string, contentParts: string[]) => {
     if (!hasApiKey()) {
-      renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+      renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
       process.exit(1)
     }
     const content = contentParts.join(' ')
@@ -225,7 +476,7 @@ program
   .option('-f, --force', 'Skip confirmation')
   .action(async (type: string, serial: string, options: { force?: boolean }) => {
     if (!hasApiKey()) {
-      renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+      renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
       process.exit(1)
     }
     if (!options.force) {
@@ -284,7 +535,7 @@ program
     switch (action) {
       case 'create-byte': {
         if (!hasApiKey()) {
-          renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+          renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
           process.exit(1)
         }
         const { content } = await inquirer.prompt([
@@ -310,7 +561,7 @@ program
       }
       case 'create-blip': {
         if (!hasApiKey()) {
-          renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+          renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
           process.exit(1)
         }
         const { termMeaning } = await inquirer.prompt([
@@ -393,7 +644,7 @@ program
       }
       case 'edit-byte': {
         if (!hasApiKey()) {
-          renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+          renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
           process.exit(1)
         }
         const { serial, content } = await inquirer.prompt([
@@ -425,7 +676,7 @@ program
       }
       case 'edit-blip': {
         if (!hasApiKey()) {
-          renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+          renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
           process.exit(1)
         }
         const { serial, termMeaning } = await inquirer.prompt([
@@ -462,7 +713,7 @@ program
       }
       case 'delete-byte': {
         if (!hasApiKey()) {
-          renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+          renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
           process.exit(1)
         }
         const { serial } = await inquirer.prompt([
@@ -496,7 +747,7 @@ program
       }
       case 'delete-blip': {
         if (!hasApiKey()) {
-          renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+          renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
           process.exit(1)
         }
         const { serial } = await inquirer.prompt([
@@ -586,18 +837,36 @@ program
       return
     }
 
-    renderErrorBox('Invalid usage', 'blip config set <key|url> <value>\n       blip config list')
+    renderErrorBox('Invalid usage', 'jot config set <key|url> <value>\n       jot config list')
     process.exit(1)
   })
 
 async function handleDefaultCommand(args: string[], jsonMode: boolean): Promise<void> {
   if (args.length === 0) {
-    const result = await listBytes()
-    if (result.error) {
-      renderErrorBox(result.error)
-      process.exit(1)
-    }
-    renderBytesTable(result.data!.bytes)
+    showBanner()
+    console.log(chalk.gray('  Usage:'))
+    console.log(chalk.cyan('    jot "your thought"           # Create a byte'))
+    console.log(chalk.cyan('    jot <serial>                 # Get a byte'))
+    console.log()
+    console.log(chalk.cyan('    jot byte add "content"       # Create a byte'))
+    console.log(chalk.cyan('    jot byte ls                  # List all bytes'))
+    console.log(chalk.cyan('    jot bytes                    # List all bytes (alias)'))
+    console.log(chalk.cyan('    jot byte get <serial>        # Get a byte'))
+    console.log(chalk.cyan('    jot byte edit <serial> "new" # Edit a byte'))
+    console.log(chalk.cyan('    jot byte rm <serial>         # Delete a byte'))
+    console.log()
+    console.log(chalk.cyan('    jot blip add "term:meaning"  # Create a blip'))
+    console.log(chalk.cyan('    jot blip ls                  # List all blips'))
+    console.log(chalk.cyan('    jot blips                    # List all blips (alias)'))
+    console.log(chalk.cyan('    jot blip get <serial>        # Get a blip'))
+    console.log(chalk.cyan('    jot blip edit <serial> "term:meaning" # Edit a blip'))
+    console.log(chalk.cyan('    jot blip rm <serial>         # Delete a blip'))
+    console.log()
+    console.log(chalk.cyan('    jot i                        # Interactive mode'))
+    console.log(chalk.cyan('    jot config                   # View/set config'))
+    console.log(chalk.cyan('    jot -h, jot --help          # Full help'))
+    console.log(chalk.cyan('    jot -v, jot --version       # Version'))
+    console.log()
     return
   }
 
@@ -616,7 +885,7 @@ async function handleDefaultCommand(args: string[], jsonMode: boolean): Promise<
   }
 
   if (!hasApiKey()) {
-    renderErrorBox('API key not configured', 'Run: blip config set key <your-key>')
+    renderErrorBox('API key not configured', 'Run: jot config set key <your-key>')
     process.exit(1)
   }
 
@@ -666,7 +935,7 @@ function renderBytesTable(bytes: Byte[]): void {
   if (bytes.length === 0) {
     console.log()
     console.log(chalk.gray('  No bytes yet. Create one with:'))
-    console.log(chalk.gray('  ') + chalk.cyan('blip "your thought here"'))
+    console.log(chalk.gray('  ') + chalk.cyan('jot "your thought here"'))
     console.log()
     return
   }
@@ -734,7 +1003,7 @@ function renderBlipsGlossaryTable(blips: Blip[]): void {
   if (blips.length === 0) {
     console.log()
     console.log(chalk.gray('  No blips yet. Create one with:'))
-    console.log(chalk.gray('  ') + chalk.cyan('blip blip add "term:meaning"'))
+    console.log(chalk.gray('  ') + chalk.cyan('jot blip add "term:meaning"'))
     console.log()
     return
   }

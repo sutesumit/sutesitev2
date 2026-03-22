@@ -93,6 +93,21 @@ export async function getBlips(
   };
 }
 
+export async function listAllBlips(): Promise<Blip[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("blips")
+    .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching all blips:", error);
+    return [];
+  }
+
+  return data ?? [];
+}
+
 export async function getBlipBySerial(serial: string): Promise<Blip | null> {
   const supabase = getSupabaseServerClient();
 
@@ -144,6 +159,29 @@ export async function createBlip(term: string, meaning: string, tags: string[] =
   
   if (error) throw error;
   return data;
+}
+
+export async function updateBlip(serial: string, term: string, meaning: string): Promise<Blip> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("blips")
+    .update({ term, meaning })
+    .eq("blip_serial", serial)
+    .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteBlip(serial: string): Promise<void> {
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase
+    .from("blips")
+    .delete()
+    .eq("blip_serial", serial);
+
+  if (error) throw error;
 }
 
 export async function getAllBlipTags(): Promise<{ tag: string; count: number }[]> {

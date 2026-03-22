@@ -1,9 +1,13 @@
-import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
-import { initBot } from "@/lib/telegram-bot";
-import { replies } from "@/lib/telegram-replies";
-import type { Blip } from "@/types/blip";
+import { createBlipService } from "@/lib/blip/service";
+import { AppError, getErrorMessage } from "@/lib/core/errors";
+import type { BlipDetailResponse, BlipListResponse } from "@/lib/api/contracts";
 import { validateApiKey } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse } from "@/lib/api/responses";
+import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
+
+const service = createBlipService({
+  notifier: telegramNotifier,
+});
 
 export async function POST(req: Request) {
   try {
@@ -22,66 +26,26 @@ export async function POST(req: Request) {
     const body = await req.json();
     const term = body?.term?.trim() || "";
     const meaning = body?.meaning?.trim() || "";
+    const blip = await service.createBlip(term, meaning);
 
-    if (!term) {
-      return jsonError("Term is required", 400);
-    }
-
-    if (!meaning) {
-      return jsonError("Meaning is required", 400);
-    }
-
-    const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase
-      .from("blips")
-      .insert({ term, meaning, tags: [] })
-      .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
-      .single();
-
-    if (error) {
-      console.error("Error creating blip:", error);
-      return jsonError("Failed to create blip", 500);
-    }
-
-    const channelId = process.env.TELEGRAM_CHANNEL_ID;
-    if (channelId) {
-      try {
-        const bot = await initBot();
-        await bot.api.sendMessage(
-          channelId,
-          replies.channelBlip(data.blip_serial, `${data.term}: ${data.meaning}`),
-          { parse_mode: "HTML" }
-        );
-      } catch (broadcastError) {
-        console.error("Failed to broadcast to channel:", broadcastError);
-      }
-    }
-
-    return jsonSuccess({ blip: data as Blip }, 201);
+    return jsonSuccess<BlipDetailResponse>({ blip }, 201);
   } catch (error: unknown) {
     console.error("Error in blip POST:", error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return jsonError(message, 500);
+
+    if (error instanceof AppError) {
+      return jsonError(error.message, error.status);
+    }
+
+    return jsonError(getErrorMessage(error), 500);
   }
 }
 
 export async function GET() {
   try {
-    const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase
-      .from("blips")
-      .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching blips:", error);
-      return jsonError("Failed to fetch blips", 500);
-    }
-
-    return jsonSuccess({ blips: data as Blip[] });
+    const blips = await service.listAllBlips();
+    return jsonSuccess<BlipListResponse>({ blips });
   } catch (error: unknown) {
     console.error("Error in blip GET:", error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return jsonError(message, 500);
+    return jsonError(getErrorMessage(error), 500);
   }
 }

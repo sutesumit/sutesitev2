@@ -1,43 +1,13 @@
-type VisitorInfo = {
-    city?: string;
-    country?: string;
-    region?: string;
-    ip?: string;
-    deviceType?: string;
-    isReturning?: boolean;
-    visitCount?: number;
-};
+import type { VisitorNotificationPayload } from "@/lib/notifications/types";
+import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
 
-export async function notifyVisitor(visitor: VisitorInfo, referrer?: string): Promise<void> {
-    console.log("[Telegram] notifyVisitor called", { visitor, referrer });
-
-  const allowedUserIds = process.env.TELEGRAM_ALLOWED_USER_IDS;
-  console.log("[Telegram] TELEGRAM_ALLOWED_USER_IDS:", allowedUserIds);
-
-  if (!allowedUserIds) {
-    return;
-  }
-
-  const userIds = allowedUserIds.split(',').map(id => id.trim());
-  const chatId = userIds[0];
-  console.log("[Telegram] chatId being used:", chatId);
-
-  if (!chatId) {
-    return;
-  }
-
+export async function notifyVisitor(
+  visitor: VisitorNotificationPayload,
+  referrer?: string
+): Promise<void> {
   try {
-    const { initBot } = await import('./bot');
-    const { replies } = await import('./replies');
-    
-    const bot = await initBot();
-    await bot.api.sendMessage(
-      chatId,
-      replies.visitorNotification(visitor, referrer),
-      { parse_mode: "HTML" }
-    );
-    console.log("[Telegram] Notification sent successfully");
-  } catch (error) {
+    await telegramNotifier.notifyVisitor(visitor, referrer);
+  } catch (error: unknown) {
     console.error("[Telegram] Failed to notify owner:", error);
   }
 }

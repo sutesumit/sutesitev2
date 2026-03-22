@@ -3,3 +3,4 @@ export { formatBlip, formatByte, formatBloq } from './formatters';
 export { isAllowed, getAllowedUserIds } from './middleware/auth';
 export { replies } from './replies';
 export { notifyVisitor } from './notifications';
+export { telegramNotifier } from '@/lib/notifications/telegram-notifier';

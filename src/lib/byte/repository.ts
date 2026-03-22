@@ -44,6 +44,21 @@ export async function getBytes(
   };
 }
 
+export async function listAllBytes(): Promise<Byte[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("bytes")
+    .select("id, content, created_at, byte_serial")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching all bytes:", error);
+    return [];
+  }
+
+  return data ?? [];
+}
+
 export async function getByteBySerial(serial: string): Promise<Byte | null> {
   const supabase = getSupabaseServerClient();
 

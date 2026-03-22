@@ -1,246 +1,374 @@
 ---
-title: "blipincli: A CLI for My Microblog"
+title: "When a Shortcut Becomes a Surface"
 publishedAt: "2026-03-09"
-summary: "I built a command-line tool for posting blips. It has ASCII art, interactive mode, and taught me about bundling Node.js CLIs for distribution."
+summary: "I wanted one terminal surface for writing [bytes](/byte), editing blips, and not having to remember my own API contracts like a man paging through notes from a meeting he himself scheduled. Jotbot became the command line shape of the content system."
 slug: "build-interactive-nodejs-cli-typescript"
 tags:
   - typescript
-  - nodejs
-  - cli
+  - architecture
+  - backend
+  - nextjs
   - experiments
-  - ai
 authors:
   - Sumit Sute
 category: "Engineering"
 draft: true
 featured: false
+status: "archived"
 ---
 
-## The Curl Alias Problem
+## Note
 
-> "Every great CLI starts with someone tired of typing the same curl command."
+> "A CLI article can age into archaeology surprisingly fast."
 
-I had shell aliases. They worked. `blip "content=hello"` would POST to my API. But they were fragile, scattered across `.zshrc` and `.bashrc`, and I could never remember the exact syntax. Was it `content=` or just the raw string? Did I need quotes? What was the header name again?
+This piece documents an earlier stage of the command-line interface, before the Telegram bot and the CLI were fully reframed as operator surfaces over one shared publishing core.
 
-```bash
-alias blip='curl -s -H "K: $BLIP_KEY" -d'
-alias blips='curl -s $BLIP_URL'
-alias blip-get='curl -s $BLIP_URL'
-```
+The current architecture lives here:
 
-Technically functional. Emotionally unsatisfying.
+[`One Content System, Three Doorways`](/bloq/private-publishing-system-telegram-cli-architecture)
 
----
+## The Terminal Needed to Stop Being a Side Quest
 
-## What I Wanted
+> "A good internal tool is just your system admitting what shape it really has."
 
-I wanted a proper CLI. Something that felt like a real tool, not a curl wrapper wearing a trench coat. Specifically:
+I wanted a terminal interface for the same reason anyone wants one: the browser is fine until it isn't. Sometimes I am already in a shell. Sometimes I want to throw a thought into the system before the thought notices I am trying to formalise it and runs away.
 
-1. **Unix-style commands** - `blip "hello"` to create, `blip ls` to list, `blip rm a3` to delete
-2. **Pretty output** - Tables, colors, boxes, not raw JSON
-3. **Interactive mode** - Sometimes I want a menu, not a man page
-4. **ASCII art** - Because why not
-5. **Single-file distribution** - Download and run, no npm install required
+This site already had [bytes](/blip), which are short thoughts, and blips, which are `term:meaning` pairs. It also had APIs for both, and a [Telegram bot](/bloq/telegram-bot-nextjs-webhook-setup) doing roughly the same dance from a different doorway. At that point, the question was no longer "should I have a CLI?" The question was "what is the cleanest command surface for the content model I already have?"
+
+That sounds suspiciously mature. It was not. The actual first version of the thought was closer to, "I am absolutely not opening three tabs to post one tiny thing."
 
 ---
 
-## The Design
+## The Mental Model Came First
 
-### Command Structure
+> "If the flow is fuzzy in the terminal, it is probably fuzzy in the backend too."
 
-I decided on Unix-style commands that would feel natural:
+Before the commands, before the banner, before the little boxes that make me feel like I have built Serious Developer Software, there was one flow I wanted to preserve:
 
 ```text
-blip "content"      → Create new blip (implicit)
-blip                → List all blips (default)
-blip <serial>       → View specific blip
-blip ls             → List all (explicit)
-blip edit <serial>  → Edit blip
-blip rm <serial>    → Delete blip
-blip i              → Interactive mode
+intent
+  |
+  +--> byte  -> validate short text       -> POST /api/byte      -> get serial back
+  |
+  +--> blip  -> validate term:meaning     -> POST /api/blip      -> get serial back
+  |
+  +--> fetch/edit/delete                  -> call matching route -> render response
 ```
 
-The key insight: if the argument looks like a serial (alphanumeric, short), treat it as a lookup. Otherwise, treat it as content to create.
+The useful part of Jotbot is not that it is command-line. The useful part is that it maps cleanly to intent.
 
-```typescript
-const SERIAL_PATTERN = /^[a-zA-Z0-9]{1,6}$/
+If I already know what I want:
 
-if (args.length === 1 && SERIAL_PATTERN.test(args[0])) {
-  await getCommand(args[0], {})
-} else {
-  await newCommand(args.join(' '))
-}
+```text
+jot "ship the thought fast"       -> create byte
+jot a3                            -> fetch byte a3
+jot byte ls                       -> list bytes
+jot blip add "Closure:Scope with a memory problem"
 ```
 
-This meant `blip a3` would fetch, but `blip hello world` would create. Natural.
+If I do not know what I want, or if my brain is buffering like a bad video call:
+
+```text
+jot i
+```
+
+That split matters. Command recall for the frequent path. Menu-driven recovery for the human path. I contain multitudes, and at least half of them forget syntax.
 
 ---
 
-## The Build
+## The Shape of the CLI
 
-### Dependencies
-
-I chose five packages, each solving a specific problem:
+Jotbot is one binary with three visible layers:
 
 ```text
-| Package       | Purpose                                    |
-|---------------|--------------------------------------------|
-| `commander`   | CLI argument parsing and command structure |
-| `chalk`       | Terminal colors                            |
-| `ora`         | Loading spinners                           |
-| `inquirer`    | Interactive prompts                        |
-| `conf`        | Persistent config storage                  |
-| `boxen`       | Boxed output                               |
-| `cli-table3`  | Table formatting                           |
+                    jot
+                     |
+      +--------------+--------------+
+      |                             |
+      v                             v
+ default path                  explicit commands
+ "content" / <serial>          byte | blip | get | edit | rm | config
+      |                             |
+      +--------------+--------------+
+                     |
+                     v
+              shared service layer
+         config + API client + terminal UI
 ```
 
-### File Structure
+I like this structure because it keeps the user-facing surface small without pretending the internal semantics are identical.
 
-```text
-blipincli/
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── index.ts           # Entry point, commander setup
-│   ├── commands/
-│   │   ├── new.ts         # Create blip
-│   │   ├── list.ts        # List blips
-│   │   ├── get.ts         # Get single blip
-│   │   ├── edit.ts        # Edit blip
-│   │   └── delete.ts      # Delete blip
-│   └── lib/
-│       ├── api.ts         # API client
-│       ├── config.ts      # Config management
-│       └── ui.ts          # ASCII art, formatting
-└── dist/
-    └── index.js           # Bundled output
-```
+The default path is intentionally biased toward bytes. That is the highest-frequency action. If someone types `jot "this is probably important"`, the tool should help, not start a philosophical debate about content taxonomy.
 
-Nine files total. Clean separation between commands, API, and UI.
+The explicit subcommands exist because bytes and blips are siblings, not twins:
 
-### The API Client
+- bytes are plain text with a length ceiling
+- blips are structured as `term:meaning`
+- bytes list as thought fragments
+- blips list as glossary entries
 
-The API client was straightforward, with one gotcha. Initially I sent raw text with `Content-Type: application/json`, which confused my API:
-
-```typescript
-// Wrong - sends raw text with JSON content-type
-body: content
-
-// Right - sends actual JSON
-body: JSON.stringify({ content })
-```
-
-The API expected either JSON with a `content` field, form-urlencoded, or raw text. Mixing JSON content-type with raw text body returned "Content is required" every time.
-
-### The UI Layer
-
-This is where the fun happened. I wanted:
-
-1. **ASCII logo** - Something that said "blip" without being obnoxious
-2. **Boxed output** - For single blip views
-3. **Table formatting** - For list views
-4. **Colored feedback** - Success in green, errors in red
-
-```typescript
-export const ASCII_LOGO = `
-${chalk.cyan('╔╗  ╦  ╦╔═╗╦╔╗╔╔═╗╦  ╦')}
-${chalk.cyan('╠╩╗ ║  ║╠═╝║║║║║  ║  ║')}
-${chalk.cyan('╚═╝ ╩═╝╩╩  ╩╝╚╝╚═╝╩═╝╩')}
-`
-```
-
-The box-drawing characters felt right. Clean, technical, not trying too hard.
-
-For tables, `cli-table3` gave me aligned columns with minimal configuration:
-
-```typescript
-const table = new Table({
-  head: [chalk.gray('serial'), chalk.gray('content'), chalk.gray('ago')],
-  colWidths: [8, 50, 8],
-  chars: { top: '─', left: '│', ... }
-})
-```
+Trying to "genericize" that too early would have produced the kind of abstraction that makes reviewers nod and users quietly hate you.
 
 ---
 
-## The Bundle
+## Shared Infrastructure, Separate Intent
 
-I wanted a single file someone could download and run. No `npm install`, no `node_modules`, just:
+> "Reuse the plumbing. Keep the meaning local."
 
-```bash
-curl -o blip https://sumitsute.com/blipincli/blip.js
-chmod +x blip
-./blip "hello from anywhere"
+This is the part I care about most.
+
+The CLI shares a lot of infrastructure:
+
+- one config store
+- one request helper
+- one set of terminal formatting primitives
+- one confirmation pattern
+- one interactive front door
+
+But the domain rules stay close to the commands that need them.
+
+```text
+                         shared
+    +------------------------------------------------+
+    | config | request() | success/error boxes | time |
+    +------------------------------------------------+
+            |                               |
+            v                               v
+      byte commands                    blip commands
+    validate <= 280                  validate term:meaning
+    render byte box                  render blip box
+    render byte table                render blip table
 ```
 
-`esbuild` made this trivial:
+That is not duplication by laziness. It is duplication by refusal to lie.
 
-```bash
-esbuild src/index.ts \
-  --bundle \
-  --platform=node \
-  --format=esm \
-  --outfile=dist/index.js \
-  --external:inquirer
-```
+I have seen a lot of codebases where "shared" really means "we were too embarrassed to let two things be different." Then six months later there is one heroic helper function with seven booleans and the emotional energy of a group project nobody wanted.
 
-The `--external:inquirer` flag is important. Inquirer uses dynamic requires that esbuild can't bundle, but since it's only needed for interactive mode, it's a reasonable trade-off. The bundled file is 754KB, which includes all of chalk, boxen, cli-table3, and commander.
+Jotbot avoids that, mostly by being boring on purpose.
 
 ---
 
-## Interactive Mode
+## The Request Layer Is Deliberately Unambitious
 
-Sometimes you don't remember the command. Sometimes you just want a menu:
+The API client is thin enough that it almost feels underqualified for the job, which is usually a good sign.
 
 ```text
-? What would you like to do?
-❯ Create a new blip
-  View all blips
-  View a specific blip
-  Edit a blip
-  Delete a blip
-  Configure settings
-  ──────────────
-  Exit
+command -> request(endpoint, options)
+            |
+            +--> read base URL from config
+            +--> attach K header for mutating calls
+            +--> send JSON
+            +--> normalize { data, error, status }
 ```
 
-`inquirer` handles the arrow-key navigation and prompts. For editing, I even added an editor mode that opens your `$EDITOR`:
+That is all it should do.
 
-```typescript
-{
-  type: 'editor',
-  name: 'content',
-  message: 'Edit blip:'
-}
+The CLI validates what it can cheaply validate on the user side:
+
+- empty byte content
+- byte length over 280
+- malformed `term:meaning`
+- missing API key for mutating actions
+- obviously invalid serials in interactive prompts
+
+Everything else still belongs to the site APIs. The terminal is a client, not a second backend wearing fake glasses and insisting it is a different person.
+
+This is the same architectural principle I ended up liking in the [Telegram bot](/bloq/telegram-bot-nextjs-webhook-setup): multiple interfaces, one canonical set of server rules. Different doors, same house. Slightly less poetic version: fewer bugs.
+
+---
+
+## The Config Layer Does a Small, Important Job
+
+> "A tool you have to re-teach every week is not a tool. It is admin."
+
+Jotbot stores two things locally:
+
+- API key
+- API base URL
+
+That sounds trivial. It is not trivial. Persistent configuration is the difference between "I use this all the time" and "I use this only when I am feeling unusually generous toward my own tooling."
+
+The flow is intentionally forgettable:
+
+```text
+first run
+  -> jot config set key <secret>
+  -> jot config set url <api-url>   # optional, default already points to the site
+
+later
+  -> jot "small thought"
+  -> done
 ```
+
+Good tools disappear. Bad tools ask you to prove your commitment every Monday morning.
+
+---
+
+## The Interactive Mode Is Not Training Wheels
+
+I originally thought of the interactive menu as a convenience feature. I think that undersells it.
+
+Interactive mode is what lets the CLI serve two kinds of use:
+
+```text
+Mode A: recall-driven
+  I know the command
+  -> type it directly
+
+Mode B: recognition-driven
+  I know the intent, not the syntax
+  -> open menu
+  -> pick action
+  -> answer prompts
+```
+
+That is a meaningful design choice. Systems that support only recall tend to flatter the author and punish everyone else, including Future Me, who is somehow both the author and the person being punished. A beautiful closed loop of self-sabotage.
+
+The menu asks for just enough:
+
+- what action do you want?
+- if mutate: do you have a key configured?
+- if byte: give me content
+- if blip: give me `term:meaning`
+- if destructive: are you sure?
+
+Nothing fancy. No wizard nonsense. No full-screen terminal opera. Just a clean fallback path when memory is off duty.
+
+---
+
+## The Rendering Layer Is Half Utility, Half Manners
+
+The UI helpers do not carry business logic. They carry manners.
+
+```text
+API success -> spinner succeeds -> render compact result
+API failure -> spinner fails    -> render boxed error with hint
+GET one     -> render box
+GET many    -> render table
+config      -> render config box
+```
+
+This matters more than I expected.
+
+A CLI that returns raw JSON for everything is technically honest but socially abrasive. A CLI that prettifies everything and hides errors is worse. The useful middle is:
+
+- human-friendly by default
+- JSON when explicitly requested
+- consistent visual grammar
+
+That is why list commands can render tables but also support `--json`. Same system, two audiences:
+
+- me, reading in a terminal
+- me again, five days later, trying to pipe it somewhere because apparently I enjoy inventing chores
+
+---
+
+## The Logical Flow, End to End
+
+> "Architecture gets real the moment you can trace a single thought through it."
+
+Here is the happy path for creating a byte:
+
+```text
+terminal
+  |
+  |  jot "today's bug had the confidence of a startup founder"
+  v
+commander entrypoint
+  |
+  |  default command path
+  v
+byte validation
+  |
+  |  length <= 280, key present
+  v
+request()
+  |
+  |  POST /api/byte
+  |  Header: K <api-key>
+  v
+site API
+  |
+  |  create record
+  v
+response
+  |
+  |  { byte: { byte_serial, content, created_at } }
+  v
+spinner + compact render
+```
+
+And for a blip:
+
+```text
+jot blip add "Idempotency:Doing the same thing twice without starting a fire"
+    |
+    +--> parse on first colon
+    +--> validate term and meaning
+    +--> POST /api/blip
+    +--> render blip serial + term + meaning
+```
+
+And for interactive mode:
+
+```text
+jot i
+  |
+  +--> choose action
+         |
+         +--> create
+         +--> list
+         +--> get
+         +--> edit
+         +--> delete
+         +--> config
+```
+
+Nothing here is conceptually advanced. That is the compliment. A CLI should make the system legible, not theatrical.
+
+---
+
+## The Packaging Choice Was Part of the Design
+
+The project builds into a single Node-targeted output and exposes one binary: `jot`.
+
+That packaging choice is easy to dismiss as implementation detail. I do not think it is.
+
+A tool feels real when it behaves like a tool:
+
+- install once
+- invoke from anywhere
+- keep startup simple
+- do not make the user remember your source tree
+
+That is why bundling the entrypoint matters. Not because it is clever. Because tools should act finished, even when the person who wrote them is very much not finished and is currently adding another alias at 1:13 AM while eating something that should not legally be called dinner.
+
+---
+
+## What the CLI Forced Me to Learn About the System
+
+> "A second interface is an architectural audit disguised as convenience."
+
+Building Jotbot clarified a few things that were already true but easier to ignore from inside the web app.
+
+First, the content system really does have two distinct domains under one roof. That was not an implementation detail. It was the architecture asking to be named.
+
+Second, thin clients are a discipline. Every time I was tempted to stuff more logic into the CLI, the better move was usually to keep the client honest and the API canonical.
+
+Third, shared code has a very specific job. It should reduce mechanical repetition, not erase semantic differences. If two things have different validation rules, different rendering needs, and different user intent, pretending they are the same is not elegance. It is delay. The confusion just invoices you later.
+
+Finally, the terminal turned out to be a good truth-teller. If a command surface feels awkward, there is a decent chance the backend contract is awkward too. The shell has very little patience for hand-wavy design, which I respect. It is the one colleague who does not nod politely while you explain nonsense.
 
 ---
 
 ## What I Took Away
 
-- **CLI UX is about reducing friction.** The difference between `blip "hello"` and `curl -X POST -H "K: $KEY" -d "content=hello" $URL` is the difference between using a tool and fighting it.
+- **The command surface should mirror intent, not just endpoints.** `jot "thought"` is better than a forest of verbs for the most common action.
+- **Shared infrastructure and separate semantics can coexist just fine.** Reuse the transport and rendering primitives. Keep the domain rules where they belong.
+- **Interactive mode is a design choice, not a concession.** Recognition beats recall on tired days, which is to say, most days.
+- **A thin client is often the more serious architecture.** It forces the API to remain the source of truth instead of letting every interface become its own little constitution.
+- **The second interface teaches you what the first one forgot to make obvious.** In this case, that bytes and blips belong together operationally, but not conceptually.
 
-- **Bundling matters for distribution.** A single file you can curl and run beats a repo you have to clone and npm install.
+Jotbot is not revolutionary software. It is a well-behaved terminal door into a small publishing system. That is enough. Most useful tools are not trying to become a platform. They are trying to reduce friction without smuggling in confusion.
 
-- **ASCII art is underrated.** It costs nothing, adds personality, and makes the tool feel intentional rather than thrown together.
-
-- **The Unix philosophy holds.** Small commands that do one thing well, composable, with sensible defaults.
-
-- **Agent collaboration accelerated this.** I described what I wanted, the agent wrote the initial code, I refined the design. What would have been a weekend project took an evening.
-
----
-
-## Try It
-
-```bash
-# From the repo
-cd blipincli
-npm install
-npm link
-
-# Now use anywhere
-blip config set key your-api-key
-blip "First blip from the CLI"
-```
-
-The CLI is now part of my workflow. I use it more than the web interface. Sometimes the best UI is no UI at all.
+Which, frankly, is more than I can say for half the software I use daily, including some of the software I wrote myself.

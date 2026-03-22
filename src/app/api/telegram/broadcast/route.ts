@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
-import { initBot } from "@/lib/telegram-bot";
-import { replies } from "@/lib/telegram-replies";
+import { createBloqNotificationService } from "@/lib/bloq/service";
+import { AppError, getErrorMessage } from "@/lib/core/errors";
+import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
 
-const noStoreHeaders = { 'Cache-Control': 'no-store' };
+const noStoreHeaders = { "Cache-Control": "no-store" };
+const bloqNotificationService = createBloqNotificationService(telegramNotifier);
 
 function validateBroadcastSecret(authHeader: string | null): boolean {
-  const secret = process.env.TELEGRAM_BOT_TOKEN;
+  const secret = process.env.TELEGRAM_BROADCAST_SECRET || process.env.TELEGRAM_BOT_TOKEN;
   if (!secret || !authHeader) return false;
   return authHeader === secret;
 }
 
 export async function POST(req: Request) {
   const authHeader = req.headers.get("X-Broadcast-Secret");
-  
+
   if (!validateBroadcastSecret(authHeader)) {
     return NextResponse.json(
       { error: "Unauthorized" },
@@ -24,21 +26,24 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { type, title, slug, tags } = body;
 
-    const channelId = process.env.TELEGRAM_CHANNEL_ID;
-    if (!channelId) {
+    if (type !== "bloq") {
       return NextResponse.json(
-        { error: "Channel not configured" },
-        { status: 500, headers: noStoreHeaders }
+        { error: "Unsupported broadcast type" },
+        { status: 400, headers: noStoreHeaders }
       );
     }
 
-    const bot = await initBot();
-    
-    const message = type === "bloq"
-      ? `📝 <b>${title}</b>\n<a href="https://sumitsute.com/bloq/${slug}">Read more</a>\nTags: ${tags}`
-      : replies.channelBlip(slug, `${title}`);
+    const parsedTags = Array.isArray(tags)
+      ? tags
+      : typeof tags === "string"
+        ? tags.split(",").map((tag: string) => tag.trim()).filter(Boolean)
+        : [];
 
-    await bot.api.sendMessage(channelId, message, { parse_mode: "HTML" });
+    await bloqNotificationService.notifyBloqPublished({
+      title,
+      slug,
+      tags: parsedTags,
+    });
 
     return NextResponse.json(
       { ok: true, broadcast: true },
@@ -46,10 +51,10 @@ export async function POST(req: Request) {
     );
   } catch (error: unknown) {
     console.error("Broadcast error:", error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const status = error instanceof AppError ? error.status : 500;
     return NextResponse.json(
-      { error: message },
-      { status: 500, headers: noStoreHeaders }
+      { error: getErrorMessage(error) },
+      { status, headers: noStoreHeaders }
     );
   }
 }

@@ -1,10 +1,10 @@
 {
-  "name": "@sutesite/blip-cli",
+  "name": "@sutesite/jot",
   "version": "1.0.0",
-  "description": "CLI tool for managing blips",
+  "description": "CLI for managing bytes and blips",
   "type": "module",
   "bin": {
-    "blip": "./dist/index.js"
+    "jot": "./dist/index.js"
   },
   "files": [
     "dist"
