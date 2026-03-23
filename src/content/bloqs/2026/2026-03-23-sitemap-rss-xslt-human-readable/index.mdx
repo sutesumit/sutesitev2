@@ -1,0 +1,159 @@
+---
+title: "Sitemaps, RSS, and the Question Nobody Asked"
+publishedAt: "2026-03-23"
+summary: "Adding human-readable sitemap and RSS feeds taught me that XSLT can style XML for browsers, but the process revealed something about how agents think about infrastructure decisions."
+slug: "sitemap-rss-xslt-human-readable"
+tags:
+  - nextjs
+  - seo
+  - architecture
+  - ai
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: true
+featured: false
+---
+
+## The Quiet Question Nobody Asked
+
+> "Why does a sitemap need to be human-readable?"
+
+It. Because I was building this feature with an agent,2. Because the agent asked me what happens if a bot visits `/sitemap.xml`
+3. Because the realized I didn't know
+
+The conversation started when I noticed my sitemap and RSS feeds were both returning raw XML. The browser. Not great for the developer experience, I wanted to see something more like a styled document.
+
+But is was working with an agent on this feature, and the agent asked: "Should we add robots.txt?"
+
+That question made me pause. Robots.txt is a standard answer for personal sites SEO. But But the deeper look revealed that real question: What value does we actually providing?
+
+---
+
+## What I Built
+
+The implementation went through several iterations:
+
+**Iteration 1: Standard Next.js approach**
+
+Next.js provides built-in `sitemap.ts` and `robots.ts` files. Simple, effective, but raw XML in browsers.
+
+**Iteration 2: Custom route handlers**
+
+I converted to custom route handlers to add an XSLT stylesheet processing instruction:
+
+```typescript
+// src/app/sitemap.xml/route.ts
+export const revalidate = 21600; // 6 hours
+
+export async function GET() {
+  // ... generate XML with XSLT reference
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
+<urlset>...`;
+}
+```
+
+**Iteration 3: XSLT stylesheets**
+
+Created two stylesheets: `sitemap.xsl` and `feed.xsl`:
+
+Both use:
+ dark mode only (the site uses class-based theming)
+ Tailwind slate colors palette
+ Monospace font
+ Lowercase aesthetic
+
+---
+
+## Why This Matters for Agentic Engineering
+
+### Agents Make Infrastructure Visible
+
+When an agent works on a codebase, it doesn't just write code, it explores the existing infrastructure. The sitemap implementation became a conversation point:
+
+**What the sitemap reveals:**
+- Content sources (MDX files, Supabase tables, static data)
+- Route structure
+- Revalidation strategy
+- Priority assignments
+
+This visibility matters because:
+
+1. **Agent context building** - An agent modifying the sitemap route needs to understand the content sources
+2. **Debugging trails** - When something breaks, the sitemap shows what pages exist and their last modified dates
+3. **Architecture decisions** - The priority values reveal what the developer considers important
+
+### The Revalidation Decision
+
+Here's where agent judgment really mattered
+
+The agent and me, and the human, discussed three revalidation times:
+
+| Time | Pros | Cons |
+|------|------|-----------|
+| 5 min | Very fresh | More server invocations |
+| 1 hour | Balanced | Content up to 1hr stale |
+| 6 hours | Fewer invocations | Content up to 6hr stale |
+
+**The agent's input:** "What's the traffic pattern? How often does you publish? Do you have RSS subscribers?"
+
+**The decision:** 6 hours for both
+
+**Why?** This is a low-traffic personal site. Search engines crawl daily anyway. RSS readers don't need real-time updates for personal blogs.
+
+The agent asked good questions. And that's the point. Agents shouldn't just optimize for freshness. They should optimize for the actual use case.
+
+---
+
+## The Robots.txt Question
+
+> "Should I add robots.txt?"
+
+The agent suggested it standard answer: "Yes, for SEO."
+
+I pushed back. "What does it actually block?"
+
+The answer: `/api/` and `/admin/`
+
+"But those routes don't expose content anyway. And search engines will find the sitemap at the standard location."
+
+**The agent's realization:** Sometimes the standard advice doesn't apply to every context.
+
+For a personal site with no sensitive crawlable paths, robots.txt provides minimal value. We removed it.
+
+---
+
+## What I Took Away
+
+- **Context matters more than convention.** Standard advice ("add robots.txt") isn't always right. Understand the actual use case.
+
+- **Agents should ask "why" before implementing.** The standard answer isn't enough. What does this actually do? What value does it actually provide?
+
+- **Human-readable infrastructure helps everyone.** XSLT stylesheets make XML files useful for both humans and machines. The cost is minimal.
+
+- **Revalidation is a design decision.** It's not a configuration detail. It's a strategic choice based on traffic, content frequency, and user expectations.
+
+- **Sometimes the best code is no code.** Removing robots.txt simplified the codebase without losing functionality.
+
+---
+
+## Technical Details
+
+**Files created/modified:**
+
+```
+src/app/sitemap.xml/route.ts  # Custom sitemap route with XSLT
+src/app/feed.xml/route.ts    # Updated with XSLT reference
+public/sitemap.xsl            # Sitemap stylesheet
+public/feed.xsl               # RSS stylesheet
+src/components/layout/footer/Footer.tsx  # Added sitemap and telegram icons
+```
+
+**Revalidation:** 6 hours (21600 seconds) for both feeds
+
+**XSLT features:**
+- Dark mode with Tailwind slate colors
+- Monospace font (Roboto Mono)
+- Tree format for sitemap (grouped by section)
+- Subscribe hint for RSS feed
