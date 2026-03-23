@@ -53,7 +53,7 @@ publisher intent -> sitemap.xml -> declared URLs -> crawl queue
 
 That distinction matters. Crawlers are not reading your site like a curious person on a Sunday afternoon. They are building a model of it. They care about URL inventory, freshness signals, and how to allocate attention. A sitemap helps them do less inference.
 
-If you open my sitemap now at <CopyLink className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' href='/sitemap.xml'><FaSitemap /></CopyLink>, the XML is basically the site saying: here are the pages, and here is my best attempt at not sending you on a recursive walk through internal links with a rate limit.
+If you open my sitemap now at <Link className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' href='/sitemap.xml'><FaSitemap /></Link>, the XML is basically the site saying: here are the pages, and here is my best attempt at not sending you on a recursive walk through internal links with a rate limit.
 
 It looks roughly like this:
 
@@ -196,7 +196,7 @@ In other words: the sitemap is not the site. It is the site explaining itself wi
 
 This was the smaller refinement, and I want to keep it in its proper place.
 
-Once <CopyLink className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' href='/sitemap.xml'><FaSitemap /></CopyLink> existed, it was technically correct. Which is to say: useful for crawlers, mildly hostile for humans, and aesthetically similar to being handed a spreadsheet in a stairwell.
+Once <Link className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' href='/sitemap.xml'><FaSitemap /></Link> existed, it was technically correct. Which is to say: useful for crawlers, mildly hostile for humans, and aesthetically similar to being handed a spreadsheet in a stairwell.
 
 So I added an XSLT stylesheet reference to make the XML render more cleanly in a browser. It is an old trick, but a good one. The sitemap stays machine-first, the browser applies the transformation, and suddenly the file stops looking like a tax audit conducted by angle brackets.
 
