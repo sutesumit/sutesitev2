@@ -39,9 +39,8 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
           paddingRight: isCollapsed ? "1.5rem" : "0.5rem",
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`flex h-full flex-col ${
-          isCollapsed ? "items-center justify-center" : ""
-        }`}
+        className={`flex h-full flex-col ${isCollapsed ? "items-center justify-center" : ""
+          }`}
       >
         {/* Back button & collapsed title */}
         <div className="flex flex-row w-full items-center justify-between">
@@ -58,9 +57,9 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
-                className="flex-grow flex items-center justify-end gap-3 ml-2"
+                className="flex-grow flex items-center justify-end gap-3 ml-2 min-w-0"
               >
-                <span className="truncate font-medium text-blue-900 dark:text-blue-400 text-right">
+                <span className="truncate min-w-0 font-medium text-blue-900 dark:text-blue-400 text-right">
                   {post.title}
                 </span>
                 <ClapsCounter
@@ -72,7 +71,7 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
               </m.div>
             ) : (
               <div className="flex items-center gap-3">
-<ViewCounter
+                <ViewCounter
                   type="bloq"
                   identifier={post.url}
                   className="text-xs flex items-center"
