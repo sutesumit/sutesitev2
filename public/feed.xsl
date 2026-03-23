@@ -7,6 +7,19 @@
       <head>
         <title>rss feed</title>
         <style>
+          :root {
+            --xml-bg: rgb(28, 27, 34);
+            --xml-surface: rgb(36, 35, 44);
+            --xml-surface-2: rgb(49, 47, 60);
+            --xml-border: rgb(68, 65, 82);
+            --xml-text: rgb(203, 213, 225);
+            --xml-text-strong: rgb(241, 245, 249);
+            --xml-text-muted: rgb(148, 163, 184);
+            --xml-text-faint: rgb(120, 131, 151);
+            --xml-text-subtle: rgb(96, 105, 123);
+            --xml-accent: #60a5fa;
+          }
+
           * {
             box-sizing: border-box;
             margin: 0;
@@ -16,8 +29,8 @@
           body {
             font-family: 'Roboto Mono', ui-monospace, monospace;
             font-size: 14px;
-            background: #0f172a;
-            color: #cbd5e1;
+            background: var(--xml-bg);
+            color: var(--xml-text);
             padding: 2.5rem;
             line-height: 1.6;
           }
@@ -27,34 +40,36 @@
             font-weight: 400;
             text-transform: lowercase;
             margin-bottom: 0.5rem;
-            color: #f1f5f9;
+            color: var(--xml-text-strong);
           }
           
           .meta {
-            color: #94a3b8;
+            color: var(--xml-text-muted);
             font-size: 0.75rem;
             margin-bottom: 2rem;
           }
           
           .count {
-            color: #60a5fa;
+            color: var(--xml-accent);
           }
           
           .channel-info {
             margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #334155;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--xml-border);
+            border-radius: 6px;
+            background: color-mix(in srgb, var(--xml-surface) 88%, transparent);
           }
           
           .channel-title {
             font-size: 0.875rem;
-            color: #f1f5f9;
+            color: var(--xml-text-strong);
             margin-bottom: 0.25rem;
           }
           
           .channel-desc {
             font-size: 0.75rem;
-            color: #64748b;
+            color: var(--xml-text-faint);
           }
           
           .items {
@@ -63,7 +78,7 @@
           
           .item {
             padding: 0.75rem 0;
-            border-bottom: 1px solid #1e293b;
+            border-bottom: 1px solid var(--xml-surface-2);
           }
           
           .item:last-child {
@@ -77,25 +92,25 @@
           }
           
           .item-title a {
-            color: #f1f5f9;
+            color: var(--xml-text-strong);
             text-decoration: none;
           }
           
           .item-title a:hover {
-            color: #60a5fa;
+            color: var(--xml-accent);
           }
           
           .item-meta {
             display: flex;
             gap: 1rem;
             font-size: 0.625rem;
-            color: #475569;
+            color: var(--xml-text-subtle);
             margin-bottom: 0.25rem;
           }
           
           .item-desc {
             font-size: 0.75rem;
-            color: #94a3b8;
+            color: var(--xml-text-muted);
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
@@ -107,28 +122,29 @@
             display: inline-block;
             margin-top: 2rem;
             font-size: 0.75rem;
-            color: #64748b;
+            color: var(--xml-text-faint);
             text-decoration: none;
           }
           
           .home-link:hover {
-            color: #60a5fa;
+            color: var(--xml-accent);
           }
           
           .subscribe-hint {
             margin-top: 1rem;
             padding: 0.75rem;
-            background: #1e293b;
-            border-radius: 4px;
+            background: var(--xml-surface);
+            border: 1px solid var(--xml-border);
+            border-radius: 6px;
             font-size: 0.75rem;
-            color: #94a3b8;
+            color: var(--xml-text-muted);
           }
           
           .subscribe-hint code {
-            background: #334155;
+            background: var(--xml-surface-2);
             padding: 0.125rem 0.375rem;
             border-radius: 2px;
-            color: #f1f5f9;
+            color: var(--xml-text-strong);
           }
         </style>
       </head>

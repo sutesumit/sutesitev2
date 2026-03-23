@@ -9,6 +9,19 @@
       <head>
         <title>sitemap</title>
         <style>
+          :root {
+            --xml-bg: rgb(28, 27, 34);
+            --xml-surface: rgb(36, 35, 44);
+            --xml-surface-2: rgb(49, 47, 60);
+            --xml-border: rgb(68, 65, 82);
+            --xml-text: rgb(203, 213, 225);
+            --xml-text-strong: rgb(241, 245, 249);
+            --xml-text-muted: rgb(148, 163, 184);
+            --xml-text-faint: rgb(120, 131, 151);
+            --xml-text-subtle: rgb(96, 105, 123);
+            --xml-accent: #60a5fa;
+          }
+
           * {
             box-sizing: border-box;
             margin: 0;
@@ -18,8 +31,8 @@
           body {
             font-family: 'Roboto Mono', ui-monospace, monospace;
             font-size: 14px;
-            background: #0f172a;
-            color: #cbd5e1;
+            background: var(--xml-bg);
+            color: var(--xml-text);
             padding: 2.5rem;
             line-height: 1.6;
           }
@@ -29,21 +42,25 @@
             font-weight: 400;
             text-transform: lowercase;
             margin-bottom: 0.5rem;
-            color: #f1f5f9;
+            color: var(--xml-text-strong);
           }
           
           .meta {
-            color: #94a3b8;
+            color: var(--xml-text-muted);
             font-size: 0.75rem;
             margin-bottom: 2rem;
           }
           
           .count {
-            color: #60a5fa;
+            color: var(--xml-accent);
           }
           
           .section {
             margin-bottom: 2rem;
+            padding: 1rem 1.25rem;
+            background: color-mix(in srgb, var(--xml-surface) 88%, transparent);
+            border: 1px solid var(--xml-border);
+            border-radius: 6px;
           }
           
           .section-header {
@@ -52,19 +69,19 @@
             gap: 0.75rem;
             margin-bottom: 0.5rem;
             padding-bottom: 0.25rem;
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid var(--xml-border);
           }
           
           .section-name {
             font-size: 0.875rem;
             font-weight: 400;
             text-transform: lowercase;
-            color: #f1f5f9;
+            color: var(--xml-text-strong);
           }
           
           .section-count {
             font-size: 0.75rem;
-            color: #64748b;
+            color: var(--xml-text-faint);
           }
           
           .url-list {
@@ -81,21 +98,21 @@
           
           .url-item::before {
             content: '–';
-            color: #475569;
+            color: var(--xml-text-subtle);
             margin-right: 0.5rem;
           }
           
           a {
-            color: #cbd5e1;
+            color: var(--xml-text);
             text-decoration: none;
           }
           
           a:hover {
-            color: #60a5fa;
+            color: var(--xml-accent);
           }
           
           .url-path {
-            color: #64748b;
+            color: var(--xml-text-faint);
             font-size: 0.75rem;
           }
           
@@ -103,19 +120,19 @@
             display: flex;
             gap: 1rem;
             font-size: 0.625rem;
-            color: #475569;
+            color: var(--xml-text-subtle);
           }
           
           .home-link {
             display: inline-block;
             margin-top: 2rem;
             font-size: 0.75rem;
-            color: #64748b;
+            color: var(--xml-text-faint);
             text-decoration: none;
           }
           
           .home-link:hover {
-            color: #60a5fa;
+            color: var(--xml-accent);
           }
         </style>
       </head>
