@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 import ScrambleText from "@/components/shared/ScrambleText";
 import { useCurrentVisitorLocation } from "@/hooks/useCurrentVisitorLocation";
@@ -22,6 +23,9 @@ export function HomeContent() {
         <BioSection />
         <br />
         <ProjectList />
+        <div className="mt-4 text-xs opacity-50 transition-opacity hover:opacity-100">
+          <Link href="/sitemap.xml">sitemap</Link>
+        </div>
         <br />
       </div>
     </article>
