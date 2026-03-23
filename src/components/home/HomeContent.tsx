@@ -23,9 +23,6 @@ export function HomeContent() {
         <BioSection />
         <br />
         <ProjectList />
-        <div className="mt-4 text-xs opacity-50 transition-opacity hover:opacity-100">
-          <Link href="/sitemap.xml">sitemap</Link>
-        </div>
         <br />
       </div>
     </article>
