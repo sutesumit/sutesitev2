@@ -53,7 +53,7 @@ publisher intent -> sitemap.xml -> declared URLs -> crawl queue
 
 That distinction matters. Crawlers are not reading your site like a curious person on a Sunday afternoon. They are building a model of it. They care about URL inventory, freshness signals, and how to allocate attention. A sitemap helps them do less inference.
 
-If you open my sitemap now at [`/sitemap.xml`](/sitemap.xml), the XML is basically the site saying: here are the pages, and here is my best attempt at not sending you on a recursive walk through internal links with a rate limit.
+If you open my sitemap now at <CopyLink className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' href='/sitemap.xml'><FaSitemap /></CopyLink>, the XML is basically the site saying: here are the pages, and here is my best attempt at not sending you on a recursive walk through internal links with a rate limit.
 
 It looks roughly like this:
 
@@ -196,7 +196,7 @@ In other words: the sitemap is not the site. It is the site explaining itself wi
 
 This was the smaller refinement, and I want to keep it in its proper place.
 
-Once [`/sitemap.xml`](/sitemap.xml) existed, it was technically correct. Which is to say: useful for crawlers, mildly hostile for humans, and aesthetically similar to being handed a spreadsheet in a stairwell.
+Once <CopyLink className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' href='/sitemap.xml'><FaSitemap /></CopyLink> existed, it was technically correct. Which is to say: useful for crawlers, mildly hostile for humans, and aesthetically similar to being handed a spreadsheet in a stairwell.
 
 So I added an XSLT stylesheet reference to make the XML render more cleanly in a browser. It is an old trick, but a good one. The sitemap stays machine-first, the browser applies the transformation, and suddenly the file stops looking like a tax audit conducted by angle brackets.
 
@@ -204,7 +204,7 @@ In practice, it means the sitemap XML can stay machine-first while the browser g
 
 I like this because infrastructure should not have to be ugly to be respectable. If I am going to inspect a sitemap while debugging, or while explaining the site to someone else, I would prefer not to feel like I am reading the shipping manifest for a haunted warehouse.
 
-And once I had done that for the sitemap, the same logic spilled into the RSS feed at [`/feed.xml`](/feed.xml). I had already written about adding RSS in [I Added an RSS Feed](/bloq/how-to-add-rss-feed-nextjs), but after styling the sitemap it felt strange to leave the feed looking like it had been faxed in from 2004. So the RSS got the same courtesy treatment: still machine-readable, just less likely to make a human recoil.
+And once I had done that for the sitemap, the same logic spilled into the RSS feed at <CopyLink className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-orange-500 hover:bg-orange-500/10 cursor-pointer transition-all duration-200' href='/feed.xml'><MdOutlineRssFeed /></CopyLink>. I had already written about adding RSS in [I Added an RSS Feed](/bloq/how-to-add-rss-feed-nextjs), but after styling the sitemap it felt strange to leave the feed looking like it had been faxed in from 2004. So the RSS got the same courtesy treatment: still machine-readable, just less likely to make a human recoil.
 
 Still, this is a courtesy layer. The sitemap earns its keep before the styling ever appears.
 
