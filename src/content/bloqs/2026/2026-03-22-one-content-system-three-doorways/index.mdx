@@ -1,3 +1,7 @@
+import React from 'react'
+import Link from 'next/link'
+import { FaTelegram } from 'react-icons/fa'
+
 ---
 title: "One Content System, Three Doorways"
 publishedAt: "2026-03-22"
@@ -32,7 +36,7 @@ Not a product. Not a platform. Not a "content ops stack." God help me. Just one 
 - capture a [byte](/byte), a short thought worth preserving before it evaporates
 - add or edit a [blip](/blip), a compact term-and-meaning note for things I want retrievable later
 - publish [bloqs](/bloq), the longer pieces where I get to overthink things in public
-- keep the public website and public Telegram channel, [@blipbotlive](https://t.me/blipbotlive), in sync
+- keep the public website and public Telegram channel, <Link className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' target='_blank' href='https://t.me/blipbotlive'><FaTelegram /></Link>, in sync
 
 That is a very different framing.
 
@@ -256,7 +260,7 @@ Telegram wears two hats in this system.
 
 First, it is an inbound control surface through the bot. I message the bot. The bot parses commands. The command hits the same application core as everything else.
 
-Second, it is an outbound publishing surface through the channel, [@blipbotlive](https://t.me/blipbotlive). New bytes and blips go out there. Bloq publication notices go out there too. Visitor notifications are more private, so they come back to me directly.
+Second, it is an outbound publishing surface through the channel, <Link className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' target='_blank' href='https://t.me/blipbotlive'><FaTelegram /></Link>. New bytes and blips go out there. Bloq publication notices go out there too. Visitor notifications are more private, so they come back to me directly.
 
 ```text
 Telegram as input
@@ -277,7 +281,7 @@ Same ecosystem, different responsibilities. Same city, different addresses.
 
 This is a good example of **role separation**. One integration can still play multiple roles, but the code should not blur those roles together. Otherwise every Telegram-related change starts feeling like touching a wet power strip.
 
-There is also a UX reason. When I message the bot, I am acting as the system operator. When the system posts to the [channel](https://t.me/blipbotlive), it is acting as the publisher. Same app family, different actor, different audience, different constraints.
+There is also a UX reason. When I message the bot, I am acting as the system operator. When the system posts to the <Link className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' target='_blank' href='https://t.me/blipbotlive'><FaTelegram /></Link> channel, it is acting as the publisher. Same app family, different actor, different audience, different constraints.
 
 The bot is optimized for commandability: parse input, authenticate me, route the intent, confirm the result.
 
