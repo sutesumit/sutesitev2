@@ -1,7 +1,28 @@
 import React from 'react';
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { CodeBlock } from '@/components/ui/code-block-dynamic';
 import { cn } from '@/lib/utils';
+
+interface ImageProps {
+  src: string;
+  alt: string;
+  width?: string;
+  height?: string;
+  className?: string;
+}
+
+const Image = ({ src, alt, width = '100%', height = '50vh', className }: ImageProps) => (
+  <div className={cn('relative my-2 mx-auto border border-gray-200 dark:border-gray-700 rounded-sm', className)} style={{ width, height }}>
+    <NextImage
+      src={src}
+      alt={alt}
+      fill
+      className="object-contain"
+      sizes="(max-width: 800px) 100vw, 800px"
+    />
+  </div>
+);
 
 const MDXComponents = {
   h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
@@ -110,6 +131,7 @@ const MDXComponents = {
       }}
     />
   ),
+  Image,
 };
 
 export default MDXComponents;

@@ -1,7 +1,3 @@
-import React from 'react'
-import Link from 'next/link'
-import { FaTelegram } from 'react-icons/fa'
-
 ---
 title: "One Content System, Three Doorways"
 publishedAt: "2026-03-22"
@@ -74,11 +70,11 @@ Telegram bot                        jotbot CLI
 
 That is the first important architectural observation: the **transport surface differs, the application semantics do not**.
 
-[Placeholder: Telegram screenshot showing `/byte`, `/blip`, `/list`, `/edit` in a real chat]
-
-[Placeholder: CLI screenshot showing `jot "ship the thought"`, `jot blip add`, `jot byte ls`]
+<Image src="/telegram_bot_screenshots/blipbot_2.webp" alt="Telegram UX screenshot with a quick byte capture" className="w-[50%]" />
 
 The nice phrase for this is **multiple operator interfaces over one bounded application core**. The useful consequence is that the system can preserve one set of invariants regardless of entry point. If a blip requires a term and a meaning, that should not become a philosophical debate just because I happened to type it in a chat window instead of a shell.
+
+<Image src="/telegram_bot_screenshots/jotbot_1.webp" alt="Telegram UX screenshot with a quick byte capture" />
 
 This matters even more in the current era of agentic engineering. An agent can help me implement, refactor, document, and even accidentally vandalize a system much faster than I can on my own. That speed is only an advantage if the system has a clear semantic center. If the rules are smeared across three surfaces, the agent does not see architecture. It sees conflicting clues and picks a side with confidence. Which is also how a raccoon would perform code review if you gave it a linter and emotional momentum.
 
@@ -140,24 +136,24 @@ I chose short-term convenience first, because that is how personal tools usually
 The new system has a center of gravity now.
 
 ```text
-                           PRIVATE OPERATOR SURFACES
+                PRIVATE OPERATOR SURFACES
 
-                  Telegram Bot                  jotbot CLI
-                        |                           |
-                        +------------+--------------+
-                                     |
-                                     v
-                           shared application core
-                     validation / services / contracts
-                       persistence / notification
-                                     |
-                    +----------------+----------------+
-                    |                                 |
-                    v                                 v
-                Supabase                      Telegram channel
-                    |
-                    v
-                public website
+      Telegram Bot                  jotbot CLI
+            |                           |
+            +------------+--------------+
+                          |
+                          v
+                shared application core
+          validation / services / contracts
+            persistence / notification
+                          |
+        +----------------+----------------+
+        |                                 |
+        v                                 v
+    Supabase                      Telegram channel
+        |
+        v
+    public website
 ```
 
 That diagram is the article, honestly. Everything else is me elaborating because apparently I enjoy hearing myself think.
@@ -292,15 +288,15 @@ Those are not interchangeable utilities. They sit on opposite sides of the trust
 ```text
 | Telegram surface | Primary role    | Audience             | Design pressure       |
 |------------------|-----------------|----------------------|-----------------------|
-| Bot              | private operator| me                   | correctness, speed,   |
+| Bot              | Private operator| Me                   | Correctness, speed,   |
 |                  | interface       |                      | auth, safe mutation   |
-| Channel          | public broadcast| everyone, especially | clarity, consistency, |
+| Channel          | Public broadcast| Everyone, especially | Clarity, consistency, |
 |                  | surface         | my parents           | readable delivery     |
 ```
 
 That distinction becomes more important, not less, in a world where agents help compose and ship changes. If the outbound broadcaster and the inbound command surface are tangled together, every Telegram change drags more unintended context behind it. The fix is not "be careful." The fix is **make the roles explicit in code so care is no longer the main safety mechanism**. Care is admirable. It is also notoriously non-deterministic.
 
-[Placeholder: Telegram channel screenshot showing a byte or bloq broadcast]
+<Image src="/telegram_bot_screenshots/blipchannel_2.webp" alt="Telegram UX screenshot with a quick byte capture"/>
 
 ---
 
@@ -335,9 +331,11 @@ different ergonomics
 
 That distinction matters because architecture often goes wrong when one interface is treated as the real one and the others become tolerated accessories. Once that happens, the "secondary" surface starts lagging behind in validation, features, or behavior, and soon you have what I can only describe as feature feudalism.
 
+<Image src="/telegram_bot_screenshots/blipbot_1.webp" alt="Telegram UX screenshot with a quick byte capture"/>
+
 The better approach is to treat both as first-class operator surfaces over the same application core. They are **capability-equivalent, ergonomically different, operationally interchangeable**. That phrasing is absurdly formal for a system mostly operated by one man and occasionally observed by his mother, but it does describe the reality precisely.
 
-[Placeholder: Side-by-side image, Telegram command flow on the left, CLI command flow on the right]
+<Image src="/telegram_bot_screenshots/jotbot_2.webp" alt="Telegram UX screenshot with a quick byte capture"/>
 
 ## The API Exists As A Boundary, Not A Lifestyle
 
@@ -377,20 +375,19 @@ There is a trade-off here too. Internal APIs can be overbuilt. Plenty of persona
 The security story lives here too. The bot, the CLI, and the APIs are not interchangeable trust domains, so they should not share a hand-wavy idea of security and call it character development.
 
 ```text
-| Surface        | Security boundary                      | Why it matters                  |
-|----------------|----------------------------------------|---------------------------------|
-| Telegram bot   | allowed Telegram user IDs and webhook  | only I should be able           | 
-|                | verification                           | to mutate content through chat  |
-| CLI            | local environment, API key,            | the tool should be convenient   |
-|                | machine-to-machine trust               | without becoming anonymous root |  
-|                |                                        | access with vibes               |
-| CRUD API       | explicit auth headers and              | mutation endpoints should be    |
-|                | narrow route contracts                 | private even if the             |
-|                |                                        | website is public               |
-| Bloq broadcast | dedicated broadcast secret             | GitHub Actions should be able   |
-| API            |                                        | to announce a post without      |
-|                |                                        | inheriting every other          |
-|                |                                        | permission                      |
+| Surface        | Security boundary          | Why it matters                  |
+|----------------|----------------------------|---------------------------------|
+| Telegram bot   | Allowed Telegram user IDs  | Only I should be able           | 
+|                | and webhook verification   | to mutate content through chat  |
+| CLI            | Local environment, API key,| The tool should be convenient   |
+|                | machine-to-machine trust   | without becoming anonymous root |  
+|                |                            | access with vibes               |
+| CRUD API       | Explicit auth headers and  | Mutation endpoints should be    |
+|                | narrow route contracts     | private even if the             |
+|                |                            | website is public               |
+| Bloq broadcast | Dedicated broadcast secret | GitHub Actions should be able   |
+|                |                            | inheriting every other          |
+|                |                            | permission                      |
 ```
 
 The senior phrase is **defense in depth**. The system is small, but the attack surface is still plural: webhook, CLI, HTTP routes, outbound notifier. Public website, private mutation path. Public channel, private operator bot. Those are different trust zones, and the code should behave like it knows that.
@@ -568,11 +565,11 @@ That last one matters more now than it would have two years ago. A good operator
 
 The UX story is therefore not just about interface polish. It is about **behavioral consistency across operator surfaces**. When the same content model, validation rules, side-effect sequencing, and notification semantics apply everywhere, the system feels trustworthy. Trustworthiness is underrated UX. It is also much cheaper than surprise.
 
-[Placeholder: Telegram UX screenshot with a quick byte capture]
-
-[Placeholder: CLI UX screenshot showing list, inspect, and edit flow]
+<Image src="/telegram_bot_screenshots/blipchannel_1.webp" alt="Telegram UX screenshot with a quick byte capture"/>
 
 <del>The glamorous version of this story is that I designed a multi-surface authoring platform.</del> The honest version is that I got tired of my own tools disagreeing with each other.
+
+<Image src="/telegram_bot_screenshots/jotbot_3.webp" alt="Telegram UX screenshot with a quick byte capture"/>
 
 ---
 
