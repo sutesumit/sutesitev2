@@ -7,8 +7,8 @@ import type {
   DeleteResponse,
   BlipRecord as Blip,
   ByteRecord as Byte,
-} from '../../../shared/api-contracts'
-import { createSuteSiteClient, type GeneratedClientResponse } from '../../../shared/generated/sutesite-client'
+} from './types.js'
+import { createSuteSiteClient, type GeneratedClientResponse } from './client.js'
 
 export type { Blip, Byte }
 

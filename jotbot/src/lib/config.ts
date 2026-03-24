@@ -32,7 +32,7 @@ export function setConfig(key: string, value: string): void {
 
 export function hasApiKey(): boolean {
   const key = config.get('key') as string
-  return !!key && key.length > 0
+  return !!key && key.trim().length > 0
 }
 
 export function clearConfig(): void {
