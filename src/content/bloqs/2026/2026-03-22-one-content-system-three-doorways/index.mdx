@@ -197,7 +197,7 @@ Here is the zoomed-in shape:
 Telegram message            CLI command
       |                         |
       v                         v
-Telegram handler          generated-style client
+Telegram handler          typed HTTP client
       |                         |
       +-----------+-------------+
                   |
@@ -357,8 +357,8 @@ not this:
   browser users -> CRUD API
 
 but this:
-  Telegram bot -> CRUD API boundary
-  jotbot CLI   -> CRUD API boundary
+  Telegram bot -> services (direct import)
+  jotbot CLI   -> HTTP client -> API routes -> services
   automation   -> CRUD API boundary
 ```
 
@@ -366,7 +366,7 @@ The senior phrase is **stable integration boundary**.
 
 The practical meaning is: if I add a rule to blip creation, I do not want Telegram and the CLI to each discover it in their own special, creative way, like two interns solving different homework problems and then both insisting they understood the brief perfectly.
 
-This is also where **contract-first thinking** starts paying rent. Once the interfaces speak through a stable boundary, you can share types, shape a generated client, and reason about compatibility more explicitly. In an agentic workflow, that matters because agents are excellent at moving quickly through a stable contract and surprisingly creative when the contract is implied but not written down.
+This is also where **contract-first thinking** starts paying rent. Once the interfaces speak through a stable boundary, you can share types, share typed contracts, and reason about compatibility more explicitly. In an agentic workflow, that matters because agents are excellent at moving quickly through a stable contract and surprisingly creative when the contract is implied but not written down.
 
 There is a trade-off here too. Internal APIs can be overbuilt. Plenty of personal tools die buried beneath their own ceremonial infrastructure. The goal is not to build "platform." The goal is to create a seam where consistency can live. A route contract is useful because it narrows interpretation, not because REST is spiritually enlightening.
 

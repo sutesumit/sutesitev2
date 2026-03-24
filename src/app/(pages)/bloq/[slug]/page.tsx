@@ -12,6 +12,7 @@ import BloqViewCounter from '../components/BloqViewCounter';
 import TrackView from '@/components/shared/TrackView';
 import { MdOutlineRssFeed } from 'react-icons/md';
 import { FaSitemap } from 'react-icons/fa6';
+import { FaTelegram } from 'react-icons/fa';
 import CopyLink from '@/components/shared/CopyLink';
 import DryKeysQuest from '@/components/bloq/DryKeysQuestWrapper';
 import DitherShader from '@/components/bloq/DitherShaderWrapper';
@@ -135,7 +136,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <TrackView type="bloq" identifier={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
       <div className="px-4">
-        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, ClapsCounter, ViewCounter: BloqViewCounter, Link, MdOutlineRssFeed, FaSitemap, CopyLink }} />
+        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, ClapsCounter, ViewCounter: BloqViewCounter, Link, MdOutlineRssFeed, FaSitemap, FaTelegram, CopyLink }} />
       </div>
       <div className="px-4">
         <RelatedPosts posts={relatedPosts} />
