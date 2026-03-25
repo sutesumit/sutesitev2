@@ -16,33 +16,33 @@ CREATE TABLE IF NOT EXISTS content_views (
 );
 
 -- Step 2: Migrate data from existing tables
--- Migrate from bloq_views
+-- Migrate from bloq_views (uses 'slug' column)
 INSERT INTO content_views (content_type, identifier, view_count, created_at)
-SELECT 'bloq', url, COALESCE(view_count, 0), COALESCE(created_at, NOW())
+SELECT 'bloq', slug, COALESCE(views, 0), COALESCE(created_at, NOW())
 FROM bloq_views
 ON CONFLICT (content_type, identifier) DO UPDATE SET
     view_count = EXCLUDED.view_count,
     updated_at = NOW();
 
--- Migrate from blip_views
+-- Migrate from blip_views (uses 'blip_serial' column)
 INSERT INTO content_views (content_type, identifier, view_count, created_at)
-SELECT 'blip', blip_serial, COALESCE(view_count, 0), COALESCE(created_at, NOW())
+SELECT 'blip', blip_serial, COALESCE(views, 0), COALESCE(created_at, NOW())
 FROM blip_views
 ON CONFLICT (content_type, identifier) DO UPDATE SET
     view_count = EXCLUDED.view_count,
     updated_at = NOW();
 
--- Migrate from byte_views
+-- Migrate from byte_views (uses 'byte_serial' column)
 INSERT INTO content_views (content_type, identifier, view_count, created_at)
-SELECT 'byte', byte_serial, COALESCE(view_count, 0), COALESCE(created_at, NOW())
+SELECT 'byte', byte_serial, COALESCE(views, 0), COALESCE(created_at, NOW())
 FROM byte_views
 ON CONFLICT (content_type, identifier) DO UPDATE SET
     view_count = EXCLUDED.view_count,
     updated_at = NOW();
 
--- Migrate from project_views
+-- Migrate from project_views (uses 'slug' column)
 INSERT INTO content_views (content_type, identifier, view_count, created_at)
-SELECT 'project', url, COALESCE(view_count, 0), COALESCE(created_at, NOW())
+SELECT 'project', slug, COALESCE(views, 0), COALESCE(created_at, NOW())
 FROM project_views
 ON CONFLICT (content_type, identifier) DO UPDATE SET
     view_count = EXCLUDED.view_count,

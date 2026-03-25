@@ -10,19 +10,19 @@ function skipIfNoEnv() {
 }
 
 describe('Views API Integration Tests', () => {
-  const testBloqSlug = '2026-03-08-api-architecture-when-to-unify-vs-separate'
+  const testBloqSlug = 'building-mdx-blog-system-nextjs-ai'
   const testBlipSerial = '001'
   const testByteSerial = '001'
-  const testProjectSlug = 'test-project'
+  const testProjectSlug = 'sutesite'
 
-  describe('GET /api/bloq/views/{slug}', () => {
+  describe('GET /api/views?type=bloq&id={slug}', () => {
     it('returns views for valid bloq post', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/bloq/views/${testBloqSlug}`)
+      const response = await fetch(`${BASE_URL}/api/views?type=bloq&id=${testBloqSlug}`)
       const payload = await response.json()
 
       expect(response.status).toBe(200)
@@ -30,28 +30,29 @@ describe('Views API Integration Tests', () => {
       expect(typeof payload.views).toBe('number')
     })
 
-    it('returns 404 for non-existent bloq post', async () => {
+    it('returns views: 0 for non-existent bloq post', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/bloq/views/non-existent-post-123`)
+      const uniqueId = `test-non-existent-bloq-${Date.now()}`
+      const response = await fetch(`${BASE_URL}/api/views?type=bloq&id=${uniqueId}`)
       const payload = await response.json()
 
-      expect(response.status).toBe(404)
-      expect(payload).toEqual({ error: 'Post not found' })
+      expect(response.status).toBe(200)
+      expect(payload).toEqual({ views: 0 })
     })
   })
 
-  describe('POST /api/bloq/views/{slug}', () => {
+  describe('POST /api/views?type=bloq&id={slug}', () => {
     it('increments view count for valid bloq post', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/bloq/views/${testBloqSlug}`, {
+      const response = await fetch(`${BASE_URL}/api/views?type=bloq&id=${testBloqSlug}`, {
         method: 'POST',
       })
       const payload = await response.json()
@@ -61,30 +62,31 @@ describe('Views API Integration Tests', () => {
       expect(typeof payload.views).toBe('number')
     })
 
-    it('returns 404 for non-existent bloq post', async () => {
+    it('creates view record for non-existent bloq post', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/bloq/views/non-existent-post-123`, {
+      const uniqueId = `test-new-bloq-${Date.now()}`
+      const response = await fetch(`${BASE_URL}/api/views?type=bloq&id=${uniqueId}`, {
         method: 'POST',
       })
       const payload = await response.json()
 
-      expect(response.status).toBe(404)
-      expect(payload).toEqual({ error: 'Post not found' })
+      expect(response.status).toBe(200)
+      expect(payload).toEqual({ views: 1 })
     })
   })
 
-  describe('GET /api/blip/views/{serial}', () => {
+  describe('GET /api/views?type=blip&id={serial}', () => {
     it('returns views for valid blip', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/blip/views/${testBlipSerial}`)
+      const response = await fetch(`${BASE_URL}/api/views?type=blip&id=${testBlipSerial}`)
       const payload = await response.json()
 
       expect(response.status).toBe(200)
@@ -92,28 +94,29 @@ describe('Views API Integration Tests', () => {
       expect(typeof payload.views).toBe('number')
     })
 
-    it('returns 404 for non-existent blip', async () => {
+    it('returns views: 0 for non-existent blip', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/blip/views/999`)
+      const uniqueId = `test-non-existent-blip-${Date.now()}`
+      const response = await fetch(`${BASE_URL}/api/views?type=blip&id=${uniqueId}`)
       const payload = await response.json()
 
-      expect(response.status).toBe(404)
-      expect(payload).toEqual({ error: 'Blip not found' })
+      expect(response.status).toBe(200)
+      expect(payload).toEqual({ views: 0 })
     })
   })
 
-  describe('POST /api/blip/views/{serial}', () => {
+  describe('POST /api/views?type=blip&id={serial}', () => {
     it('increments view count for valid blip', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/blip/views/${testBlipSerial}`, {
+      const response = await fetch(`${BASE_URL}/api/views?type=blip&id=${testBlipSerial}`, {
         method: 'POST',
       })
       const payload = await response.json()
@@ -123,30 +126,31 @@ describe('Views API Integration Tests', () => {
       expect(typeof payload.views).toBe('number')
     })
 
-    it('returns 404 for non-existent blip', async () => {
+    it('creates view record for non-existent blip', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/blip/views/999`, {
+      const uniqueId = `test-new-blip-${Date.now()}`
+      const response = await fetch(`${BASE_URL}/api/views?type=blip&id=${uniqueId}`, {
         method: 'POST',
       })
       const payload = await response.json()
 
-      expect(response.status).toBe(404)
-      expect(payload).toEqual({ error: 'Blip not found' })
+      expect(response.status).toBe(200)
+      expect(payload).toEqual({ views: 1 })
     })
   })
 
-  describe('GET /api/byte/views/{serial}', () => {
+  describe('GET /api/views?type=byte&id={serial}', () => {
     it('returns views for valid byte', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/byte/views/${testByteSerial}`)
+      const response = await fetch(`${BASE_URL}/api/views?type=byte&id=${testByteSerial}`)
       const payload = await response.json()
 
       expect(response.status).toBe(200)
@@ -154,28 +158,29 @@ describe('Views API Integration Tests', () => {
       expect(typeof payload.views).toBe('number')
     })
 
-    it('returns 404 for non-existent byte', async () => {
+    it('returns views: 0 for non-existent byte', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/byte/views/999`)
+      const uniqueId = `test-non-existent-byte-${Date.now()}`
+      const response = await fetch(`${BASE_URL}/api/views?type=byte&id=${uniqueId}`)
       const payload = await response.json()
 
-      expect(response.status).toBe(404)
-      expect(payload).toEqual({ error: 'Byte not found' })
+      expect(response.status).toBe(200)
+      expect(payload).toEqual({ views: 0 })
     })
   })
 
-  describe('POST /api/byte/views/{serial}', () => {
+  describe('POST /api/views?type=byte&id={serial}', () => {
     it('increments view count for valid byte', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/byte/views/${testByteSerial}`, {
+      const response = await fetch(`${BASE_URL}/api/views?type=byte&id=${testByteSerial}`, {
         method: 'POST',
       })
       const payload = await response.json()
@@ -185,30 +190,31 @@ describe('Views API Integration Tests', () => {
       expect(typeof payload.views).toBe('number')
     })
 
-    it('returns 404 for non-existent byte', async () => {
+    it('creates view record for non-existent byte', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/byte/views/999`, {
+      const uniqueId = `test-new-byte-${Date.now()}`
+      const response = await fetch(`${BASE_URL}/api/views?type=byte&id=${uniqueId}`, {
         method: 'POST',
       })
       const payload = await response.json()
 
-      expect(response.status).toBe(404)
-      expect(payload).toEqual({ error: 'Byte not found' })
+      expect(response.status).toBe(200)
+      expect(payload).toEqual({ views: 1 })
     })
   })
 
-  describe('GET /api/project/views/{slug}', () => {
+  describe('GET /api/views?type=project&id={slug}', () => {
     it('returns views for valid project', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/project/views/${testProjectSlug}`)
+      const response = await fetch(`${BASE_URL}/api/views?type=project&id=${testProjectSlug}`)
       const payload = await response.json()
 
       expect(response.status).toBe(200)
@@ -222,7 +228,8 @@ describe('Views API Integration Tests', () => {
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/project/views/non-existent-project`)
+      const uniqueId = `test-non-existent-project-${Date.now()}`
+      const response = await fetch(`${BASE_URL}/api/views?type=project&id=${uniqueId}`)
       const payload = await response.json()
 
       expect(response.status).toBe(200)
@@ -230,14 +237,14 @@ describe('Views API Integration Tests', () => {
     })
   })
 
-  describe('POST /api/project/views/{slug}', () => {
+  describe('POST /api/views?type=project&id={slug}', () => {
     it('increments view count for valid project', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/project/views/${testProjectSlug}`, {
+      const response = await fetch(`${BASE_URL}/api/views?type=project&id=${testProjectSlug}`, {
         method: 'POST',
       })
       const payload = await response.json()
@@ -248,25 +255,44 @@ describe('Views API Integration Tests', () => {
     })
   })
 
-  describe('Database constraints and validation', () => {
-    it('handles empty slug gracefully', async () => {
+  describe('Error handling', () => {
+    it('returns 400 for invalid type parameter', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/project/views/`)
-      expect(response.status).toBe(404)
+      const response = await fetch(`${BASE_URL}/api/views?type=invalid&id=test`)
+      const payload = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(payload).toHaveProperty('error')
     })
 
-    it('handles special characters in slug', async () => {
+    it('returns 400 for missing type parameter', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/bloq/views/<script>alert('xss')</script>`)
-      expect(response.status).toBe(404)
+      const response = await fetch(`${BASE_URL}/api/views?id=test`)
+      const payload = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(payload).toHaveProperty('error')
+    })
+
+    it('returns 400 for missing id parameter', async () => {
+      if (skipIfNoEnv()) {
+        console.log('Skipping: Supabase environment variables not configured')
+        return
+      }
+
+      const response = await fetch(`${BASE_URL}/api/views?type=bloq`)
+      const payload = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(payload).toHaveProperty('error')
     })
   })
 })

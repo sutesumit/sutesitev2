@@ -10,9 +10,10 @@ function skipIfNoEnv() {
 }
 
 describe('Claps API Integration Tests', () => {
-  const testBloqSlug = '2026-03-08-api-architecture-when-to-unify-vs-separate'
+  const testBloqSlug = 'building-mdx-blog-system-nextjs-ai'
   const testBlipSerial = '001'
   const testByteSerial = '001'
+  const testProjectSlug = 'sutesite'
   const testFingerprint = 'test-integration-fingerprint-123'
 
   describe('GET /api/claps/bloq/{id}', () => {
@@ -192,7 +193,7 @@ describe('Claps API Integration Tests', () => {
   })
 
   describe('GET /api/claps/byte/{id}', () => {
-    it('EXPECTED TO FAIL - byte claps may not be implemented or have constraint', async () => {
+    it('returns claps for valid byte', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
@@ -201,20 +202,14 @@ describe('Claps API Integration Tests', () => {
       const response = await fetch(`${BASE_URL}/api/claps/byte/${testByteSerial}`)
       const payload = await response.json()
 
-      if (response.status === 500) {
-        console.log('Expected failure: byte claps not implemented or constraint exists')
-        console.log('Error:', payload.error)
-      }
-
-      if (response.status === 200) {
-        expect(payload).toHaveProperty('claps')
-        expect(payload).toHaveProperty('userClaps')
-      }
+      expect(response.status).toBe(200)
+      expect(payload).toHaveProperty('claps')
+      expect(payload).toHaveProperty('userClaps')
     })
   })
 
   describe('POST /api/claps/byte/{id}', () => {
-    it('EXPECTED TO FAIL - byte claps may fail due to database constraint', async () => {
+    it('increments claps for valid byte', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
@@ -227,61 +222,45 @@ describe('Claps API Integration Tests', () => {
       })
       const payload = await response.json()
 
-      if (response.status === 500) {
-        console.log('Expected failure: byte claps constraint exists')
-        console.log('Error:', payload.error)
-      }
-
-      if (response.status === 200) {
-        expect(payload).toHaveProperty('userClaps')
-        expect(payload).toHaveProperty('totalClaps')
-      }
+      expect(response.status).toBe(200)
+      expect(payload).toHaveProperty('userClaps')
+      expect(payload).toHaveProperty('totalClaps')
     })
   })
 
   describe('GET /api/claps/project/{id}', () => {
-    it('EXPECTED TO FAIL - project claps may not be implemented', async () => {
+    it('returns claps for valid project', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/claps/project/test-project`)
+      const response = await fetch(`${BASE_URL}/api/claps/project/${testProjectSlug}`)
       const payload = await response.json()
 
-      if (response.status === 400) {
-        console.log('Expected failure: project type not valid')
-        console.log('Error:', payload.error)
-      }
-
-      if (response.status === 200) {
-        expect(payload).toHaveProperty('claps')
-      }
+      expect(response.status).toBe(200)
+      expect(payload).toHaveProperty('claps')
+      expect(payload).toHaveProperty('userClaps')
     })
   })
 
   describe('POST /api/claps/project/{id}', () => {
-    it('EXPECTED TO FAIL - project claps not supported', async () => {
+    it('increments claps for valid project', async () => {
       if (skipIfNoEnv()) {
         console.log('Skipping: Supabase environment variables not configured')
         return
       }
 
-      const response = await fetch(`${BASE_URL}/api/claps/project/test-project`, {
+      const response = await fetch(`${BASE_URL}/api/claps/project/${testProjectSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fingerprint: testFingerprint }),
       })
       const payload = await response.json()
 
-      if (response.status === 400) {
-        console.log('Expected failure: project type not valid')
-        console.log('Error:', payload.error)
-      }
-
-      if (response.status === 200) {
-        expect(payload).toHaveProperty('userClaps')
-      }
+      expect(response.status).toBe(200)
+      expect(payload).toHaveProperty('userClaps')
+      expect(payload).toHaveProperty('totalClaps')
     })
   })
 
@@ -296,7 +275,7 @@ describe('Claps API Integration Tests', () => {
       const payload = await response.json()
 
       expect(response.status).toBe(400)
-      expect(payload).toEqual({ error: "Invalid post type. Must be 'bloq', 'blip', or 'byte'" })
+      expect(payload).toEqual({ error: "Invalid post type. Must be 'bloq', 'blip', 'byte', or 'project'" })
     })
 
     it('returns 400 for invalid type on POST', async () => {
@@ -313,7 +292,7 @@ describe('Claps API Integration Tests', () => {
       const payload = await response.json()
 
       expect(response.status).toBe(400)
-      expect(payload).toEqual({ error: "Invalid post type. Must be 'bloq', 'blip', or 'byte'" })
+      expect(payload).toEqual({ error: "Invalid post type. Must be 'bloq', 'blip', 'byte', or 'project'" })
     })
   })
 })

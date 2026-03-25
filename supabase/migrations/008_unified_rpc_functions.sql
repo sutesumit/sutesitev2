@@ -59,9 +59,9 @@ CREATE OR REPLACE FUNCTION content_exists(
 ) RETURNS BOOLEAN AS $$
 BEGIN
     IF p_content_type = 'bloq' THEN
-        RETURN EXISTS (SELECT 1 FROM bloq_views WHERE url = p_identifier);
+        RETURN EXISTS (SELECT 1 FROM bloq_views WHERE slug = p_identifier);
     ELSIF p_content_type = 'project' THEN
-        RETURN EXISTS (SELECT 1 FROM project_views WHERE url = p_identifier);
+        RETURN EXISTS (SELECT 1 FROM project_views WHERE slug = p_identifier);
     ELSIF p_content_type = 'blip' THEN
         RETURN EXISTS (SELECT 1 FROM blip_views WHERE blip_serial = p_identifier);
     ELSIF p_content_type = 'byte' THEN
