@@ -13,6 +13,7 @@ export const useAnalytics = () => {
     const hasTrackedBloqView = useRef(false);
     const hasTrackedBlipView = useRef(false);
     const hasTrackedProjectView = useRef(false);
+    const hasTrackedByteView = useRef(false);
 
     /**
      * Tracks a generic site visit.
@@ -72,10 +73,7 @@ export const useAnalytics = () => {
         hasTrackedBloqView.current = true;
 
         try {
-            await fetch(`/api/bloq/views/${slug}`, {
-                method: 'POST',
-                cache: 'no-store',
-            });
+            await fetch(`/api/views?type=bloq&id=${slug}`, { method: 'POST', cache: 'no-store' });
         } catch (error) {
             console.warn(`Unable to track view for ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
         }
@@ -97,10 +95,7 @@ export const useAnalytics = () => {
         hasTrackedBlipView.current = true;
 
         try {
-            await fetch(`/api/blip/views/${serial}`, {
-                method: 'POST',
-                cache: 'no-store',
-            });
+            await fetch(`/api/views?type=blip&id=${serial}`, { method: 'POST', cache: 'no-store' });
         } catch (error) {
             console.warn(`Unable to track view for blip ${serial}:`, error instanceof Error ? error.message : 'Unknown error');
         }
@@ -122,12 +117,31 @@ export const useAnalytics = () => {
         hasTrackedProjectView.current = true;
 
         try {
-            await fetch(`/api/project/views/${slug}`, {
-                method: 'POST',
-                cache: 'no-store',
-            });
+            await fetch(`/api/views?type=project&id=${slug}`, { method: 'POST', cache: 'no-store' });
         } catch (error) {
             console.warn(`Unable to track project view for ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+    }, []);
+
+    /**
+     * Tracks a specific byte view.
+     * Intended for use in individual byte pages.
+     */
+    const trackByteView = useCallback(async (slug: string) => {
+        // 1. Development Mode Protection
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Analytics] Byte view tracking skipped for "${slug}" (Development Mode)`);
+            return;
+        }
+
+        // 2. Strict Mode / Duplicate Protection
+        if (hasTrackedByteView.current) return;
+        hasTrackedByteView.current = true;
+
+        try {
+            await fetch(`/api/views?type=byte&id=${slug}`, { method: 'POST', cache: 'no-store' });
+        } catch (error) {
+            console.warn(`Unable to track view for byte ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
         }
     }, []);
 
@@ -136,6 +150,7 @@ export const useAnalytics = () => {
         trackSiteVisit,
         trackBloqView,
         trackBlipView,
-        trackProjectView
+        trackProjectView,
+        trackByteView
     };
 };

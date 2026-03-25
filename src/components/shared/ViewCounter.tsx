@@ -13,10 +13,10 @@ interface ViewCounterProps {
 }
 
 const apiPaths: Record<ContentType, (id: string) => string> = {
-    bloq: (slug) => `/api/bloq/views/${slug}`,
-    byte: (serial) => `/api/byte/views/${serial}`,
-    blip: (serial) => `/api/blip/views/${serial}`,
-    project: (slug) => `/api/project/views/${slug}`,
+    bloq: (id) => `/api/views?type=bloq&id=${id}`,
+    byte: (id) => `/api/views?type=byte&id=${id}`,
+    blip: (id) => `/api/views?type=blip&id=${id}`,
+    project: (id) => `/api/views?type=project&id=${id}`,
 };
 
 export default function ViewCounter({ type, identifier, className }: ViewCounterProps) {

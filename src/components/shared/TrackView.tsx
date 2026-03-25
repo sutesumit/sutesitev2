@@ -11,31 +11,31 @@ interface TrackViewProps {
 }
 
 export function useTrackView(type: ContentType, identifier: string) {
-    const { trackBloqView, trackProjectView } = useAnalytics();
+    const { trackBloqView, trackProjectView, trackBlipView, trackByteView } = useAnalytics();
     
     useEffect(() => {
-        if (type === 'bloq') {
-            trackBloqView(identifier);
-        } else if (type === 'project') {
-            trackProjectView(identifier);
+        if (process.env.NODE_ENV === 'development') {
+            return;
         }
-    }, [type, identifier, trackBloqView, trackProjectView])
+        
+        switch (type) {
+            case 'bloq':
+                trackBloqView(identifier);
+                break;
+            case 'project':
+                trackProjectView(identifier);
+                break;
+            case 'blip':
+                trackBlipView(identifier);
+                break;
+            case 'byte':
+                trackByteView(identifier);
+                break;
+        }
+    }, [type, identifier, trackBloqView, trackProjectView, trackBlipView, trackByteView])
 }
 
 export default function TrackView({ type, identifier }: TrackViewProps) {
     useTrackView(type, identifier)
-
-    useEffect(() => {
-        if (type === 'byte') {
-            fetch(`/api/byte/views/${identifier}`, {
-                method: 'POST',
-            }).catch(console.error);
-        } else if (type === 'blip') {
-            fetch(`/api/blip/views/${identifier}`, {
-                method: 'POST',
-            }).catch(console.error);
-        }
-    }, [type, identifier])
-
     return null
 }
