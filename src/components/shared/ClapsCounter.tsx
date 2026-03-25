@@ -15,6 +15,14 @@ interface ClapsCounterProps {
     interactive?: boolean;
 }
 
+const baseStyles = "inline-flex items-center gap-1.5 transition-all duration-300 p-1.5 px-2 rounded-md border text-xs";
+
+const stateStyles = {
+    enabled: "cursor-pointer border-blue-500/50 bg-blue-50 dark:bg-blue-950/40 hover:border-blue-200 hover:text-blue-700 dark:hover:border-blue-500 dark:hover:text-blue-400 hover:shadow-sm hover:-translate-y-0.5",
+    disabled: "cursor-not-allowed border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 opacity-60",
+    display: "cursor-default border-transparent bg-transparent"
+} as const;
+
 export default function ClapsCounter({
     postId,
     postType,
@@ -43,6 +51,12 @@ export default function ClapsCounter({
         }
     };
 
+    const getStateStyle = () => {
+        if (!interactive) return stateStyles.display;
+        if (maxReached) return stateStyles.disabled;
+        return stateStyles.enabled;
+    };
+
     const isDisabled = !interactive || maxReached;
 
     return (
@@ -52,13 +66,7 @@ export default function ClapsCounter({
             onKeyDown={handleKeyDown}
             disabled={isDisabled}
             whileTap={!isDisabled ? { scale: 0.95 } : undefined}
-            className={cn(
-                "inline-flex items-center gap-1.5 transition-all duration-300 p-1.5 px-2 rounded-md border text-xs",
-                !isDisabled ? 
-                    "cursor-pointer border-blue-500/50 bg-blue-50 dark:bg-blue-950/40 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:border-blue-500 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 hover:shadow-sm hover:-translate-y-0.5" :
-                    "cursor-not-allowed border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 opacity-60",
-                className
-            )}
+            className={cn(baseStyles, getStateStyle(), className)}
             aria-label={isLoading ? 'Loading claps count...' : `${totalClaps} claps${maxReached ? ' (max reached)' : ''}`}
         >
             <PiHandsClapping className="w-4 h-4" />
