@@ -34,7 +34,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     vi.mocked(getBloqPostBySlug).mockReturnValue({
       slug: "test-post",
       title: "Test Post",
-    } as any);
+    } as unknown as { slug: string; title: string });
 
     vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
       data: { claps: 10 },
@@ -85,7 +85,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     vi.mocked(getBloqPostBySlug).mockReturnValue({
       slug: "test-post",
       title: "Test Post",
-    } as any);
+    } as unknown as { slug: string; title: string });
 
     vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
       data: { total_claps: 10, user_claps: 2 },
@@ -130,7 +130,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     vi.mocked(getBloqPostBySlug).mockReturnValue({
       slug: "test-post",
       title: "Test Post",
-    } as any);
+    } as unknown as { slug: string; title: string });
 
     vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
       data: null,
@@ -157,7 +157,7 @@ describe("/api/claps/[type]/[id] POST", () => {
     vi.mocked(getBloqPostBySlug).mockReturnValue({
       slug: "test-post",
       title: "Test Post",
-    } as any);
+    } as unknown as { slug: string; title: string });
 
     vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
       data: { user_claps: 1, total_claps: 11, max_reached: false },
@@ -279,7 +279,7 @@ describe("/api/claps/[type]/[id] POST", () => {
     vi.mocked(getBloqPostBySlug).mockReturnValue({
       slug: "test-post",
       title: "Test Post",
-    } as any);
+    } as unknown as { slug: string; title: string });
 
     vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
       data: { user_claps: 5, total_claps: 15, max_reached: true },
@@ -304,7 +304,7 @@ describe("/api/claps/[type]/[id] POST", () => {
     vi.mocked(getBloqPostBySlug).mockReturnValue({
       slug: "test-post",
       title: "Test Post",
-    } as any);
+    } as unknown as { slug: string; title: string });
 
     vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
       data: null,
@@ -361,7 +361,7 @@ describe("/api/claps/[type]/[id] error handling", () => {
     vi.mocked(getBloqPostBySlug).mockReturnValue({
       slug: "test-post",
       title: "Test Post",
-    } as any);
+    } as unknown as { slug: string; title: string });
 
     vi.mocked(supabaseMock.rpc).mockRejectedValueOnce(new Error("Database connection failed"));
 
