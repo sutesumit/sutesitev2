@@ -14,6 +14,13 @@ export function getYearDirectories(): string[] {
     .map(e => e.name);
 }
 
+export function getMonthDirectories(yearPath: string): string[] {
+  const entries = fs.readdirSync(yearPath, { withFileTypes: true });
+  return entries
+    .filter(e => e.isDirectory() && /^(0[1-9]|1[0-2])$/.test(e.name))
+    .map(e => e.name);
+}
+
 export function readPostFile(filePath: string): string {
   return fs.readFileSync(filePath, "utf8");
 }

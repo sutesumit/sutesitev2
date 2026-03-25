@@ -94,9 +94,21 @@ export function getBloqPosts(): BloqPost[] {
 
       for (const postEntry of yearEntries) {
         if (postEntry.name.startsWith('.')) continue;
-        
-        const post = processPostEntry(postEntry, yearPath);
-        if (post) allPostsData.push(post);
+
+        if (postEntry.isDirectory() && /^(0[1-9]|1[0-2])$/.test(postEntry.name)) {
+          const monthPath = path.join(yearPath, postEntry.name);
+          const monthEntries = getPostEntries(monthPath);
+
+          for (const monthPostEntry of monthEntries) {
+            if (monthPostEntry.name.startsWith('.')) continue;
+            
+            const post = processPostEntry(monthPostEntry, monthPath);
+            if (post) allPostsData.push(post);
+          }
+        } else {
+          const post = processPostEntry(postEntry, yearPath);
+          if (post) allPostsData.push(post);
+        }
       }
     } else {
       const post = processPostEntry(entry, postsDirectory);
