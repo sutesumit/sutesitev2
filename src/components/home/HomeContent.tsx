@@ -37,7 +37,7 @@ export function HomeContent({
         <BioSection />
         <br />
         <p>
-          This is an accidental open notebook of an engineer thinking out loud. Stray thoughts become <Link className="highlight" href="/byte">bytes</Link>, keeper concepts become <Link className="highlight" href="/blip">blips</Link>, and long arguments with agents become <Link className="highlight" href="/bloq">bloqs</Link>. Just varied forms of leaving breadcrumbs so I don't have to learn the same lesson twice.
+          This is an accidental open notebook of an engineer thinking out loud. Stray thoughts become <Link className="highlight" href="/byte">bytes</Link>, keeper concepts become <Link className="highlight" href="/blip">blips</Link>, and long arguments with agents become <Link className="highlight" href="/bloq">bloqs</Link>. Just varied forms of leaving breadcrumbs so I don&apos;t have to learn the same lesson twice.
         </p>
         <br />
         <LatestUpdates

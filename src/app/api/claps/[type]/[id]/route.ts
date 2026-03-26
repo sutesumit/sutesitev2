@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { getBloqPostBySlug } from "@/lib/bloq";
 import { jsonError, jsonSuccess } from "@/lib/api/responses";
