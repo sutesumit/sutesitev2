@@ -29,6 +29,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
   const [doneSteps, setDoneSteps] = useState<number[]>([]);
   const [spinIdx, setSpinIdx] = useState(0);
   const [booted, setBooted] = useState(false);
+  const [tooltip, setTooltip] = useState<{ dateKey: string; count: number; x: number; y: number } | null>(null);
 
   const { state, actions, stats, isAtLatest } = useHeatmapGame(externalData);
   const now = new Date();
@@ -204,6 +205,8 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                         isToday ? "ring-1 ring-blue-500/50" : ""
                       }`}
                       onClick={() => actions.handleDayClick(day)}
+                      onMouseEnter={(e) => !state.isGameOver && !isRevealed && setTooltip({ dateKey, count, x: e.clientX, y: e.clientY })}
+                      onMouseLeave={() => setTooltip(null)}
                     >
                       <m.div
                         className="flex items-center justify-center pointer-events-none"
@@ -284,6 +287,18 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
           </m.div>
         )}
       </m.div>
+      
+      {tooltip && (
+        <div
+          style={{ left: tooltip.x, top: tooltip.y }}
+          className="fixed pointer-events-none transform -translate-x-1/2 -translate-y-full -mt-4 dark:bg-slate-900 bg-slate-50 border border-slate-300 dark:border-slate-600 dark:text-slate-300 text-slate-800 font-mono text-[10px] whitespace-pre px-3 py-1.5 z-[999] leading-relaxed tracking-wider"
+        >
+          <div className="flex flex-col items-center justify-center gap-0.5">
+            <span>{tooltip.dateKey}</span>
+            <span className="text-blue-400">{tooltip.count} commits</span>
+          </div>
+        </div>
+      )}
     </>
   );
 };
