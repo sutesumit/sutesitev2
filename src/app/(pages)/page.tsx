@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
+import { Suspense } from 'react';
 import { HomeContent } from "@/components/home/HomeContent";
 import { SITE_URL, pageMetadata } from '@/config/metadata';
-import { getRecentPosts } from '@/lib/bloq';
-import { getBlips } from '@/lib/blip';
-import { getBytes } from '@/lib/byte';
+import { LatestUpdates } from '@/components/home/LatestUpdates';
+import { LatestUpdatesSkeleton } from '@/components/home/LatestUpdatesSkeleton';
 
 const { home } = pageMetadata;
 
@@ -23,17 +23,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [latestBloq = null] = getRecentPosts(1);
-  const [{ data: bytes }, { data: blips }] = await Promise.all([
-    getBytes(1, 1),
-    getBlips(1, 1),
-  ]);
-
   return (
-    <HomeContent
-      latestBloq={latestBloq}
-      latestByte={bytes[0] ?? null}
-      latestBlip={blips[0] ?? null}
-    />
+    <HomeContent>
+      <Suspense fallback={<LatestUpdatesSkeleton />}>
+        <LatestUpdates />
+      </Suspense>
+    </HomeContent>
   );
 }
