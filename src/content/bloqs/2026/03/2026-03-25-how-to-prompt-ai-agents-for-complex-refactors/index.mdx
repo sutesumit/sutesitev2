@@ -1,0 +1,324 @@
+---
+title: "The Bug Was In The Conversation"
+publishedAt: "2026-03-25"
+summary: "A views and claps refactor on this bloq taught me that the messiest part of agentic development is rarely the code. It is the hidden work, soft assumptions, and vague prompts that only become visible after something has already broken."
+slug: "how-to-prompt-ai-agents-for-complex-refactors"
+tags:
+  - ai
+  - architecture
+  - debugging
+  - nextjs
+  - typescript
+  - reflections
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: true
+featured: false
+---
+
+## A Small Interactive Exhibit
+
+> "I did not refactor a counter system. I refactored my ability to notice what I had failed to ask."
+
+This article is about the interaction features on this very page, so it felt rude not to let them show up.
+
+<div className="flex flex-wrap items-center justify-center gap-3 text-sm my-4 not-prose">
+  <ViewCounter className="flex flex-row justify-center items-center blue-border w-fit p-1" slug="how-to-prompt-ai-agents-for-complex-refactors" />
+  <ClapsCounter postId="how-to-prompt-ai-agents-for-complex-refactors" postType="bloq" interactive={true} />
+</div>
+
+The views and claps flow behind those little counters went through a proper refactor recently. Multiple routes became one route. Multiple tables became one table. Migrations moved data across. RPC functions were rewritten. Tests were updated. Old paths were removed. Security got revisited. The whole thing did eventually work.
+
+That sentence, "the whole thing did eventually work", is doing a lot of heavy lifting. It sounds calm. It sounds measured. It sounds like a composed engineer in a clean codebase making disciplined progress.
+
+In reality it was one of those sessions where every solved problem politely introduced two cousins. One carried stale test assumptions. One carried wrong migration columns. One carried dead routes. One carried security gaps. One carried "you thought build was the end? adorable."
+
+Which is fine. This is software. Surprises are part of the rent.
+
+What I keep thinking about is *where* those surprises came from. Not the specific bugs. The conversation shape. The prompts. The sequencing. The parts that made manual spotting more necessary than it should have been.
+
+I do not mean "how do I force an agent to see the future like a tiny salaried oracle." I mean something more ordinary and more useful: how do I make my process less naive?
+
+---
+
+## Three Places Work Leaks Out
+
+I like neat categories because they make me feel briefly smarter than my own mistakes.
+
+This refactor leaked work in three places:
+
+<table>
+  <thead>
+    <tr>
+      <th>Leak</th>
+      <th>What it looked like</th>
+      <th>What it actually meant</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Scope leak</b></td>
+      <td>New tasks appearing "midway"</td>
+      <td>The initial prompt did not ask for hidden-work forecasting</td>
+    </tr>
+    <tr>
+      <td><b>Contract leak</b></td>
+      <td>Tests passing, then failing, then teaching me weird things</td>
+      <td>The new system contract was not explicitly named early enough</td>
+    </tr>
+    <tr>
+      <td><b>Finish-line leak</b></td>
+      <td>Build, cleanup, RLS, dead files, and manual checks showing up late</td>
+      <td>"Done" was defined too romantically</td>
+    </tr>
+  </tbody>
+</table>
+
+That pattern has stayed with me because it feels bigger than this one refactor. It also maps suspiciously well to old, boring software engineering wisdom. Which is mildly annoying, because it means the elders were right again.
+
+Good agentic development is not some alien discipline where prior engineering practice becomes obsolete. It looks uncomfortably similar to good conventional delivery:
+
+- understand the system before editing it
+- state the contract before testing it
+- break the work into phases
+- verify after each phase
+- define completion with enough boredom to be trustworthy
+
+That is not glamorous. It is also not optional.
+
+[Anthropic's guidance on building effective agents](https://www.anthropic.com/engineering/building-effective-agents) makes a similar point in a cleaner way: simple patterns, clear tool use, and scoped workflows often beat theatrically clever orchestration. [OpenAI's Codex app write-up](https://openai.com/index/introducing-the-codex-app/) keeps landing on the same theme from another angle: skills, explicit workflows, and verifiable end states matter because delegation without structure becomes expensive improv.
+
+The machine is fast. The old engineering disciplines are still the steering column.
+
+---
+
+## Leak One: Scope Leaks
+
+> "I asked for implementation. I should have asked for reconnaissance with commitment issues."
+
+The first leak was not that new work appeared. New work always appears. The first leak was that I had not explicitly asked the agent to forecast what kind of new work was likely to appear.
+
+So the session began like many doomedly efficient sessions do: with momentum.
+
+There was enough prior context to feel safe. There were migrations drafted. There were tests. There was a refactor direction already brewing. I looked at this pile of semi-organised seriousness and thought, yes, this seems mature. This has adults in the room.
+
+It did. They were just all wrong in slightly different ways.
+
+The migrations assumed columns that did not match the real schema. The tests reflected the old endpoint shape. The cleanup tasks were not fully named. The remaining security posture had not been folded into "done." This was not chaos. It was a more sophisticated problem: partial understanding wearing a tie.
+
+That is why I keep coming back to [Gary Klein's premortem](https://www.gary-klein.com/premortem). It is one of those techniques that sounds like management cosplay until it saves half a day. In formal language, it surfaces latent failure modes before execution. In normal language, it asks me to stop acting like the task brief is a sacred truth and instead ask, "If this goes sideways, where is it most likely to do the honours?"
+
+If I had started with a prompt like this, a lot of the to-and-fro would have become less theatrical:
+
+```text
+Before editing anything, list likely hidden work under:
+- schema mismatches
+- test rewrites
+- route deprecations
+- cleanup candidates
+- security hardening
+- build and deployment checks
+
+Mark each item as likely, possible, or speculative.
+```
+
+That is not asking for clairvoyance. It is asking for scar tissue.
+
+It is also very close to what I was already groping toward in [The Lazy Way to Build Better Software](/bloq/spec-driven-development-clap-feature-nextjs), where a little spec-writing saved me from making architectural decisions by accident. The basic trick has not changed. Write the shape of the uncertainty down before the uncertainty starts writing the schedule for me.
+
+This is also where tooling habits matter. [Gemini CLI and Gemini Code Assist](https://blog.google/technology/developers/gemini-cli-code-assist-higher-limits/) are useful partly because they push agent work closer to the terminal and codebase reality instead of turning it into pure chat theatre. [Zed's AI workflow](https://zed.dev/ai) makes a related point from the editor side: context living close to the code changes the quality of the interaction. Not magically. Just enough to avoid some sillier forms of self-deception.
+
+And yet, even with better tools, the prompt still has to ask for the map before the march.
+
+---
+
+## Leak Two: Contract Leaks
+
+> "Agents love unit tests the way toddlers love bubble wrap. It is a satisfying local activity."
+
+The second leak was nastier because it looked like progress.
+
+The refactor involved changing route shapes, rewriting tests, and consolidating behavior. That meant the code was changing, but the meaning of the system was also changing. Those are not the same thing, and pretending they are the same thing is how a clean diff turns into a muddy architecture.
+
+Some tests failed because they still pointed at the old API.
+
+Some passed because they were faithfully asserting assumptions that no longer mattered.
+
+Some integration tests exposed actual behavioral drift, like POST semantics creating records in places the older mental model had not fully accounted for.
+
+That last category matters most. A failing integration test is often not just a failure. It is a witness statement.
+
+This is one place where agents can mislead by being helpful. They are excellent at making a failing test green. They are less naturally incentivised to pause and say, "By the way, this failure reveals that your contract has quietly changed and maybe deserves a sentence in English before I continue."
+
+That is not a knock on the model. It is a prompt design problem.
+
+I have started to suspect that agents over-index on unit tests because unit tests are local, legible, and cheap to mutate. Integration tests are ruder. They force the system to say what it really is. Naturally, they are less popular. Reality has always had branding issues.
+
+So now I want prompts to ask for two separate things:
+
+```text
+1. Fix tests that are invalid because they assert obsolete behavior.
+2. Separately, list failures that suggest the new contract itself may be unclear, unstable, or accidentally changed.
+```
+
+That little split matters. It separates rote maintenance from architectural learning.
+
+[Simon Willison has written a lot about securing and structuring agent workflows](https://simonwillison.net/2025/Jun/13/prompt-injection-design-patterns/). Different topic on the surface, same useful instinct underneath: once an agent has tools and agency, boundaries and contracts matter more, not less. "It mostly worked" is not a safety model. It is just optimism with a better keyboard.
+
+I also keep thinking about [Addy Osmani's writing on software performance and tooling](https://addyosmani.com/blog/devtools-javascript-memory-profiling/), not because performance was the issue here, but because his work consistently rewards the same habit: inspect reality instead of trusting vibes. Performance regressions, memory leaks, stale contracts, bad assumptions, these all survive longest when the tooling loop rewards convenience over verification.
+
+And yes, I know I just compared flaky prompt framing to memory profiling. This is what happens when a refactor lasts long enough. Every discipline starts looking like another version of "please check the thing you are merely assuming."
+
+---
+
+## Leak Three: Finish-Line Leaks
+
+> "I keep trying to define done like a poet. The codebase keeps demanding an accountant."
+
+The third leak arrived near the end, which is exactly when human judgement gets sleepy and dangerously generous.
+
+The main refactor work was landing. Routes were unified. Data moved. Tests were getting fixed. It would have been very easy, and emotionally satisfying, to say the thing software engineers love saying right before they get surprised again: "I think this is basically done."
+
+Basically done is a cursed phrase. It means the obvious work is done and the expensive work is about to introduce itself.
+
+What showed up late here was not exotic:
+
+- old tables still hanging around
+- RLS posture needing a review
+- dead files surfacing at build time
+- lint and build issues not caught by narrower checks
+- UI details like disabled state styling still needing an adult in the room
+
+None of these are weird. That is exactly why they have to be in the definition of done *before* the implementation starts.
+
+[Trunk-based development](https://trunkbaseddevelopment.com/short-lived-feature-branches/) still feels relevant here, even in a world full of agents, because it takes a dim view of sprawling "I'll clean it all up at the end" work. Quite right too. The end is where confidence goes to wear fake glasses and sneak bugs past me.
+
+[Anthropic's agent patterns](https://www.anthropic.com/engineering/building-effective-agents) and [OpenAI's Codex workflows](https://openai.com/index/introducing-the-codex-app/) both point, in different language, toward the same boring truth: the loop is not complete until the system has verified its own outcome in a way that is harder to argue with than a nice sounding progress update.
+
+That means my definition of done for refactors now wants to look more like this:
+
+```text
+Done means:
+- endpoint contract named in English
+- unit tests updated
+- integration tests passing
+- schema verified against live reality
+- deprecated paths searched before deletion
+- security posture reviewed
+- build passes
+- dead-file sweep completed
+- manual smoke checks run on the actual feature
+```
+
+That list is spiritually close to waterfall, and I mean that as a compliment here.
+
+Not the caricatured waterfall where a requirements document is thrown downhill and worshipped for six months. The useful part. The part where sequencing, gates, and explicit acceptance criteria reduce ambiguity before expensive execution begins. Agentic development does not erase that need. It amplifies it. Faster implementation turns fuzzy thinking into concrete mistakes faster. Same old engineering, just with better horsepower and more flamboyant failure modes.
+
+---
+
+## A Better Prompt Is Usually Just Better Engineering In Disguise
+
+I have become suspicious of prompts that sound clever.
+
+The best ones I have used recently sound mildly bureaucratic, a little over-prepared, and almost offensively un-sexy. Which is probably why they work.
+
+If I were re-running this refactor from scratch, I would begin closer to this:
+
+```text
+Refactor the views and claps system toward a more central flow.
+
+Before implementation:
+- trace the current lifecycle end to end
+- map dependencies across routes, hooks, components, tests, SQL, and content IDs
+- list likely hidden work and categorize it by risk
+- compare migration assumptions with actual schema reality
+- define the new contract in English
+- propose phase gates and a hard definition of done
+
+During implementation:
+- separate planned work from discovered work
+- do not delete old paths until references are verified
+- prefer integration verification for API contract changes
+
+Before completion:
+- review cleanup candidates
+- review security posture
+- run build and manual smoke checks
+- report what remains uncertain
+```
+
+That is not prompt engineering in the glamorous sense. No magic words. No secret incantation. No "summon the dragon of seniority" nonsense.
+
+It is just decent systems thinking.
+
+This is why I still find [Andrej Karpathy's writing and talks](https://karpathy.ai/) useful in this general area. He has a way of making new AI workflows feel exciting without pretending old engineering judgment has become decorative. I do not need a priesthood around agentic development. I need practical habits that survive a tired evening and a growing diff.
+
+Same with [Simon Willison](https://simonwillison.net/), whose work keeps quietly insisting that tool use, boundaries, and explicit reasoning matter. Same with [Theo](https://t3.gg/) when he is at his best, which is usually when he is being productively impatient with sloppy abstractions and fake confidence.
+
+The pattern is not mysterious. The strongest people in this space are not merely excited about agents. They are picky about the workflow around them.
+
+---
+
+## The Bits I Still Watch Like A Slightly Tired Hawk
+
+There are still a few recurring failure modes I now look for because they seem to show up again and again in agent work, at least in my own.
+
+### Ambiguity that sounds specific
+
+"Refactor this into a unified flow" sounds specific. It is not. It says almost nothing about blast radius, desired contract, cleanup scope, or acceptance criteria.
+
+This is the prompt equivalent of saying "renovate the kitchen" and being surprised when someone asks whether I also meant plumbing, wiring, floor levels, cupboards, or just the part that photographs nicely.
+
+### Green tests that only prove local obedience
+
+If unit tests are green but integration tests are thin, I assume I know less than I feel. The system may still be lying to me in a calm tone.
+
+This is especially true around API changes, migrations, and route consolidation. Agents are very willing to repair the immediate red squiggle. I need the conversation to force a second question: what evidence do I have that the system contract still holds when the layers touch each other?
+
+### "Remaining work" that appears only when I ask for it
+
+Whenever I find myself saying, "do the remaining work as well," I take that as a process smell. It usually means the conversation front-loaded implementation and under-specified closure.
+
+Closure work is not side work. Cleanup, deprecation, security checks, and build verification are part of the feature. They are just boring enough that they often get treated like aftercare instead of the actual ending.
+
+### Nicely phrased uncertainty
+
+Agents often signal uncertainty politely:
+
+- "this should work assuming..."
+- "likely caused by..."
+- "appears to be..."
+
+Those hedges are gold. If I skim past them because the momentum feels good, that is on me.
+
+I used to read hedging as caution. I increasingly read it as an arrow.
+
+---
+
+## One Last Look At The Tiny Machines
+
+I like that this article is about the system it is using.
+
+<div className="flex flex-wrap items-center justify-center gap-3 text-sm my-6 not-prose">
+  <ViewCounter className="flex flex-row justify-center items-center blue-border w-fit p-1" slug="how-to-prompt-ai-agents-for-complex-refactors" />
+  <ClapsCounter postId="how-to-prompt-ai-agents-for-complex-refactors" postType="bloq" interactive={true} />
+</div>
+
+These counters are small enough to look harmless. That is how software gets you. Nothing starts life looking like architecture. It starts as "just a counter," "just a refactor," "just clean this up a bit," and then three hours later I am reviewing RLS policies and apologising to my evening.
+
+I am not leaving this refactor with a grand revelation, only a more reliable suspicion.
+
+Good agentic development is often just good software practice with the tempo turned up:
+
+- better specs
+- better phase boundaries
+- better integration coverage
+- better closure criteria
+- better attention to what the prompt forgot to ask
+
+None of that removes surprises. It just means fewer of them have to be noticed manually, after the damage has already submitted its timesheet.
+
+And the leaks that still get through, they usually have a family resemblance. They hide in ambiguity, in local verification, in polite hedging, in unfinished closure work, and in the very human desire to call something done the second it becomes emotionally inconvenient.
+
+Which, to be fair, is still one of my core technical instincts.

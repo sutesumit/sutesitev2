@@ -42,7 +42,7 @@ export const BloqCardList = ({ post, variant = 'list', className }: BloqCardList
                 <BloqReadingTime readingTime={post.readingTime} />
               </div>
               <div className={cn(
-                "flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 ml-auto",
+                "flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-4 ml-auto",
                 variant === 'related-post' && "w-full flex-row justify-between ml-0"
               )}>
                 <ViewCounter type="bloq" identifier={post.url} className="text-xs flex items-center text-gray-500" />
