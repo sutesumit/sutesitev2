@@ -38,10 +38,6 @@ export const BioSection = () => {
         typingText="I build end-to-end features for a senior-living hospitality system, integrating a React + Redux frontend with a serverless AWS Lambda backend, MongoDB, and Alexa for Hospitality (A4H) to assist caregivers and improve task turnaround time."
       />
       <br />
-      <br />
-      <p>
-        I continue to draw from the my creative instincts. And my interactive digital art continues to explore the intersection of personal archives, inherited emotions, and the political — imagining the web as a space for artistic expression and self-reflection.
-      </p>
     </>
   );
 };
