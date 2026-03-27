@@ -11,20 +11,28 @@ import { cn } from "@/lib/utils";
 import ClapsCounter from "@/components/shared/ClapsCounter";
 import ViewCounter from "@/components/shared/ViewCounter";
 
+const MOBILE_BREAKPOINT = 380;
+const TABLET_VIEWPORT = { width: 900, height: 675 };
+const MOBILE_VIEWPORT = { width: 375, height: 812 };
+
 const ProjectPage = ({ project }: { project: ProjectProps }) => {
   const [iframeLoading, setIframeLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const [iframeScale, setIframeScale] = useState(1);
-
-  const IFRAME_W = 1440;
-  const IFRAME_H = 900;
+  const [iframeViewport, setIframeViewport] = useState(TABLET_VIEWPORT);
 
   useEffect(() => {
     const updateScale = () => {
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        const scaleX = width / IFRAME_W;
-        const scaleY = height / IFRAME_H;
+        const nextViewport = width < MOBILE_BREAKPOINT ? MOBILE_VIEWPORT : TABLET_VIEWPORT;
+        setIframeViewport((currentViewport) =>
+          currentViewport.width === nextViewport.width && currentViewport.height === nextViewport.height
+            ? currentViewport
+            : nextViewport
+        );
+        const scaleX = width / nextViewport.width;
+        const scaleY = height / nextViewport.height;
         setIframeScale(Math.min(scaleX, scaleY));
       }
     };
@@ -61,7 +69,7 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
               <div
                 ref={containerRef}
                 className="relative w-full rounded overflow-hidden border border-blue-200 dark:border-blue-800 bg-gray-100 dark:bg-gray-900 shadow-md mb-4"
-                style={{ aspectRatio: `${IFRAME_W} / ${IFRAME_H}` }}
+                style={{ aspectRatio: `${iframeViewport.width} / ${iframeViewport.height}` }}
               >
                 {iframeLoading && project.screenshot && (
                   <Image
@@ -82,8 +90,8 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
                   src={project.livelink}
                   className="absolute top-0 left-0 origin-top-left"
                   style={{
-                    width: `${IFRAME_W}px`,
-                    height: `${IFRAME_H}px`,
+                    width: `${iframeViewport.width}px`,
+                    height: `${iframeViewport.height}px`,
                     transform: `scale(${iframeScale})`,
                   }}
                   title={`Preview of ${project.title}`}
