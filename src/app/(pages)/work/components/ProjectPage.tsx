@@ -7,6 +7,7 @@ import LiveRepoLinks from "@/components/shared/LiveRepoLinks";
 import Accordion from "@/components/shared/Accordion";
 import { CardBackground } from "@/components/shared/CardBackground";
 import { projects, ProjectProps } from "@/data/projectlist";
+import { cn } from "@/lib/utils";
 import ClapsCounter from "@/components/shared/ClapsCounter";
 import ViewCounter from "@/components/shared/ViewCounter";
 
@@ -141,13 +142,20 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
             work
           </Link>
         </div>
-        <div className="flex flex-col md:flex-row gap-4 justify-around w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 w-full max-w-2xl mx-auto px-4">
           {projects.map((p, index) => (
             <div
               key={index}
-              className={`project-item text-blue-900 dark:text-blue-400 ${p.title === project.title ? "opacity-50" : "hover:opacity-100"}`}
+              className={cn(
+                "project-item transition-all",
+                p.title === project.title 
+                  ? "text-blue-900/40 dark:text-blue-400/40 cursor-default pointer-events-none" 
+                  : "text-blue-900 dark:text-blue-400 hover:opacity-100 hover:translate-x-1"
+              )}
             >
-              <Link href={`/work/${p.slug}`}>{p.title}</Link>
+              <Link href={`/work/${p.slug}`} className="flex items-center gap-2">
+                <span>{p.title}</span>
+              </Link>
             </div>
           ))}
         </div>

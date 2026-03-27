@@ -3,6 +3,8 @@ import { BiTerminal } from 'react-icons/bi';
 import { GiSwissArmyKnife } from 'react-icons/gi';
 import { LiaBezierCurveSolid } from 'react-icons/lia';
 import { LuTextCursorInput } from 'react-icons/lu';
+import { MdOutlineInventory2 } from 'react-icons/md';
+import { TbTopologyComplex } from 'react-icons/tb';
 import type { RoleDetails, TechDetails } from './types';
 
 const roles = [
@@ -10,6 +12,9 @@ const roles = [
     { name: 'Developer', icon: <BiTerminal /> },
     { name: 'UI Designer', icon: <LiaBezierCurveSolid /> },
     { name: 'Writer', icon: <LuTextCursorInput /> },
+    { name: 'Product Engineer', icon: <MdOutlineInventory2 /> },
+    { name: 'System Designer', icon: <TbTopologyComplex /> },
+    { name: 'Publisher', icon: <LuTextCursorInput /> },
 ];
 
 export function getRoleDetails(roleNames: string[]): RoleDetails[] {

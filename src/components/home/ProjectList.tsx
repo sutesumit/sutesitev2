@@ -1,19 +1,23 @@
 import React from "react";
 import Link from "next/link";
+import { projects } from "@/data/projectlist";
 
 export const ProjectList = () => {
+  // Add the slugs of projects you want to display manually
+  const featuredSlugs = ["art", "dramas-of-discrimination"];
+  const featuredProjects = projects.filter((project) =>
+    featuredSlugs.includes(project.slug)
+  );
+
   return (
     <>
-      <p>Side projects I am currently working on:</p>
+      <p>Some of my ongoing side projects:</p>
       <ul className="project-list text-blue-900 dark:text-blue-400">
-        <li className="project-item">
-          <Link href="/work/art">art.sumitsute.com</Link>
-        </li>
-        <li className="project-item">
-          <Link href="/work/dramas-of-discrimination">
-            Dramas of Discrimination
-          </Link>
-        </li>
+        {featuredProjects.map((project) => (
+          <li key={project.slug} className="project-item">
+            <Link href={`/work/${project.slug}`}>{project.title}</Link>
+          </li>
+        ))}
       </ul>
     </>
   );

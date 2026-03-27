@@ -121,18 +121,30 @@ export function AboutContent() {
             className="text-blue-900 dark:text-blue-400"
             href="https://www.art.sumitsute.com/"
             target="_blank"
+            rel="noopener noreferrer"
           >
             artistic narratives
           </Link>{" "}
-          or designing{" "}
+          , designing{" "}
           <Link
             className="text-blue-900 dark:text-blue-400"
             href="https://www.dod.sumitsute.com/"
             target="_blank"
+            rel="noopener noreferrer"
           >
             Dramas of Discrimination
           </Link>{" "}
-          to get people collaborating in new ways.
+          to get people collaborating in new ways, or building this{" "}
+          <Link
+            className="text-blue-900 dark:text-blue-400"
+            href="https://sumitsute.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Dev Diary
+          </Link>{" "}
+          as a home for my writing, publishing systems, and engineering
+          experiments.
         </p>
         <br />
         <p>

@@ -14,7 +14,11 @@ export const projects: ProjectProps[] = [
         livelink: 'https://www.art.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/jaybhim_affirma',
         technologies: getTechDetails(['Next.js', 'Tailwind CSS', 'Framer Motion', 'Aceternity UI', 'Supabase', 'Radix UI']),
-        features: ['Feature 1', 'Feature 2', 'Feature 3']
+        features: [
+            'Interactive portfolio for lens-based art and long-form visual narratives',
+            'Responsive gallery and storytelling layouts built with modern web tooling',
+            'Custom motion and UI primitives for a more editorial browsing experience'
+        ]
     },
     {
         slug: 'dramas-of-discrimination',
@@ -26,6 +30,40 @@ export const projects: ProjectProps[] = [
         livelink: 'https://www.dod.sumitsute.com/',
         githublink: 'https://github.com/sutesumit/dodpage',
         technologies: getTechDetails(['Next.js', 'Tailwind CSS', 'Framer Motion', 'Aceternity UI']),
-        features: ['Feature 1', 'Feature 2', 'Feature 3']
+        features: [
+            'Independent facilitation flow for Dramas of Discrimination workshops',
+            'Guided access to workshop materials, case studies, and facilitation resources',
+            'Community-facing space for participant reflections and charter-building'
+        ]
+    },
+    {
+        slug: 'dev-diary',
+        title: 'Dev Diary',
+        screenshot: '/sumit-sute-homepage.jpg',
+        roles: getRoleDetails(['Product Engineer', 'System Designer', 'Writer', 'Publisher']),
+        description: `A personal publishing and engineering platform for essays, notes, knowledge capture, and experiments in agentic software systems.`,
+        about: `Dev Diary is the system behind sumitsute.com: a personal publishing and engineering platform where I write long-form essays, post short notes, maintain concept entries, and document ongoing software experiments. Behind the scenes, it includes private capture and publishing workflows through a Telegram bot and CLI tools, distribution through a Telegram channel and RSS, and supporting infrastructure like metadata, sitemap generation, analytics, and lightweight interaction systems. The codebase is shaped to stay legible, maintainable, and agent-friendly as the site evolves.`,
+        livelink: 'https://sumitsute.com/',
+        githublink: 'https://github.com/sutesumit/sutesitev2',
+        technologies: getTechDetails([
+            'Next.js',
+            'React',
+            'TypeScript',
+            'Tailwind CSS',
+            'Supabase',
+            'Radix UI',
+            'Grammy',
+            'Vitest',
+            'Playwright',
+            'MDX'
+        ]),
+        features: [
+            'Unified publishing system for bloqs, bytes, blips, and project pages',
+            'Private content workflows exposed through Telegram and terminal-friendly entry points',
+            'Dynamic RSS and sitemap generation from canonical content sources',
+            'Per-page metadata and JSON-LD for machine-readable distribution',
+            'Supabase-backed views, claps, and short-form publishing flows',
+            'Architecture designed for maintainability and agent-assisted development'
+        ]
     }
 ]
