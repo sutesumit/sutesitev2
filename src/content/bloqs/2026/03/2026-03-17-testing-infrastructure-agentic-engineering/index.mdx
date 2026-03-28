@@ -1,13 +1,13 @@
 ---
-title: "The Testing Infrastructure We Have, and the One We Need"
+title: "The Ghost in the Test Suite"
 publishedAt: "2026-03-17"
-summary: "A deep dive into what our testing setup actually does, why it matters more than ever in the age of AI agents, and the honest gaps we need to close before we can trust swarms to help us build."
+summary: "A reflection on the mismatch between our current test suite and our evolving UI, and why tests are the only source of truth an AI agent can actually respect."
 slug: "testing-infrastructure-agentic-engineering"
 tags:
   - typescript
   - ai
   - architecture
-  - experiments
+  - debugging
 authors:
   - Sumit Sute
 category: "Engineering"
@@ -15,31 +15,29 @@ draft: false
 featured: false
 ---
 
-> "A test that never fails is either useless or you're not trying hard enough."
+> "A test that never fails is either useless: or you're not trying hard enough."
 
-I have been staring at our test suite for the better part of a day now. We have 33 tests. Twenty-six pass. Seven fail. The failing tests are not failing because something is broken, they are failing because our component changed but our tests did not. We refactored the pagination controls to show numbered links instead of prev/next buttons, and somewhere in that refactor, nobody told the tests.
+I have been staring at our test suite for the better part of a day now. We have 33 tests. Twenty-six pass. Seven fail. The failing tests are not failing because something is broken: they are failing because our component changed but our tests did not. We refactored the pagination controls to show numbered links instead of prev/next buttons, and somewhere in that refactor, nobody told the tests.
 
 This is not a critique. This is a window into how testing actually works in a project like ours, and more importantly, what we need to do differently now that we are starting to work with AI agents.
 
 ---
 
-## What We Actually Have
+## The Foundation
 
-Let me walk you through what exists, because it is not nothing. It is actually a pretty solid foundation, just incomplete.
+> "Tooling is never the bottleneck. Intent is."
 
-We run two types of tests. Unit tests through something called Vitest, and end-to-end tests through something called Playwright. The distinction matters, so let me explain what each does.
+Let me walk you through what exists, because it is not nothing. It is actually a pretty solid foundation, just incomplete. We run Vitest for component isolation and Playwright for the full-page narrative. The setup is sound, but the execution has drifted.
 
-### Vitest: The Fast Stuff
+### Vitest and the Mocked Reality
 
-Vitest is our unit test runner. It takes individual functions and React components and tests them in isolation. When you run `npm run test`, this is what fires first.
-
-Here is the configuration in `vitest.config.ts`:
+In `vitest.config.ts`, we rely on `jsdom` to simulate the browser environment. It is fast, cheap to run, and serves as our first line of defense.
 
 ```typescript
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',  // This simulates a browser in Node
+    environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts,jsx,tsx}'],
@@ -52,9 +50,7 @@ export default defineConfig({
 })
 ```
 
-The key piece here is `jsdom`. This is a library that pretends to be a web browser inside Node.js. Your tests can create elements, click buttons, type in input boxes, all without actually opening Chrome. It is fast. It is cheap to run. It is the first line of defense.
-
-Our setup file (`src/test/setup.ts`) does something clever. It mocks Next.js navigation:
+Our setup file (`src/test/setup.ts`) handles the Next.js navigation mocks. Without these, our components would crash the moment they touched a router hook in a Node environment. The mock provides a safe, predictable surface for testing components that think they are living in a real browser.
 
 ```typescript
 vi.mock('next/navigation', () => ({
@@ -70,13 +66,9 @@ vi.mock('next/navigation', () => ({
 }))
 ```
 
-Why is this important? Because our components use `useRouter` from Next.js. If we tried to run tests without mocking this, everything would crash. The test would try to call a function that only exists in a browser, but we are running in Node. The mock says "here is a fake router, do not worry about the real one."
+### Playwright and the End-to-End Narrative
 
-### Playwright: The Real Browser Stuff
-
-Then we have Playwright. This opens an actual Chromium browser, navigates to pages, clicks real buttons, and checks if things work. It is slower, but it catches bugs that unit tests miss.
-
-Our Playwright configuration (`playwright.config.ts`) is lean:
+Then we have Playwright. It catches the bugs that unit tests miss by navigating real Chromium instances. Our configuration is lean, optimized for CI but currently living only on our machines.
 
 ```typescript
 export default defineConfig({
@@ -101,246 +93,90 @@ The `webServer` block is elegant. When you run E2E tests, it automatically start
 
 ---
 
-## What We Actually Test
+## The Shifted Reality
 
-Let me show you what is covered and what is not.
+> "Code moves. Tests rot. The delta is where bugs live."
 
-### Passing Tests
+Our passing tests are boringly correct. They cover the static parts of the logic: the pagination math and the search logic. But the moment we move into the UI, things get haunted.
 
-We have three test files that pass completely:
+### The Mismatch
 
-1. `pagination-utils.test.ts` - 16 tests for our pagination math
-2. `SearchBar.test.tsx` - 7 tests for the search component
-3. Two E2E files that run against the actual app
+Our `PaginationControls.test.tsx` has 7 failing tests. This is not a failure of logic: it is a failure of synchronization. The test expects the old UI. The component renders the new one.
 
-Here is one of the pagination tests, so you can see the pattern:
+```text
+SHIFTS IN REALITY
 
-```typescript
-it('should calculate correct pagination for 50 items, 10 per page', () => {
-  const result = createPaginationInfo(1, 10, 50);
-  
-  expect(result.page).toBe(1);
-  expect(result.limit).toBe(10);
-  expect(result.total).toBe(50);
-  expect(result.totalPages).toBe(5);
-  expect(result.hasMore).toBe(true);
-});
+Test expects:                 Component renders:
+[ < Prev ] [ 2 / 5 ] [ Next > ]   [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ]
+     ^           ^        ^                ^
+     |           |        |                |
+(missing)   (missing) (missing)      (active state)
 ```
 
-This is a unit test. It takes a function, gives it inputs, and checks the outputs. No browser required. No React rendering required. Pure logic.
+The test is looking for a string "2 / 5" and "Next" buttons that no longer exist. This is the maintenance tax of component testing. When you change the shape of your UI, you must update the shape of your intent.
 
-### The Failing Tests
+### Where the Architecture Holds
 
-And here is where it gets interesting. Our `PaginationControls.test.tsx` has 7 failing tests. Let me show you one:
-
-```typescript
-it('should render pagination when there are multiple pages', () => {
-  renderWithRouter(
-    <PaginationControls pagination={mockPagination} basePath="/byte" />
-  );
-
-  expect(screen.getByText('2 / 5')).toBeInTheDocument();
-});
-```
-
-This test expects to find the text "2 / 5" on the page. But when I looked at the actual component, it renders differently now. Let me show you what it actually outputs:
-
-```tsx
-<nav aria-label="Pagination">
-  <Link href="/byte?page=1">1</Link>
-  <span className="blue-border">2</span>
-  <Link href="/byte?page=3">3</Link>
-  <Link href="/byte?page=4">4</Link>
-  <Link href="/byte?page=5">5</Link>
-</nav>
-```
-
-See the mismatch? The test expects:
-- "2 / 5" text somewhere
-- Prev/Next buttons
-
-The component actually renders:
-- Just numbered links
-- No "2 / 5" text
-- No Prev/Next buttons
-
-Someone refactored the component and did not update the tests. This happens. This is why tests are maintenance.
+Despite the failures, the organizational patterns are sound. We put tests next to the components. We think about edge cases like XSS and invalid URLs in our `edge-cases.spec.ts`. The foundation can support a much larger building: we just haven't laid the bricks yet.
 
 ---
 
-## The Plus Sides
+## The Blind Spots
 
-Let me tell you what works well, because a lot does.
+> "What we do not measure, we do not own."
 
-### The Architecture Is Sound
-
-We picked good tools. Vitest is fast and modern. Playwright is the current standard for E2E. Testing Library pushes us toward accessible testing practices. The setup is not wrong, it is just unfinished.
-
-### The Pattern Is Right
-
-We put tests next to the code they test:
-
-```
-src/
-├── components/shared/
-│   ├── PaginationControls.tsx
-│   └── __tests__/
-│       └── PaginationControls.test.tsx
-```
-
-This is the right organizational instinct. When you see a component, the tests are right there.
-
-### The E2E Tests Are Smart
-
-Look at this test from `pagination.spec.ts`:
-
-```typescript
-test('should show different items on different pages', async ({ page }) => {
-  await page.goto('/byte');
-  
-  const firstItemPage1 = await page.locator('[class*="grid"] > div').first().textContent();
-  
-  const nextButton = page.locator('text=Next →');
-  if (await nextButton.isVisible()) {
-    await nextButton.click();
-    await page.waitForURL(/page=2/);
-    
-    const firstItemPage2 = await page.locator('[class*="grid"] > div').first().textContent();
-    expect(firstItemPage1).not.toBe(firstItemPage2);
-  }
-});
-```
-
-This is not just checking if pagination renders. It checks if pagination actually works by verifying that page 1 and page 2 show different content. This is the kind of test that catches real bugs.
-
-### Edge Cases Are Considered
-
-Our `edge-cases.spec.ts` tests things like:
-
-- Invalid page numbers (`?page=abc`)
-- Negative pages (`?page=-1`)
-- Extremely large page numbers (`?page=999`)
-- Very long search queries (200 characters)
-- XSS attempts in the URL
-
-This shows someone was thinking about what happens when things go wrong.
+Here is the honest part. Our coverage is narrow: we test pagination and search, but the core of our site (the bloqs, the blips, the themes) is untested. We have no CI/CD pipeline, no automated coverage reports, and no cross-browser verification. We are flying on instruments that only tell us if the engines are running, not where the plane is going.
 
 ---
 
-## What Is Missing
+## Truth in the Age of Swarms
 
-Now for the honest part. Here is what we do not have:
+> "Agents optimize for what you measure, not what you mean."
 
-### No CI/CD Pipeline
+This is where the bigger picture comes into focus. We are working with AI agents now. And for an agent, a test suite is not just a safety net: it is the only source of truth that matters.
 
-We have no GitHub Actions workflow. No automated tests run when you push code. You have to manually remember to run `npm run test` and `npm run test:e2e`. Most of the time, people do not.
+When I write code, I have a mental model. I know that the pagination change should be reflected in the tests. When an agent writes code, it optimizes for the prompt. It might follow a plan to refactor the UI and consider the task "done" because the code looks right. But if the tests are stale, the agent is flying without instrumentation.
 
-### No Coverage Reports
-
-The Vitest configuration mentions coverage:
-
-```typescript
-coverage: {
-  provider: 'v8',
-  reporter: ['text', 'json', 'html'],
-},
-```
-
-But we never generate these reports. We do not know what percentage of our code is tested. We are flying blind.
-
-### Coverage Is Narrow
-
-We test pagination and search. That is it. We do not test:
-
-- How bloqs render
-- How blips work
-- Theme switching
-- Form submissions
-- Authentication flows
-- API routes
-- Error boundaries
-
-The actual content of our site, the things users come to see, have zero test coverage.
-
-### No Cross-Browser Testing
-
-Our Playwright config only runs Chromium:
-
-```typescript
-projects: [
-  {
-    name: 'chromium',
-    use: { ...devices['Desktop Chrome'] },
-  },
-],
-```
-
-We have no idea if our site works in Firefox or Safari.
+Without robust tests, agentic engineering is a gamble. We need a contract that agents can respect.
 
 ---
 
-## Why This Matters Now More Than Ever
+## The Path Forward: Principles, Not Phases
 
-Here is where I need to connect this to the bigger picture. We are starting to work with AI agents. I am starting to use Claude and other language models to help write code. And this changes everything about testing.
+> "Infrastructure is the residue of design."
 
-When a human writes code, they have a mental model of what should happen. When they write tests, they are formalizing that mental model. The tests are a specification of intent.
+We don't need a "roadmap" as much as we need a set of principles for how we build and verify.
 
-When an agent writes code, it does not have that mental model. It generates code that satisfies patterns it has seen. Sometimes those patterns are correct. Sometimes they are subtly wrong. And here is the thing: the agent does not know the difference.
+### 1. Verification as the Closure of the Loop
+Orchestration is incomplete until the changes are proven. We need to move from "running tests manually" to a system where every agent-led refactor is automatically verified against a suite that actually reflects the UI.
 
-Without good tests, agents can introduce bugs that no one catches. The agent thinks it succeeded because the code looks right. But it is not right. And there is no test to say otherwise.
+### 2. Tests as Executable Specifications
+Our tests should be the mental model we hand to the agent. If the test says the pagination should show "2 / 5", and the agent changes it to numbered links, the test *must* fail, and the agent *must* be the one to fix it or raise the contradiction.
 
-This is why the testing infrastructure is not optional. It is the foundation that makes agentic engineering possible. Without it, we cannot trust agents to help us build.
+### 3. Agentic Orchestration
+We are moving toward a world where N agents measure simultaneously. One agent for functional logic, another for accessibility, a third for performance.
 
----
+```text
+ORCHESTRATION FLOW
 
-## The Path Forward
-
-I want to propose three phases of improvement. Not everything at once, but a direction.
-
-### Phase One: Fix What We Have
-
-The first step is to fix the failing tests. Either update the PaginationControls tests to match the current implementation, or revert the component to match the tests. Pick one and be consistent.
-
-Then add a simple GitHub Actions workflow to run tests on every push. It does not need to be fancy. Just run the tests and fail the build if they break.
-
-### Phase Two: Expand Coverage
-
-Start adding tests for the parts that matter most:
-
-1. Test the bloq rendering logic
-2. Test the blip repository
-3. Test API route responses
-4. Add loading state tests
-
-Also, start generating coverage reports. We do not need 100% coverage. We need to know where the gaps are.
-
-### Phase Three: Agentic Testing Infrastructure
-
-This is the ambitious part. This is where we build testing infrastructure that supports agents working in parallel.
-
-Imagine this: you have multiple agents, each responsible for testing a different aspect of the system. One agent runs functional tests. Another runs performance tests. A third runs accessibility audits. They run in parallel, report back, and together they give you a comprehensive view of whether your code is ready.
-
-To get here, we need:
-
-1. **Test orchestration** - A way to run multiple test suites in parallel and aggregate results
-2. **Test generation** - Agents that can look at new code and write tests for it automatically
-3. **Self-healing tests** - Tests that can detect when a UI change broke a selector and fix themselves
-4. **Better logging** - Detailed traces of what agents did so humans can review
-
-This is not science fiction. Tools like Claude and GPT can already write tests. The challenge is orchestration and trust. We need systems that let agents write tests, but verify those tests before we accept them.
+[ Feature Request ]
+      |
+      v
+[ Agent: Implementation ] <---+
+      |                       |
+      v                       | (Fix)
+[ Agent: Test Runner ] -------+
+      |
+      v
+[ Human: Final Review ]
+```
 
 ---
 
 ## What I Take Away
 
-- Our testing foundation is solid but incomplete. We have the right tools, just not enough coverage.
+- **Tests are the contract.** They are how you tell your future self (and your agentic collaborators) what you actually meant.
+- **Maintenance is the primary cost.** Failing tests aren't a disaster, but they are a signal that our intent has drifted from our implementation.
+- **The infrastructure must be deliberate.** We have the tools. We just need the discipline to keep the "Ghost in the Suite" at bay.
 
-- The failing tests are not a disaster. They are a symptom of a healthy but unfinished project. Refactoring happens, tests get left behind, we fix them and move on.
-
-- For agentic engineering to work, we need tests that agents can use as a source of truth. Without tests, agents are flying without instrumentation.
-
-- The path forward is not to test everything at once. It is to fix the immediate problems, expand gradually, and think about orchestration as a long-term goal.
-
-- Testing is not overhead. It is the contract between you today and you six months from now. It is how you tell your future self what you meant.
-
-The infrastructure we have got us this far. The infrastructure we need will get us further. But we have to build it deliberately, one layer at a time.
+The infrastructure we have got us this far. The infrastructure we need will get us further. But we have to build it one deliberate layer at a time.
