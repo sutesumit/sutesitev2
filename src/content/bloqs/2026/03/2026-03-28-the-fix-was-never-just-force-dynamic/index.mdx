@@ -1,0 +1,534 @@
+---
+title: "How Not To Ask An Agent For A Fix"
+publishedAt: "2026-03-28"
+summary: "I did eventually get the stale homepage issue sorted. The more interesting part was how much conversational wandering it took to get there, and what that taught me about using gpt-5.4 for design thinking instead of just code generation."
+slug: "ai-agent-prompting-for-architecture-decisions"
+tags:
+  - ai
+  - architecture
+  - reflections
+  - nextjs
+  - debugging
+  - typescript
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: false
+---
+
+## A Bug, A Coffee, And An Answer That Was Slightly Too Ready
+
+> "The dangerous answer is rarely the absurd one. It is the one that works before you understand what it now owns."
+
+I had a stale link on the homepage. The "latest logs" section was showing old data on Vercel. Locally, in `npm run dev`, it looked fresh. Production looked like it had made peace with a previous version of reality and saw no reason to update me.
+
+So I did what one does in 2026 when staring at a mildly haunted Next.js app. I opened a terminal, kept `gpt-5.4` nearby, and started asking questions.
+
+The first answer was simple: make the page `force-dynamic`.
+
+Which, to be fair, was not nonsense. It was a perfectly respectable answer. It was also the kind of answer that arrives wearing a pressed shirt and good posture, then quietly rearranges your architecture while you are still nodding along.
+
+That turned out to be the real story.
+
+This is not a post about catching a model making a mistake. It is a post about the engineer, me, learning to ask better engineering questions before agreeing to a fix that looked locally correct and systemically under-explained.
+
+The stale link is just the narrative arc. The actual article is about how I should be working with agents if I want good outcomes and not merely fast ones.
+
+<div className="flex flex-wrap items-center justify-center gap-2 my-6 not-prose text-sm">
+  <span className="blue-border px-2 py-1">context: stale homepage data</span>
+  <span className="blue-border px-2 py-1">agent: gpt-5.4</span>
+  <span className="blue-border px-2 py-1">temptation: ship the first plausible fix</span>
+  <span className="blue-border px-2 py-1">lesson: ask who owns correctness</span>
+</div>
+
+Here is the actual feature in question, embedded right here on the page because it felt dishonest to discuss a freshness problem without inviting the suspect into the room.
+
+<div className="p-4 mb-1 blue-border">
+  <LatestUpdates />
+</div>
+
+---
+
+## The First Fix Was Fine, Which Was The Problem
+
+> "Architecture is the sum of every 'quick fix' that we chose to forget was a choice."
+
+The first recommendation was route-level: make the homepage dynamic so it fetches fresh data on every request.
+
+Again, that was not irrational.
+
+If local dev is fresh and Vercel is stale, a route caching explanation is one of the first things any sane engineer would check. If the page is being statically optimized, `force-dynamic` is a sharp and useful way to prove the diagnosis.
+
+But here is where the conversation should have widened faster than it did.
+
+`force-dynamic` was not just a fix. It was a decision about **freshness ownership**.
+
+It quietly implied that:
+
+- the page layer should own freshness
+- request-time rendering cost is acceptable
+- write-side publish flows are not the right place to handle homepage updates
+- the homepage shell can give up cacheability for the sake of correctness
+
+That is already architecture. We had wandered out of bug-fixing and into responsibility assignment without properly introducing ourselves.
+
+Important:
+
+- **A fix that changes caching, orchestration, or data flow is almost never "just implementation."**
+
+The bug had one visible symptom. The answer had four invisible commitments.
+
+That mismatch is where the useful work began.
+
+<table>
+  <thead>
+    <tr>
+      <th>Option</th>
+      <th>Freshness owner</th>
+      <th>What it optimizes</th>
+      <th>What it quietly costs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b><code>force-dynamic</code></b></td>
+      <td>Page render path</td>
+      <td>Correctness on reads</td>
+      <td>Cacheability, route-level simplicity</td>
+    </tr>
+    <tr>
+      <td><b><code>revalidate = N</code></b></td>
+      <td>Time</td>
+      <td>Balanced freshness and caching</td>
+      <td>Bounded staleness becomes policy</td>
+    </tr>
+    <tr>
+      <td><b>Client-fetched island</b></td>
+      <td>Browser</td>
+      <td>Static shell, dynamic section</td>
+      <td>First paint and SSR completeness</td>
+    </tr>
+    <tr>
+      <td><b>Publish-triggered invalidation</b></td>
+      <td>Write/publish flow</td>
+      <td>Freshness on actual content changes</td>
+      <td>Bypassed by direct DB edits</td>
+    </tr>
+  </tbody>
+</table>
+
+---
+
+## What Went Well: I Eventually Started Asking Better Questions
+
+> "The session improved the moment I stopped asking only for output and started asking what the output believed."
+
+This is the part where I give myself partial credit, which is emotionally healthier than pretending I had the right instincts instantly. I did not. I had them after a few laps.
+
+What went well in my prompting was not that I found the right answer early. I did not. What went well is that I kept pulling the conversation back toward responsibility once I felt the architecture starting to slip under my feet.
+
+The three questions that changed the quality of the collaboration were:
+
+- What <i>assumptions</i> does this fix carry?
+- What <i>boundaries</i> does it ignore?
+- What part of the system does it quietly take <i>ownership</i> of?
+
+Those three questions did more useful engineering work than a dozen "can you implement X?" prompts could have.
+
+They changed the conversation from this:
+
+```text
+stale homepage
+  -> force-dynamic
+  -> fresh enough
+  -> ship?
+```
+
+to this:
+
+```text
+stale homepage
+  -> where does freshness belong?
+  -> read-time or write-time?
+  -> who already knows when content changes?
+  -> what contract do we want?
+  -> what remains out of contract?
+```
+
+That was the real pivot.
+
+Anthropic's study on [AI assistance and coding skill formation](https://www.anthropic.com/research/AI-assistance-coding-skills) makes a distinction that felt painfully relevant here: passive delegation harms comprehension more than question-driven use does. The strongest gains come when the tool is used for conceptual inquiry, not only code generation.
+
+That tracked almost embarrassingly well with my own experience in this session. `gpt-5.4` became more useful when I stopped treating it like a very polite patch generator and started using it as a structured surface for design pressure.
+
+In plainer language: the model was not the bottleneck. My first layer of questioning was.
+
+---
+
+## What Could Have Been Better: The Better Questions Should Have Come Sooner
+
+> "I asked the right questions eventually. Eventually has an invoice."
+
+If I were being stricter with myself, there are a few things I should have asked up front, before the conversation started growing side quests like a JavaScript project growing package managers.
+
+I should have asked for an option table immediately:
+
+```text
+Option 1: force-dynamic
+Owner: page render path
+Tradeoff: correctness on reads, weaker caching
+
+Option 2: revalidate = N
+Owner: time
+Tradeoff: bounded staleness, better caching
+
+Option 3: client-fetched island
+Owner: browser/client fetch
+Tradeoff: static shell, dynamic latest section
+
+Option 4: publish-triggered invalidation
+Owner: write/publish flow
+Tradeoff: best long-term fit if publish events are already centralized
+```
+
+If we had written that down first, a lot of the to-and-fro would have turned from discovery into decision.
+
+I also should have asked for the **read path** and **write path** explicitly before discussing any fix at all.
+
+That is such an ordinary senior-engineering move that I am mildly annoyed with myself for not doing it earlier.
+
+The homepage bug was showing up on the read side, yes. But the most maintainable fix belonged on the write side, because the system already had publish events going through Telegram notifications.
+
+That means the real design question was never "should the page rerender?" It was "who already knows that new content exists, and should that layer be the one to refresh downstream consumers?"
+
+This is standard systems thinking. It sounds glamorous only because I took too long to get there.
+
+Important:
+
+- **When a bug crosses architecture boundaries, ask for the read path and write path before you ask for the fix.**
+
+I also should have insisted on a tiny ADR-shaped summary earlier.
+
+Not a whole ceremony. Not a process parade. Just four short headings:
+
+- Context
+- Decision
+- Consequences
+- Out-of-contract cases
+
+That one move would have made the conversation much calmer, because it forces the tradeoff into English before it disappears into code.
+
+That is not AI-specific wisdom, either. It is just engineering hygiene. [Architecture Decision Records (ADRs)](https://www.martinfowler.com/bliki/ArchitectureDecisionRecord.html) exist for exactly this reason: significant decisions deserve a record of the forces that shaped them and the consequences they carry ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/architecture-decision-record), [Continuous Architecture](https://www.continuous-architecture.org/docs/practices/architecture-decision-records.html)).
+
+Apparently the old boring practices still work. A shocking development. Somewhere, several senior engineers just adjusted their glasses in vindication.
+
+<details>
+  <summary><b>The mini ADR I wish I had demanded 20 minutes earlier</b></summary>
+
+  ```text
+  Context:
+    Homepage latest-content is stale on Vercel, fresh in local dev.
+
+  Decision candidates:
+    force-dynamic
+    timed revalidation
+    client-fetched island
+    publish-triggered invalidation
+
+  Consequences to compare:
+    caching cost
+    ownership of freshness
+    direct DB edit behavior
+    fit with existing publish flows
+
+  Out-of-contract cases:
+    direct database edits bypassing app-managed publish events
+  ```
+
+</details>
+---
+####
+
+## The Architecture Before, Which Was Honest But Slightly Messy
+
+> "The system was not broken. It was merely arranged in a way that invited polite confusion."
+
+The old shape looked roughly like this:
+
+```text
+READ SIDE
+
+Home page
+  -> LatestUpdates server component
+      -> bloq reader (MDX)
+      -> byte query (Supabase)
+      -> blip query (Supabase)
+
+
+WRITE SIDE
+
+Telegram command -> byteService / blipService -> Telegram notifier
+API route        -> byteService / blipService -> Telegram notifier
+GitHub Action    -> /api/telegram/broadcast   -> bloq notification service -> Telegram notifier
+```
+
+Nothing here was individually absurd. The problem was responsibility distribution.
+
+The homepage read model was implicit, scattered across multiple sources.
+
+The byte and blip services already had a shared post-publish side effect pattern, but it was named in transport terms, `TelegramNotifier`, which hid the more important intent.
+
+Bloq publication had a parallel-but-different path, because bloqs live in MDX and reach production through GitHub Actions rather than runtime database writes.
+
+And the homepage freshness question was not owned anywhere explicitly. It was being answered accidentally by route rendering behavior.
+
+That sentence is the whole bug.
+
+```text
+freshness owner = accidental route behavior
+```
+
+If a system is depending on accidental behavior for correctness, the system is not "fine but stale." It is under-specified.
+
+That is where Addy Osmani's notion of [comprehension debt](https://addyosmani.com/blog/comprehension-debt/) landed pretty hard for me. The real cost is not just messy code. It is the growing gap between what the system does and what I can still explain with confidence after the diff is merged.
+
+The codebase can look tidy and still carry architectural ambiguity like a polite infection.
+
+---
+
+## The Architecture After, Which Is Easier To Explain Without Hand-Waving
+
+> "The system got better the moment the side effects stopped pretending they were domain concepts."
+
+The refactor pulled the responsibilities apart more cleanly.
+
+```text
+READ SIDE
+
+Home page
+  -> LatestUpdates
+      -> getLatestContentSummary()
+          -> latest bloq
+          -> latest byte
+          -> latest blip
+
+
+WRITE SIDE
+
+publish flow
+  -> create/update event or publish event
+  -> ContentPublishEffect
+      -> Telegram publish effect
+      -> Homepage invalidation effect
+```
+
+That cleaned up three things at once:
+
+1. The homepage got an explicit read model instead of doing its own quiet aggregation ad hoc.
+2. Telegram became one post-publish effect, not the conceptual center of the write-side architecture.
+3. Homepage freshness moved closer to the publish boundary, which is the place that already knows something new exists.
+
+Here is the simplest responsibility map I know how to draw without turning this into a whiteboard hostage situation:
+
+```text
+repositories / readers
+  own storage access
+
+services / handlers
+  own orchestration of use-cases
+
+publish effects
+  own post-publish reactions
+
+homepage read model
+  owns aggregation for "latest logs"
+```
+
+And here is the important boundary we kept explicit:
+
+```text
+IN CONTRACT
+  app-managed publish flows
+  Telegram command flows
+  API-managed content creation
+  GitHub Action driven bloq publication notice
+
+OUT OF CONTRACT
+  direct database edits bypassing app services
+```
+
+That last line matters because "not handled" and "out of contract" are not the same thing.
+
+One is a bug.
+The other is a deliberate system boundary.
+
+This refactor worked because it named the difference instead of politely implying magical completeness. I am trying to do less magical completeness in general. It tends to end in chores.
+
+---
+
+## The Most Useful Prompt Would Have Looked More Boring
+
+> "Good prompts are often just good engineering briefs that resisted the urge to be charismatic."
+
+If I had to re-run the conversation from scratch, a better opening prompt would have been something like this:
+
+```text
+The homepage latest-content section is stale in production but fresh in local dev.
+
+Before proposing a fix:
+- map the current read path
+- map the current write/publish path
+- identify who currently owns freshness, even if accidentally
+- list 3-4 fix options with tradeoffs and ownership changes
+- state assumptions each option carries
+- state out-of-contract cases each option ignores
+- recommend the best long-term option for maintainability
+
+Only after that, suggest implementation.
+```
+
+That is not "prompt engineering" in the mystical sense. It is just asking for the architectural work before the code work.
+
+Spec-driven development discussions keep landing on the same principle from another direction: make intent, constraints, and consequences explicit before implementation starts, because hidden decisions become expensive when they are only discovered during execution ([InfoQ](https://www.infoq.com/articles/spec-driven-development/), [InfoQ enterprise case study](https://www.infoq.com/articles/enterprise-spec-driven-development/)).
+
+The important part is not whether one writes a heavyweight spec. I do not want to become the sort of person who writes a 14-page document to change a border radius and then speaks about it at length near sandwiches.
+
+The important part is that the key decisions should exist in language before they disappear into code.
+
+Important:
+
+- **The goal is not more documentation. The goal is fewer invisible decisions.**
+
+That is a much less glamorous sentence than "build a robust agentic workflow," but it is the one I trust.
+
+---
+
+## What I Learned About Working With gpt-5.4, Specifically
+
+> "The model got better the moment I gave it a better job."
+
+We used `gpt-5.4` throughout this whole exercise.
+
+And I do want to be precise about the lesson here, because it would be very easy to flatten this into either tech boosterism or model skepticism, both of which are convenient and both of which would miss the point.
+
+`gpt-5.4` was useful at several different levels:
+
+- identifying the obvious route-caching hypothesis quickly
+- tracing code paths across the app with decent accuracy
+- helping enumerate tradeoffs once asked to do so
+- supporting a deeper architecture refactor after the responsibility model was clarified
+
+The weakness was not "the model failed."
+
+The weakness was that the first layer of interaction was still too output-oriented. I started by asking for a fix when I should have asked for a theory of the system plus an option set.
+
+That distinction matters a lot.
+
+Anthropic's research says comprehension falls off most when AI is used as a delegation engine and holds up much better when used as a conceptual inquiry tool. I do not think that is some abstract lab result happening elsewhere to more responsible people. I think I watched a tiny version of it happen to me in real time.
+
+When I asked for output, I got plausible output.
+
+When I asked for assumptions, boundaries, ownership, and tradeoffs, I got something much more valuable: a system I could explain later without sounding like I was reciting code I had met yesterday.
+
+That is the real standard I care about now.
+
+Can I explain the architecture after the agent session?
+
+If not, the task may be "done," but I am carrying debt.
+
+---
+
+## A Better Standard, Which Is Mostly Old Engineering In Better Lighting
+
+> "AI did not abolish senior engineering. It merely made the cost of skipping it arrive sooner."
+
+So here is the standard I want for myself going forward, especially when the issue smells like architecture rather than a local defect.
+
+Before implementation:
+
+- ask for the read path
+- ask for the write path
+- ask for option analysis, not only a recommendation
+- ask what ownership changes under each option
+- ask what remains out of contract
+- ask for a tiny ADR-style summary
+
+Before agreeing to a fix:
+
+- ask whether this is a diagnostic patch or a long-term decision
+- ask whether the answer is local or systemic
+- ask whether the naming reflects intent or infrastructure
+
+Before closing the task:
+
+- ask whether I can explain the resulting architecture in one paragraph
+- ask whether the boundaries are explicit
+- ask whether the verification proves behavior or merely motion
+
+There is nothing futuristic about this. It is just disciplined engineering with an agent in the room.
+
+Coffee-table version:
+
+```text
+Don't just ask:
+  "What should we do?"
+
+Also ask:
+  "What becomes true if we do it your way?"
+```
+
+That one sentence probably would have saved me a fair bit of conversational mileage. It also has the virtue of sounding like something a mildly tired but basically functional engineer could remember on a Wednesday.
+
+---
+
+## Takeaways For Future Me, And Any Other Adult With A Terminal
+
+- **Treat the first plausible fix as a hypothesis, not a settlement.** `force-dynamic` was a good diagnostic suggestion. It was not automatically the right owner for long-term freshness.
+
+- **Ask about ownership before implementation when caching or orchestration is involved.** If the change affects reads, writes, invalidation, routing, or side effects, someone just inherited responsibility. Name them.
+
+- **Read path and write path first, code second.** The symptom may show up on one side while the cleanest solution lives on the other.
+
+- **Make out-of-contract cases explicit.** "Direct DB edits bypass publish guarantees" is a healthy boundary if it is stated clearly. Hidden incompleteness is what hurts.
+
+- **Use the model for conceptual inquiry, not just delegation.** `gpt-5.4` was most useful when asked to surface tradeoffs, assumptions, and consequences, not only diffs.
+
+- **A boring decision summary is often worth more than a clever implementation sprint.** Context, decision, consequences, boundaries. Old tools. Still unfairly effective.
+
+- **If you cannot explain the architecture after the session, the session probably created comprehension debt.**
+
+---
+
+## The Work Is Still Understanding
+
+> "Code got cheaper. Judgment did not."
+
+I am not leaving this story with some grand anti-AI sermon, because that would be lazy and also false.
+
+I got a good outcome here.
+
+The architecture is cleaner.
+The ownership is clearer.
+The homepage freshness model is less accidental.
+The read side and write side make more sense.
+
+All of that is good.
+
+What I am leaving with is narrower and, I think, more useful.
+
+If I want good outcomes with agents, especially with `gpt-5.4` doing a lot of the heavy lifting, I need to behave less like a person shopping for immediate fixes and more like a senior engineer choosing where responsibility should live.
+
+That means more asking:
+
+- what do we assume?
+- what do we ignore?
+- who owns correctness now?
+
+It means fewer heroic chat marathons that discover the architecture halfway through.
+
+It means fewer invisible decisions.
+
+And it means accepting something that is not glamorous but is probably the whole game:
+
+the engineer is still responsible for whether the system remains explainable after the speed has worn off. Which is fair enough, really. I just did not realize it would keep involving this much reading.
