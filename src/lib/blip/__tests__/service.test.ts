@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createBlipService, type BlipRepository } from "../service";
-import type { TelegramNotifier } from "@/lib/notifications/types";
+import type { ContentPublishEffect } from "@/lib/content-publish";
 import { ValidationError } from "@/lib/core/errors";
 
 function createRepository(): BlipRepository {
@@ -14,20 +14,17 @@ function createRepository(): BlipRepository {
   };
 }
 
-function createNotifier(): TelegramNotifier {
+function createPublishEffect(): ContentPublishEffect {
   return {
-    notifyByteCreated: vi.fn(),
-    notifyBlipCreated: vi.fn(),
-    notifyVisitor: vi.fn(),
-    notifyBloqPublished: vi.fn(),
+    onPublished: vi.fn(),
   };
 }
 
 describe("BlipService", () => {
   it("creates a blip and notifies after persistence", async () => {
     const repository = createRepository();
-    const notifier = createNotifier();
-    const service = createBlipService({ repository, notifier });
+    const publishEffect = createPublishEffect();
+    const service = createBlipService({ repository, publishEffect });
     const created = {
       id: "1",
       blip_serial: "B001",
@@ -43,17 +40,17 @@ describe("BlipService", () => {
     const result = await service.createBlip("API", "Application Programming Interface");
 
     expect(repository.createBlip).toHaveBeenCalledWith("API", "Application Programming Interface");
-    expect(notifier.notifyBlipCreated).toHaveBeenCalledWith(created);
+    expect(publishEffect.onPublished).toHaveBeenCalledWith({ type: "blip", blip: created });
     expect(result).toEqual(created);
   });
 
   it("rejects invalid blip input before repository write", async () => {
     const repository = createRepository();
-    const notifier = createNotifier();
-    const service = createBlipService({ repository, notifier });
+    const publishEffect = createPublishEffect();
+    const service = createBlipService({ repository, publishEffect });
 
     await expect(service.createBlip("", "meaning")).rejects.toBeInstanceOf(ValidationError);
     expect(repository.createBlip).not.toHaveBeenCalled();
-    expect(notifier.notifyBlipCreated).not.toHaveBeenCalled();
+    expect(publishEffect.onPublished).not.toHaveBeenCalled();
   });
 });

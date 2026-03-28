@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createByteService, type ByteRepository } from "../service";
-import type { TelegramNotifier } from "@/lib/notifications/types";
+import type { ContentPublishEffect } from "@/lib/content-publish";
 import { ValidationError } from "@/lib/core/errors";
 
 function createRepository(): ByteRepository {
@@ -14,20 +14,17 @@ function createRepository(): ByteRepository {
   };
 }
 
-function createNotifier(): TelegramNotifier {
+function createPublishEffect(): ContentPublishEffect {
   return {
-    notifyByteCreated: vi.fn(),
-    notifyBlipCreated: vi.fn(),
-    notifyVisitor: vi.fn(),
-    notifyBloqPublished: vi.fn(),
+    onPublished: vi.fn(),
   };
 }
 
 describe("ByteService", () => {
   it("creates a byte and notifies after persistence", async () => {
     const repository = createRepository();
-    const notifier = createNotifier();
-    const service = createByteService({ repository, notifier });
+    const publishEffect = createPublishEffect();
+    const service = createByteService({ repository, publishEffect });
     const created = {
       id: "1",
       byte_serial: "001",
@@ -40,17 +37,17 @@ describe("ByteService", () => {
     const result = await service.createByte("hello");
 
     expect(repository.createByte).toHaveBeenCalledWith("hello");
-    expect(notifier.notifyByteCreated).toHaveBeenCalledWith(created);
+    expect(publishEffect.onPublished).toHaveBeenCalledWith({ type: "byte", byte: created });
     expect(result).toEqual(created);
   });
 
   it("rejects invalid byte content before repository write", async () => {
     const repository = createRepository();
-    const notifier = createNotifier();
-    const service = createByteService({ repository, notifier });
+    const publishEffect = createPublishEffect();
+    const service = createByteService({ repository, publishEffect });
 
     await expect(service.createByte("")).rejects.toBeInstanceOf(ValidationError);
     expect(repository.createByte).not.toHaveBeenCalled();
-    expect(notifier.notifyByteCreated).not.toHaveBeenCalled();
+    expect(publishEffect.onPublished).not.toHaveBeenCalled();
   });
 });

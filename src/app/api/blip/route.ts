@@ -3,10 +3,10 @@ import { AppError, getErrorMessage } from "@/lib/core/errors";
 import type { BlipDetailResponse, BlipListResponse } from "@/lib/api/contracts";
 import { validateApiKey } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse } from "@/lib/api/responses";
-import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
+import { contentPublishEffects } from "@/lib/content-publish";
 
 const service = createBlipService({
-  notifier: telegramNotifier,
+  publishEffect: contentPublishEffects,
 });
 
 export async function POST(req: Request) {

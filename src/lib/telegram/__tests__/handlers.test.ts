@@ -1,20 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const byteServiceMock = {
-  createByte: vi.fn(),
-  listRecentBytes: vi.fn(),
-  getByteBySerial: vi.fn(),
-  updateByte: vi.fn(),
-  deleteByte: vi.fn(),
-};
-
-const blipServiceMock = {
-  createBlip: vi.fn(),
-  listRecentBlips: vi.fn(),
-  getBlipBySerial: vi.fn(),
-  updateBlip: vi.fn(),
-  deleteBlip: vi.fn(),
-};
+const { byteServiceMock, blipServiceMock } = vi.hoisted(() => ({
+  byteServiceMock: {
+    createByte: vi.fn(),
+    listRecentBytes: vi.fn(),
+    getByteBySerial: vi.fn(),
+    updateByte: vi.fn(),
+    deleteByte: vi.fn(),
+  },
+  blipServiceMock: {
+    createBlip: vi.fn(),
+    listRecentBlips: vi.fn(),
+    getBlipBySerial: vi.fn(),
+    updateBlip: vi.fn(),
+    deleteBlip: vi.fn(),
+  },
+}));
 
 vi.mock("../middleware/auth", () => ({
   isAllowed: vi.fn(() => true),
@@ -28,8 +29,8 @@ vi.mock("@/lib/blip/service", () => ({
   createBlipService: vi.fn(() => blipServiceMock),
 }));
 
-vi.mock("@/lib/notifications/telegram-notifier", () => ({
-  telegramNotifier: {},
+vi.mock("@/lib/content-publish", () => ({
+  contentPublishEffects: {},
 }));
 
 vi.mock("@/lib/blip/validation", () => ({

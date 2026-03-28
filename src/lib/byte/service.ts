@@ -9,7 +9,7 @@ import {
 } from "./repository";
 import { assertValidByteContent } from "./validation";
 import { NotFoundError } from "@/lib/core/errors";
-import { noopTelegramNotifier, type TelegramNotifier } from "@/lib/notifications/types";
+import { noopContentPublishEffect, type ContentPublishEffect } from "@/lib/content-publish/types";
 
 export interface ByteRepository {
   createByte(content: string): Promise<Byte>;
@@ -31,10 +31,10 @@ const byteRepository: ByteRepository = {
 
 export function createByteService(deps?: {
   repository?: ByteRepository;
-  notifier?: TelegramNotifier;
+  publishEffect?: ContentPublishEffect;
 }) {
   const repository = deps?.repository ?? byteRepository;
-  const notifier = deps?.notifier ?? noopTelegramNotifier;
+  const publishEffect = deps?.publishEffect ?? noopContentPublishEffect;
 
   return {
     async createByte(content: string, options?: { notify?: boolean }): Promise<Byte> {
@@ -42,7 +42,7 @@ export function createByteService(deps?: {
       const byte = await repository.createByte(normalizedContent);
 
       if (options?.notify !== false) {
-        await notifier.notifyByteCreated(byte);
+        await publishEffect.onPublished({ type: "byte", byte });
       }
 
       return byte;
@@ -88,5 +88,5 @@ export function createByteService(deps?: {
 }
 
 export const byteService = createByteService({
-  notifier: noopTelegramNotifier,
+  publishEffect: noopContentPublishEffect,
 });

@@ -9,7 +9,7 @@ import {
 } from "./repository";
 import { assertValidBlipInput } from "./validation";
 import { NotFoundError } from "@/lib/core/errors";
-import { noopTelegramNotifier, type TelegramNotifier } from "@/lib/notifications/types";
+import { noopContentPublishEffect, type ContentPublishEffect } from "@/lib/content-publish/types";
 
 export interface BlipRepository {
   createBlip(term: string, meaning: string, tags?: string[]): Promise<Blip>;
@@ -31,10 +31,10 @@ const blipRepository: BlipRepository = {
 
 export function createBlipService(deps?: {
   repository?: BlipRepository;
-  notifier?: TelegramNotifier;
+  publishEffect?: ContentPublishEffect;
 }) {
   const repository = deps?.repository ?? blipRepository;
-  const notifier = deps?.notifier ?? noopTelegramNotifier;
+  const publishEffect = deps?.publishEffect ?? noopContentPublishEffect;
 
   return {
     async createBlip(term: string, meaning: string, options?: { notify?: boolean }): Promise<Blip> {
@@ -42,7 +42,7 @@ export function createBlipService(deps?: {
       const blip = await repository.createBlip(normalized.term, normalized.meaning);
 
       if (options?.notify !== false) {
-        await notifier.notifyBlipCreated(blip);
+        await publishEffect.onPublished({ type: "blip", blip });
       }
 
       return blip;
@@ -88,5 +88,5 @@ export function createBlipService(deps?: {
 }
 
 export const blipService = createBlipService({
-  notifier: noopTelegramNotifier,
+  publishEffect: noopContentPublishEffect,
 });

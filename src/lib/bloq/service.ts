@@ -1,7 +1,8 @@
-import type { BloqNotificationPayload, TelegramNotifier } from "@/lib/notifications/types";
+import type { BloqNotificationPayload } from "@/lib/notifications/types";
 import { ValidationError } from "@/lib/core/errors";
+import type { ContentPublishEffect } from "@/lib/content-publish/types";
 
-export function createBloqNotificationService(notifier: TelegramNotifier) {
+export function createBloqNotificationService(publishEffect: ContentPublishEffect) {
   return {
     async notifyBloqPublished(input: BloqNotificationPayload): Promise<void> {
       if (!input.title.trim()) {
@@ -12,10 +13,13 @@ export function createBloqNotificationService(notifier: TelegramNotifier) {
         throw new ValidationError("Slug is required");
       }
 
-      await notifier.notifyBloqPublished({
+      await publishEffect.onPublished({
+        type: "bloq",
+        bloq: {
         title: input.title.trim(),
         slug: input.slug.trim(),
         tags: input.tags ?? [],
+        },
       });
     },
   };

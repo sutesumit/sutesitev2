@@ -1,16 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const serviceMock = {
-  createByte: vi.fn(),
-  listAllBytes: vi.fn(),
-};
+const { serviceMock } = vi.hoisted(() => ({
+  serviceMock: {
+    createByte: vi.fn(),
+    listAllBytes: vi.fn(),
+  },
+}));
 
 vi.mock("@/lib/byte/service", () => ({
   createByteService: vi.fn(() => serviceMock),
 }));
 
-vi.mock("@/lib/notifications/telegram-notifier", () => ({
-  telegramNotifier: {},
+vi.mock("@/lib/content-publish", () => ({
+  contentPublishEffects: {},
 }));
 
 import { GET, POST } from "../route";

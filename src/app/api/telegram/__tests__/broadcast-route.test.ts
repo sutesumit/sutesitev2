@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const notifyBloqPublished = vi.fn();
+const { notifyBloqPublished } = vi.hoisted(() => ({
+  notifyBloqPublished: vi.fn(),
+}));
 
 vi.mock("@/lib/bloq/service", () => ({
   createBloqNotificationService: vi.fn(() => ({
@@ -8,8 +10,8 @@ vi.mock("@/lib/bloq/service", () => ({
   })),
 }));
 
-vi.mock("@/lib/notifications/telegram-notifier", () => ({
-  telegramNotifier: {},
+vi.mock("@/lib/content-publish", () => ({
+  contentPublishEffects: {},
 }));
 
 import { POST } from "../broadcast/route";

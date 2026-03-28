@@ -3,10 +3,10 @@ import { AppError, NotFoundError, getErrorMessage } from "@/lib/core/errors";
 import type { BlipDetailResponse, DeleteResponse } from "@/lib/api/contracts";
 import { validateApiKey } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse, notFoundResponse } from "@/lib/api/responses";
-import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
+import { contentPublishEffects } from "@/lib/content-publish";
 
 const service = createBlipService({
-  notifier: telegramNotifier,
+  publishEffect: contentPublishEffects,
 });
 
 function parseBlipBody(contentType: string, body: unknown): { term: string; meaning: string } {
