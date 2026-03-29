@@ -40,10 +40,10 @@ export function formatVisitorNotification(
     : "Unknown location";
   const source = referrer ? escapeHtml(referrer) : "direct";
   const returning = visitor.isReturning ? "👋 returning" : "✨ new";
-  const count = visitor.visitCount && visitor.visitCount > 1 ? ` (${visitor.visitCount}x)` : "";
+  const count = visitor.visitCount ? ` (${visitor.visitCount})` : "";
   const device = escapeHtml(visitor.deviceType || "Unknown");
   const ip = escapeHtml(visitor.ip || "Unknown IP");
 
-  return `👤 <b>${returning}${count}</b>\n📍 ${location}\n💻 ${device}\n🌐 <code>${ip}</code>\n🔗 ${source}`;
+  return `🌐 sumitsute.com | Dev Diary\n👤 <b>${returning}${count}</b>\n📍 ${location}\n💻 ${device}\n🌐 <code>${ip}</code>\n🔗 ${source}`;
 }
 
