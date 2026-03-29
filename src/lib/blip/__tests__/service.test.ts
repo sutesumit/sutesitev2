@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createBlipService, type BlipRepository } from "../service";
-import type { ContentPublishEffect } from "@/lib/content-publish";
+import type { ContentMutationEffect } from "@/lib/content-publish";
 import { ValidationError } from "@/lib/core/errors";
 
 function createRepository(): BlipRepository {
@@ -14,17 +14,17 @@ function createRepository(): BlipRepository {
   };
 }
 
-function createPublishEffect(): ContentPublishEffect {
+function createMutationEffect(): ContentMutationEffect {
   return {
-    onPublished: vi.fn(),
+    onMutation: vi.fn(),
   };
 }
 
 describe("BlipService", () => {
   it("creates a blip and notifies after persistence", async () => {
     const repository = createRepository();
-    const publishEffect = createPublishEffect();
-    const service = createBlipService({ repository, publishEffect });
+    const mutationEffect = createMutationEffect();
+    const service = createBlipService({ repository, mutationEffect });
     const created = {
       id: "1",
       blip_serial: "B001",
@@ -40,17 +40,21 @@ describe("BlipService", () => {
     const result = await service.createBlip("API", "Application Programming Interface");
 
     expect(repository.createBlip).toHaveBeenCalledWith("API", "Application Programming Interface");
-    expect(publishEffect.onPublished).toHaveBeenCalledWith({ type: "blip", blip: created });
+    expect(mutationEffect.onMutation).toHaveBeenCalledWith({
+      action: "published",
+      type: "blip",
+      blip: created,
+    });
     expect(result).toEqual(created);
   });
 
   it("rejects invalid blip input before repository write", async () => {
     const repository = createRepository();
-    const publishEffect = createPublishEffect();
-    const service = createBlipService({ repository, publishEffect });
+    const mutationEffect = createMutationEffect();
+    const service = createBlipService({ repository, mutationEffect });
 
     await expect(service.createBlip("", "meaning")).rejects.toBeInstanceOf(ValidationError);
     expect(repository.createBlip).not.toHaveBeenCalled();
-    expect(publishEffect.onPublished).not.toHaveBeenCalled();
+    expect(mutationEffect.onMutation).not.toHaveBeenCalled();
   });
 });

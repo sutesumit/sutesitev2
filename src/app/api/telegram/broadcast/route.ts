@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { createBloqNotificationService } from "@/lib/bloq/service";
 import { AppError, getErrorMessage } from "@/lib/core/errors";
-import { contentPublishEffects } from "@/lib/content-publish";
+import { contentMutationEffects } from "@/lib/content-publish";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
-const bloqNotificationService = createBloqNotificationService(contentPublishEffects);
+const bloqNotificationService = createBloqNotificationService(contentMutationEffects);
 
 function validateBroadcastSecret(authHeader: string | null): boolean {
   const secret = process.env.TELEGRAM_BROADCAST_SECRET || process.env.TELEGRAM_BOT_TOKEN;

@@ -1,11 +1,15 @@
-import type { ContentPublishEffect, PublishedContent } from "./types";
+import type { ContentMutationEffect, ContentMutationEvent } from "./types";
 import type { TelegramNotifier } from "@/lib/notifications/types";
 
-export function createTelegramPublishEffect(
+export function createTelegramMutationEffect(
   notifier: TelegramNotifier
-): ContentPublishEffect {
+): ContentMutationEffect {
   return {
-    async onPublished(event: PublishedContent): Promise<void> {
+    async onMutation(event: ContentMutationEvent): Promise<void> {
+      if (event.action !== "published") {
+        return;
+      }
+
       if (event.type === "byte") {
         await notifier.notifyByteCreated(event.byte);
         return;

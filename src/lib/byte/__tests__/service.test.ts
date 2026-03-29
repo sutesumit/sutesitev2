@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createByteService, type ByteRepository } from "../service";
-import type { ContentPublishEffect } from "@/lib/content-publish";
+import type { ContentMutationEffect } from "@/lib/content-publish";
 import { ValidationError } from "@/lib/core/errors";
 
 function createRepository(): ByteRepository {
@@ -14,17 +14,17 @@ function createRepository(): ByteRepository {
   };
 }
 
-function createPublishEffect(): ContentPublishEffect {
+function createMutationEffect(): ContentMutationEffect {
   return {
-    onPublished: vi.fn(),
+    onMutation: vi.fn(),
   };
 }
 
 describe("ByteService", () => {
   it("creates a byte and notifies after persistence", async () => {
     const repository = createRepository();
-    const publishEffect = createPublishEffect();
-    const service = createByteService({ repository, publishEffect });
+    const mutationEffect = createMutationEffect();
+    const service = createByteService({ repository, mutationEffect });
     const created = {
       id: "1",
       byte_serial: "001",
@@ -37,17 +37,21 @@ describe("ByteService", () => {
     const result = await service.createByte("hello");
 
     expect(repository.createByte).toHaveBeenCalledWith("hello");
-    expect(publishEffect.onPublished).toHaveBeenCalledWith({ type: "byte", byte: created });
+    expect(mutationEffect.onMutation).toHaveBeenCalledWith({
+      action: "published",
+      type: "byte",
+      byte: created,
+    });
     expect(result).toEqual(created);
   });
 
   it("rejects invalid byte content before repository write", async () => {
     const repository = createRepository();
-    const publishEffect = createPublishEffect();
-    const service = createByteService({ repository, publishEffect });
+    const mutationEffect = createMutationEffect();
+    const service = createByteService({ repository, mutationEffect });
 
     await expect(service.createByte("")).rejects.toBeInstanceOf(ValidationError);
     expect(repository.createByte).not.toHaveBeenCalled();
-    expect(publishEffect.onPublished).not.toHaveBeenCalled();
+    expect(mutationEffect.onMutation).not.toHaveBeenCalled();
   });
 });

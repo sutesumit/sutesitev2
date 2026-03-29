@@ -1,15 +1,18 @@
 import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
-import { composeContentPublishEffects } from "./effects";
-import { homepagePublishEffect } from "./homepage-effect";
-import { createTelegramPublishEffect } from "./telegram-effect";
+import { composeContentMutationEffects } from "./effects";
+import { homepageMutationEffect } from "./homepage-effect";
+import { createTelegramMutationEffect } from "./telegram-effect";
 
-export type { ContentPublishEffect, PublishedContent } from "./types";
-export { noopContentPublishEffect } from "./types";
-export { composeContentPublishEffects } from "./effects";
-export { createTelegramPublishEffect } from "./telegram-effect";
-export { homepagePublishEffect } from "./homepage-effect";
+export type { ContentMutationEffect, ContentMutationEvent } from "./types";
+export { noopContentMutationEffect } from "./types";
+export { composeContentMutationEffects } from "./effects";
+export { createTelegramMutationEffect } from "./telegram-effect";
+export { homepageMutationEffect } from "./homepage-effect";
 
-export const contentPublishEffects = composeContentPublishEffects([
-  createTelegramPublishEffect(telegramNotifier),
-  homepagePublishEffect,
+export const contentMutationEffects = composeContentMutationEffects([
+  createTelegramMutationEffect(telegramNotifier),
+  homepageMutationEffect,
 ]);
+
+// Backwards-compatible export while callers move to the mutation-focused name.
+export const contentPublishEffects = contentMutationEffects;

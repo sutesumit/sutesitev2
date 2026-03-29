@@ -3,10 +3,10 @@ import { AppError, getErrorMessage } from "@/lib/core/errors";
 import type { ByteDetailResponse, ByteListResponse } from "@/lib/api/contracts";
 import { validateApiKey, parseContent, validateContentLength } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse } from "@/lib/api/responses";
-import { contentPublishEffects } from "@/lib/content-publish";
+import { contentMutationEffects } from "@/lib/content-publish";
 
 const service = createByteService({
-  publishEffect: contentPublishEffects,
+  mutationEffect: contentMutationEffects,
 });
 
 export async function POST(req: Request) {

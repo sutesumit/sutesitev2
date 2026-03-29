@@ -9,7 +9,7 @@ import {
 } from "./repository";
 import { assertValidBlipInput } from "./validation";
 import { NotFoundError } from "@/lib/core/errors";
-import { noopContentPublishEffect, type ContentPublishEffect } from "@/lib/content-publish/types";
+import { noopContentMutationEffect, type ContentMutationEffect } from "@/lib/content-publish/types";
 
 export interface BlipRepository {
   createBlip(term: string, meaning: string, tags?: string[]): Promise<Blip>;
@@ -31,10 +31,10 @@ const blipRepository: BlipRepository = {
 
 export function createBlipService(deps?: {
   repository?: BlipRepository;
-  publishEffect?: ContentPublishEffect;
+  mutationEffect?: ContentMutationEffect;
 }) {
   const repository = deps?.repository ?? blipRepository;
-  const publishEffect = deps?.publishEffect ?? noopContentPublishEffect;
+  const mutationEffect = deps?.mutationEffect ?? noopContentMutationEffect;
 
   return {
     async createBlip(term: string, meaning: string, options?: { notify?: boolean }): Promise<Blip> {
@@ -42,7 +42,7 @@ export function createBlipService(deps?: {
       const blip = await repository.createBlip(normalized.term, normalized.meaning);
 
       if (options?.notify !== false) {
-        await publishEffect.onPublished({ type: "blip", blip });
+        await mutationEffect.onMutation({ action: "published", type: "blip", blip });
       }
 
       return blip;
@@ -69,12 +69,16 @@ export function createBlipService(deps?: {
 
     async updateBlip(serial: string, term: string, meaning: string): Promise<Blip> {
       const normalized = assertValidBlipInput(term, meaning);
+      let blip: Blip;
 
       try {
-        return await repository.updateBlip(serial, normalized.term, normalized.meaning);
+        blip = await repository.updateBlip(serial, normalized.term, normalized.meaning);
       } catch {
         throw new NotFoundError("Blip not found or update failed");
       }
+
+      await mutationEffect.onMutation({ action: "updated", type: "blip", blip });
+      return blip;
     },
 
     async deleteBlip(serial: string): Promise<void> {
@@ -83,10 +87,12 @@ export function createBlipService(deps?: {
       } catch {
         throw new NotFoundError("Blip not found or delete failed");
       }
+
+      await mutationEffect.onMutation({ action: "deleted", type: "blip", serial });
     },
   };
 }
 
 export const blipService = createBlipService({
-  publishEffect: noopContentPublishEffect,
+  mutationEffect: noopContentMutationEffect,
 });

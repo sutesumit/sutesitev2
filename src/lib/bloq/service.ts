@@ -1,8 +1,8 @@
 import type { BloqNotificationPayload } from "@/lib/notifications/types";
 import { ValidationError } from "@/lib/core/errors";
-import type { ContentPublishEffect } from "@/lib/content-publish/types";
+import type { ContentMutationEffect } from "@/lib/content-publish/types";
 
-export function createBloqNotificationService(publishEffect: ContentPublishEffect) {
+export function createBloqNotificationService(mutationEffect: ContentMutationEffect) {
   return {
     async notifyBloqPublished(input: BloqNotificationPayload): Promise<void> {
       if (!input.title.trim()) {
@@ -13,7 +13,8 @@ export function createBloqNotificationService(publishEffect: ContentPublishEffec
         throw new ValidationError("Slug is required");
       }
 
-      await publishEffect.onPublished({
+      await mutationEffect.onMutation({
+        action: "published",
         type: "bloq",
         bloq: {
         title: input.title.trim(),

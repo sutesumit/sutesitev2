@@ -12,7 +12,7 @@ vi.mock("@/lib/byte/service", () => ({
 }));
 
 vi.mock("@/lib/content-publish", () => ({
-  contentPublishEffects: {},
+  contentMutationEffects: {},
 }));
 
 import { GET, POST } from "../route";

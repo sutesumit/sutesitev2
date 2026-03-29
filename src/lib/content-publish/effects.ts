@@ -1,12 +1,12 @@
-import type { ContentPublishEffect, PublishedContent } from "./types";
+import type { ContentMutationEffect, ContentMutationEvent } from "./types";
 
-export function composeContentPublishEffects(
-  effects: ContentPublishEffect[]
-): ContentPublishEffect {
+export function composeContentMutationEffects(
+  effects: ContentMutationEffect[]
+): ContentMutationEffect {
   return {
-    async onPublished(event: PublishedContent): Promise<void> {
+    async onMutation(event: ContentMutationEvent): Promise<void> {
       for (const effect of effects) {
-        await effect.onPublished(event);
+        await effect.onMutation(event);
       }
     },
   };

@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { composeContentPublishEffects } from "../effects";
-import { noopContentPublishEffect } from "../types";
+import { composeContentMutationEffects } from "../effects";
+import { noopContentMutationEffect } from "../types";
 
-describe("content publish effects", () => {
+describe("content mutation effects", () => {
   it("calls each effect in order with the same event payload", async () => {
-    const first = { onPublished: vi.fn() };
-    const second = { onPublished: vi.fn() };
-    const effect = composeContentPublishEffects([first, second]);
+    const first = { onMutation: vi.fn() };
+    const second = { onMutation: vi.fn() };
+    const effect = composeContentMutationEffects([first, second]);
     const event = {
+      action: "published" as const,
       type: "byte" as const,
       byte: {
         id: "1",
@@ -17,18 +18,19 @@ describe("content publish effects", () => {
       },
     };
 
-    await effect.onPublished(event);
+    await effect.onMutation(event);
 
-    expect(first.onPublished).toHaveBeenCalledWith(event);
-    expect(second.onPublished).toHaveBeenCalledWith(event);
-    expect(first.onPublished.mock.invocationCallOrder[0]).toBeLessThan(
-      second.onPublished.mock.invocationCallOrder[0]
+    expect(first.onMutation).toHaveBeenCalledWith(event);
+    expect(second.onMutation).toHaveBeenCalledWith(event);
+    expect(first.onMutation.mock.invocationCallOrder[0]).toBeLessThan(
+      second.onMutation.mock.invocationCallOrder[0]
     );
   });
 
   it("supports a no-op effect safely", async () => {
     await expect(
-      noopContentPublishEffect.onPublished({
+      noopContentMutationEffect.onMutation({
+        action: "published",
         type: "bloq",
         bloq: { title: "Test", slug: "test", tags: [] },
       })

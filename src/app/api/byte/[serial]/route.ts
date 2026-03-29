@@ -3,10 +3,10 @@ import { AppError, NotFoundError, getErrorMessage } from "@/lib/core/errors";
 import type { ByteDetailResponse, DeleteResponse } from "@/lib/api/contracts";
 import { validateApiKey, parseContent, validateContentLength } from "@/lib/api/validation";
 import { jsonError, jsonSuccess, unauthorizedResponse, notFoundResponse } from "@/lib/api/responses";
-import { contentPublishEffects } from "@/lib/content-publish";
+import { contentMutationEffects } from "@/lib/content-publish";
 
 const service = createByteService({
-  publishEffect: contentPublishEffects,
+  mutationEffect: contentMutationEffects,
 });
 
 export async function GET(

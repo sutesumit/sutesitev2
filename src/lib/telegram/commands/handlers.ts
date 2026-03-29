@@ -2,7 +2,7 @@ import { Bot, Context } from "grammy";
 import { createBlipService } from "@/lib/blip/service";
 import { parseBlipCommandInput } from "@/lib/blip/validation";
 import { createByteService } from "@/lib/byte/service";
-import { contentPublishEffects } from "@/lib/content-publish";
+import { contentMutationEffects } from "@/lib/content-publish";
 import { NotFoundError, ValidationError } from "@/lib/core/errors";
 import { isAllowed } from "../middleware/auth";
 import { formatByte, formatBlip } from "../formatters";
@@ -11,11 +11,11 @@ import { replies } from "../replies";
 const MAX_CONTENT_LENGTH = 280;
 
 const byteService = createByteService({
-  publishEffect: contentPublishEffects,
+  mutationEffect: contentMutationEffects,
 });
 
 const blipService = createBlipService({
-  publishEffect: contentPublishEffects,
+  mutationEffect: contentMutationEffects,
 });
 
 export async function handleStart(ctx: Context): Promise<void> {

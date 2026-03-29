@@ -11,7 +11,7 @@ vi.mock("@/lib/bloq/service", () => ({
 }));
 
 vi.mock("@/lib/content-publish", () => ({
-  contentPublishEffects: {},
+  contentMutationEffects: {},
 }));
 
 import { POST } from "../broadcast/route";

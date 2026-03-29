@@ -9,7 +9,7 @@ import {
 } from "./repository";
 import { assertValidByteContent } from "./validation";
 import { NotFoundError } from "@/lib/core/errors";
-import { noopContentPublishEffect, type ContentPublishEffect } from "@/lib/content-publish/types";
+import { noopContentMutationEffect, type ContentMutationEffect } from "@/lib/content-publish/types";
 
 export interface ByteRepository {
   createByte(content: string): Promise<Byte>;
@@ -31,10 +31,10 @@ const byteRepository: ByteRepository = {
 
 export function createByteService(deps?: {
   repository?: ByteRepository;
-  publishEffect?: ContentPublishEffect;
+  mutationEffect?: ContentMutationEffect;
 }) {
   const repository = deps?.repository ?? byteRepository;
-  const publishEffect = deps?.publishEffect ?? noopContentPublishEffect;
+  const mutationEffect = deps?.mutationEffect ?? noopContentMutationEffect;
 
   return {
     async createByte(content: string, options?: { notify?: boolean }): Promise<Byte> {
@@ -42,7 +42,7 @@ export function createByteService(deps?: {
       const byte = await repository.createByte(normalizedContent);
 
       if (options?.notify !== false) {
-        await publishEffect.onPublished({ type: "byte", byte });
+        await mutationEffect.onMutation({ action: "published", type: "byte", byte });
       }
 
       return byte;
@@ -69,12 +69,16 @@ export function createByteService(deps?: {
 
     async updateByte(serial: string, content: string): Promise<Byte> {
       const normalizedContent = assertValidByteContent(content);
+      let byte: Byte;
 
       try {
-        return await repository.updateByte(serial, normalizedContent);
+        byte = await repository.updateByte(serial, normalizedContent);
       } catch {
         throw new NotFoundError("Byte not found or update failed");
       }
+
+      await mutationEffect.onMutation({ action: "updated", type: "byte", byte });
+      return byte;
     },
 
     async deleteByte(serial: string): Promise<void> {
@@ -83,10 +87,12 @@ export function createByteService(deps?: {
       } catch {
         throw new NotFoundError("Byte not found or delete failed");
       }
+
+      await mutationEffect.onMutation({ action: "deleted", type: "byte", serial });
     },
   };
 }
 
 export const byteService = createByteService({
-  publishEffect: noopContentPublishEffect,
+  mutationEffect: noopContentMutationEffect,
 });

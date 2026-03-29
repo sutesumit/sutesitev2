@@ -30,7 +30,7 @@ vi.mock("@/lib/blip/service", () => ({
 }));
 
 vi.mock("@/lib/content-publish", () => ({
-  contentPublishEffects: {},
+  contentMutationEffects: {},
 }));
 
 vi.mock("@/lib/blip/validation", () => ({

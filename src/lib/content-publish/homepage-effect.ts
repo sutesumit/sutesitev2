@@ -1,8 +1,8 @@
 import { revalidatePath } from "next/cache";
-import type { ContentPublishEffect, PublishedContent } from "./types";
+import type { ContentMutationEffect, ContentMutationEvent } from "./types";
 
-export const homepagePublishEffect: ContentPublishEffect = {
-  async onPublished(_event: PublishedContent): Promise<void> {
+export const homepageMutationEffect: ContentMutationEffect = {
+  async onMutation(_event: ContentMutationEvent): Promise<void> {
     revalidatePath("/");
   },
 };
