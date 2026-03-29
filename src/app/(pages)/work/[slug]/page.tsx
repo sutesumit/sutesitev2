@@ -22,10 +22,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return buildDetailMetadata({
     title: project.title,
+    socialTitle: `${project.title} | Sumit Sute`,
     description: project.description,
     path: `/work/${slug}`,
     ogType: 'website',
-    generatedImagePath: `/work/${slug}/opengraph-image`,
+    generatedImagePath: `/og/work/${slug}`,
   });
 }
 

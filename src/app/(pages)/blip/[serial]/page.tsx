@@ -19,12 +19,13 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
 
   return buildDetailMetadata({
     title: `${blip.term} | blip`,
+    socialTitle: `${blip.term} | blip | Sumit Sute`,
     description: blip.meaning,
     path: `/blip/${blip.blip_serial}`,
     ogType: 'article',
     publishedTime: blip.created_at,
     modifiedTime: blip.updated_at,
-    generatedImagePath: `/blip/${blip.blip_serial}/opengraph-image`,
+    generatedImagePath: `/og/blip/${blip.blip_serial}`,
   });
 }
 

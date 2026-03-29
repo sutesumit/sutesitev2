@@ -3,20 +3,13 @@ import { ImageResponse } from 'next/og';
 import { getByteBySerial } from '@/lib/byte';
 import { OG_IMAGE_SIZE, OgCard } from '@/lib/metadata/og-image';
 
-export const alt = 'Byte preview image';
-export const size = OG_IMAGE_SIZE;
-export const contentType = 'image/png';
-
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ serial: string }>;
-}) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ serial: string }> }
+) {
   const { serial } = await params;
   const byte = await getByteBySerial(serial);
-  const description = byte
-    ? byte.content
-    : 'This byte could not be found.';
+  const description = byte?.content ?? 'This byte could not be found.';
 
   return new ImageResponse(
     <OgCard
@@ -30,6 +23,6 @@ export default async function Image({
       textColor="#042f2e"
       mutedColor="#115e59"
     />,
-    size
+    OG_IMAGE_SIZE
   );
 }

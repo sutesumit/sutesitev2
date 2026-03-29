@@ -3,15 +3,10 @@ import { ImageResponse } from 'next/og';
 import { getBloqPostBySlug } from '@/lib/bloq';
 import { OG_IMAGE_SIZE, OgCard } from '@/lib/metadata/og-image';
 
-export const alt = 'Bloq post preview image';
-export const size = OG_IMAGE_SIZE;
-export const contentType = 'image/png';
-
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
   const { slug } = await params;
   const post = getBloqPostBySlug(slug);
 
@@ -27,6 +22,6 @@ export default async function Image({
       textColor="#0f172a"
       mutedColor="#334155"
     />,
-    size
+    OG_IMAGE_SIZE
   );
 }

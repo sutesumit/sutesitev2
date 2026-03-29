@@ -24,7 +24,8 @@ export function resolveMetadataImage(image?: string): string {
 export function buildStaticMetadata(page: StaticPageKey): Metadata {
   const copy = staticPageMetadata[page];
   const canonical = buildCanonicalUrl(copy.path);
-  const image = resolveMetadataImage();
+  const hasImage = copy.imagePolicy === 'default';
+  const image = hasImage ? resolveMetadataImage() : null;
 
   return {
     title: copy.title,
@@ -38,24 +39,27 @@ export function buildStaticMetadata(page: StaticPageKey): Metadata {
       url: canonical,
       siteName: SITE_NAME,
       type: copy.ogType,
-      images: [
-        {
-          url: image,
-          alt: copy.ogTitle,
-        },
-      ],
+      ...(image && {
+        images: [
+          {
+            url: image,
+            alt: copy.ogTitle,
+          },
+        ],
+      }),
     },
     twitter: {
-      card: DEFAULT_TWITTER_CARD,
+      card: image ? DEFAULT_TWITTER_CARD : 'summary',
       title: copy.ogTitle,
       description: copy.ogDescription,
-      images: [image],
+      ...(image && { images: [image] }),
     },
   };
 }
 
 type DetailMetadataInput = {
   title: string;
+  socialTitle?: string;
   description: string;
   path: string;
   ogType?: 'website' | 'article' | 'profile';
@@ -69,6 +73,7 @@ type DetailMetadataInput = {
 
 export function buildDetailMetadata(input: DetailMetadataInput): Metadata {
   const canonical = buildCanonicalUrl(input.path);
+  const socialTitle = input.socialTitle ?? input.title;
   const image = input.image
     ? resolveMetadataImage(input.image)
     : input.generatedImagePath
@@ -82,7 +87,7 @@ export function buildDetailMetadata(input: DetailMetadataInput): Metadata {
       canonical,
     },
     openGraph: {
-      title: input.title,
+      title: socialTitle,
       description: input.description,
       url: canonical,
       siteName: SITE_NAME,
@@ -94,13 +99,13 @@ export function buildDetailMetadata(input: DetailMetadataInput): Metadata {
       images: [
         {
           url: image,
-          alt: input.title,
+          alt: socialTitle,
         },
       ],
     },
     twitter: {
       card: DEFAULT_TWITTER_CARD,
-      title: input.title,
+      title: socialTitle,
       description: input.description,
       images: [image],
     },

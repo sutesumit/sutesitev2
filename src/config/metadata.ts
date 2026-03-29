@@ -22,12 +22,13 @@ export type StaticPageKey = 'home' | 'about' | 'work' | 'bloq' | 'byte' | 'blip'
 export const staticPageMetadata = {
   home: {
     path: '/',
-    title: '',
+    title: 'sumit sute',
     description: "A personal dev page - projects and writing grounded in engineering approach",
     ogTitle: 'Sumit Sute | Software Engineer',
     ogDescription: 'Personal dev page featuring projects and writing',
     ogType: 'website' as const,
     schemaKind: 'WebPage' as const,
+    imagePolicy: 'default' as const,
   },
   about: {
     path: '/about',
@@ -37,6 +38,7 @@ export const staticPageMetadata = {
     ogDescription: 'Journey from journalism to web development',
     ogType: 'profile' as const,
     schemaKind: 'ProfilePage' as const,
+    imagePolicy: 'none' as const,
   },
   work: {
     path: '/work',
@@ -46,6 +48,7 @@ export const staticPageMetadata = {
     ogDescription: 'Projects and experiments by Sumit Sute',
     ogType: 'website' as const,
     schemaKind: 'ItemList' as const,
+    imagePolicy: 'none' as const,
   },
   bloq: {
     path: '/bloq',
@@ -55,6 +58,7 @@ export const staticPageMetadata = {
     ogDescription: 'Writing on agentic engineering and software development',
     ogType: 'website' as const,
     schemaKind: 'Blog' as const,
+    imagePolicy: 'none' as const,
   },
   byte: {
     path: '/byte',
@@ -64,6 +68,7 @@ export const staticPageMetadata = {
     ogDescription: 'short thoughts, updates, and quick notes from sumit sute',
     ogType: 'website' as const,
     schemaKind: 'CollectionPage' as const,
+    imagePolicy: 'none' as const,
   },
   blip: {
     path: '/blip',
@@ -73,6 +78,7 @@ export const staticPageMetadata = {
     ogDescription: 'a collection of terms and definitions from sumit sute',
     ogType: 'website' as const,
     schemaKind: 'DefinedTermSet' as const,
+    imagePolicy: 'none' as const,
   },
 } as const satisfies Record<
   StaticPageKey,
@@ -84,5 +90,6 @@ export const staticPageMetadata = {
     ogDescription: string;
     ogType: 'website' | 'article' | 'profile';
     schemaKind: StaticSchemaKind;
+    imagePolicy: 'default' | 'none';
   }
 >;

@@ -24,11 +24,12 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
 
   return buildDetailMetadata({
     title: `byte #${byte.byte_serial}`,
+    socialTitle: `byte #${byte.byte_serial} | Sumit Sute`,
     description,
     path: `/byte/${byte.byte_serial}`,
     ogType: 'article',
     publishedTime: byte.created_at,
-    generatedImagePath: `/byte/${byte.byte_serial}/opengraph-image`,
+    generatedImagePath: `/og/byte/${byte.byte_serial}`,
   });
 }
 

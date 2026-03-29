@@ -3,15 +3,10 @@ import { ImageResponse } from 'next/og';
 import { getBlipBySerial } from '@/lib/blip';
 import { OG_IMAGE_SIZE, OgCard } from '@/lib/metadata/og-image';
 
-export const alt = 'Blip preview image';
-export const size = OG_IMAGE_SIZE;
-export const contentType = 'image/png';
-
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ serial: string }>;
-}) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ serial: string }> }
+) {
   const { serial } = await params;
   const blip = await getBlipBySerial(serial);
 
@@ -27,6 +22,6 @@ export default async function Image({
       textColor="#2e1065"
       mutedColor="#5b21b6"
     />,
-    size
+    OG_IMAGE_SIZE
   );
 }

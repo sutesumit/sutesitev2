@@ -3,15 +3,10 @@ import { ImageResponse } from 'next/og';
 import { projects } from '@/data/projectlist';
 import { OG_IMAGE_SIZE, OgCard } from '@/lib/metadata/og-image';
 
-export const alt = 'Project preview image';
-export const size = OG_IMAGE_SIZE;
-export const contentType = 'image/png';
-
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
   const { slug } = await params;
   const project = projects.find((item) => item.slug === slug);
 
@@ -27,6 +22,6 @@ export default async function Image({
       textColor="#e2e8f0"
       mutedColor="#cbd5e1"
     />,
-    size
+    OG_IMAGE_SIZE
   );
 }

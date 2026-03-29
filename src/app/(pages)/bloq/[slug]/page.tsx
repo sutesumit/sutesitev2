@@ -46,6 +46,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return buildDetailMetadata({
     title: post.title,
+    socialTitle: `${post.title} | Sumit Sute`,
     description: post.summary,
     path: `/bloq/${post.url}`,
     ogType: 'article',
@@ -54,7 +55,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     authors: post.authors.map(() => `${SITE_URL}/about`),
     tags: post.tags,
     image: post.image,
-    generatedImagePath: `/bloq/${post.url}/opengraph-image`,
+    generatedImagePath: `/og/bloq/${post.url}`,
   });
 }
 
