@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import React from "react";
-import { BookOpen, Book } from "lucide-react";
+import { BookOpen, Book, ChevronRight } from "lucide-react";
 
 type HoverTextTyperProps = {
   triggerText: React.ReactNode;
@@ -30,6 +30,9 @@ const HoverTextTyper: React.FC<HoverTextTyperProps> = ({
         className="items-center cursor-pointer group-hover:text-blue-900 dark:group-hover:text-blue-400 transition-all duration-500 ease-in-out"
         onClick={() => setTextOpen(!textOpen)}
       >
+        <ChevronRight 
+          className={`inline-flex align-middle w-4 h-4 mr-1 transition-transform duration-300 ease-in-out ${textOpen ? "-rotate-90" : ""}`}
+        />
         {triggerText}
         <span 
           className={`icon inline-flex align-middle items-center w-4 h-4 ml-1 ${textOpen ? "-rotate-12 scale-100" : "rotate-12 -scale-100"} text-blue-900 dark:text-blue-400 cursor-pointer transition-all duration-500 ease-in-out`}
