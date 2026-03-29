@@ -1,8 +1,11 @@
-import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getBlipBySerial, getAdjacentBlips } from '@/lib/blip';
+import { notFound } from 'next/navigation';
+
+import { buildDetailMetadata } from '@/lib/metadata/builders';
+import { buildBlipSchema, renderJsonLd } from '@/lib/metadata/schema';
+import { getAdjacentBlips, getBlipBySerial } from '@/lib/blip';
+
 import BlipDetail from './components/BlipDetail';
-import { SITE_URL, SITE_NAME } from '@/config/metadata';
 
 export async function generateMetadata({ params }: { params: Promise<{ serial: string }> }): Promise<Metadata> {
   const { serial } = await params;
@@ -14,61 +17,20 @@ export async function generateMetadata({ params }: { params: Promise<{ serial: s
     };
   }
 
-  const blipUrl = `${SITE_URL}/blip/${blip.blip_serial}`;
-
-  return {
+  return buildDetailMetadata({
     title: `${blip.term} | blip`,
     description: blip.meaning,
-    alternates: {
-      canonical: blipUrl,
-    },
-    openGraph: {
-      title: `${blip.term} | blip`,
-      description: blip.meaning,
-      url: blipUrl,
-      siteName: SITE_NAME,
-      type: 'article',
-      publishedTime: blip.created_at,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${blip.term} | blip`,
-      description: blip.meaning,
-    },
-  };
-}
-
-function DefinedTermJsonLd({ blip }: { blip: NonNullable<Awaited<ReturnType<typeof getBlipBySerial>>> }) {
-  const blipUrl = `${SITE_URL}/blip/${blip.blip_serial}`;
-
-  const jsonLd: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'DefinedTerm',
-    name: blip.term,
-    description: blip.meaning,
-    url: blipUrl,
-    inDefinedTermSet: {
-      '@type': 'DefinedTermSet',
-      name: 'Blip Dictionary',
-      url: `${SITE_URL}/blip`,
-    },
-  };
-
-  if (blip.tags && blip.tags.length > 0) {
-    jsonLd.keywords = blip.tags.join(', ');
-  }
-
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
-  );
+    path: `/blip/${blip.blip_serial}`,
+    ogType: 'article',
+    publishedTime: blip.created_at,
+    modifiedTime: blip.updated_at,
+    generatedImagePath: `/blip/${blip.blip_serial}/opengraph-image`,
+  });
 }
 
 const BlipPage = async ({ params }: { params: Promise<{ serial: string }> }) => {
   const { serial } = await params;
-  
+
   const blip = await getBlipBySerial(serial);
 
   if (!blip) {
@@ -80,7 +42,7 @@ const BlipPage = async ({ params }: { params: Promise<{ serial: string }> }) => 
 
   return (
     <div className="container flex flex-col min-h-screen justify-center p-10 font-roboto-mono lowercase">
-      <DefinedTermJsonLd blip={blip} />
+      {renderJsonLd(buildBlipSchema(blip))}
       <BlipDetail blip={blip} newerBlip={newerBlip} olderBlip={olderBlip} />
     </div>
   );
