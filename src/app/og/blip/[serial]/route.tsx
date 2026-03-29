@@ -1,7 +1,5 @@
-import { ImageResponse } from 'next/og';
-
 import { getBlipBySerial } from '@/lib/blip';
-import { OG_IMAGE_SIZE, OgCard } from '@/lib/metadata/og-image';
+import { BlipOgCard, createOgImageResponse } from '@/lib/metadata/og-image';
 
 export async function GET(
   _request: Request,
@@ -10,18 +8,12 @@ export async function GET(
   const { serial } = await params;
   const blip = await getBlipBySerial(serial);
 
-  return new ImageResponse(
-    <OgCard
-      eyebrow="Blip"
+  return createOgImageResponse(
+    <BlipOgCard
       title={blip?.term ?? 'Blip Not Found'}
       description={blip?.meaning ?? 'This blip could not be found.'}
-      footerLeft="sumitsute.com/blip"
+      footerLeft={`/blip/${blip?.blip_serial ?? serial}`}
       footerRight={blip?.blip_serial ?? serial}
-      accentColor="#7c3aed"
-      background="linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%)"
-      textColor="#2e1065"
-      mutedColor="#5b21b6"
-    />,
-    OG_IMAGE_SIZE
+    />
   );
 }

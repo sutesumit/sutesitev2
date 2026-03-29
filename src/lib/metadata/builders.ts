@@ -24,8 +24,9 @@ export function resolveMetadataImage(image?: string): string {
 export function buildStaticMetadata(page: StaticPageKey): Metadata {
   const copy = staticPageMetadata[page];
   const canonical = buildCanonicalUrl(copy.path);
-  const hasImage = copy.imagePolicy === 'default';
-  const image = hasImage ? resolveMetadataImage() : null;
+  const image = copy.imagePolicy === 'generated' && copy.generatedImagePath
+    ? buildCanonicalUrl(copy.generatedImagePath)
+    : null;
 
   return {
     title: copy.title,
