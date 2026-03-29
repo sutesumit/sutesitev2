@@ -284,15 +284,15 @@ export function WorkIndexOgCard({
   footerRight = SITE_NAME,
 }: SharedOgProps): ReactElement {
   return (
-    <Frame background={`linear-gradient(135deg, ${OG_TOKENS.night} 0%, ${OG_TOKENS.blueDark} 100%)`} color={OG_TOKENS.paper}>
-      <Header eyebrow="work" accent="#7dd3fc" />
+    <Frame background={`linear-gradient(135deg, ${OG_TOKENS.paperWarm} 0%, ${OG_TOKENS.amberSoft} 100%)`} color={OG_TOKENS.ink}>
+      <Header eyebrow="work" accent={OG_TOKENS.amber} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <div style={{ ...TITLE_STYLE, color: OG_TOKENS.paper }}>{truncateOgText(title, 102)}</div>
-        <div style={{ ...DESCRIPTION_STYLE, color: '#dbeafe' }}>
+        <div style={{ ...TITLE_STYLE, fontSize: 54 }}>{truncateOgText(title, 102)}</div>
+        <div style={{ ...DESCRIPTION_STYLE, color: OG_TOKENS.inkSoft }}>
           {truncateOgText(description, 180)}
         </div>
       </div>
-      <Footer left={footerLeft} right={footerRight} color="#cbd5e1" />
+      <Footer left={footerLeft} right={footerRight} color={OG_TOKENS.amber} />
     </Frame>
   );
 }
@@ -388,15 +388,15 @@ export function ProjectOgCard({
   footerRight = SITE_NAME,
 }: SharedOgProps): ReactElement {
   return (
-    <Frame background={`linear-gradient(135deg, ${OG_TOKENS.night} 0%, ${OG_TOKENS.blueDark} 100%)`} color={OG_TOKENS.paper}>
-      <Header eyebrow="work" accent="#7dd3fc" />
+    <Frame background={`linear-gradient(135deg, ${OG_TOKENS.paperWarm} 0%, ${OG_TOKENS.amberSoft} 100%)`} color={OG_TOKENS.ink}>
+      <Header eyebrow="work" accent={OG_TOKENS.amber} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <div style={{ ...TITLE_STYLE, color: OG_TOKENS.paper }}>{truncateOgText(title, 110)}</div>
-        <div style={{ ...DESCRIPTION_STYLE, color: '#dbeafe' }}>
+        <div style={{ ...TITLE_STYLE, fontSize: 54 }}>{truncateOgText(title, 110)}</div>
+        <div style={{ ...DESCRIPTION_STYLE, color: OG_TOKENS.inkSoft }}>
           {truncateOgText(description, 180)}
         </div>
       </div>
-      <Footer left={footerLeft} right={footerRight} color="#cbd5e1" />
+      <Footer left={footerLeft} right={footerRight} color={OG_TOKENS.amber} />
     </Frame>
   );
 }
