@@ -1,19 +1,25 @@
 import type { Metadata } from "next";
 import { Roboto_Mono } from "next/font/google";
-import "./globals.css";
-import Header from "../components/layout/Header";
-import Footer, { VisitorAnalytics } from "../components/layout/Footer";
+
 import { ThemeProvider } from "next-themes";
+
+import Footer, { VisitorAnalytics } from "../components/layout/Footer";
+import Header from "../components/layout/Header";
+import {
+  DEFAULT_OG_IMAGE,
+  SITE_AUTHOR,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_OG_DESCRIPTION,
+  SITE_URL,
+} from "@/config/metadata";
+import { buildPersonSchema, buildWebsiteSchema, renderJsonLd } from "@/lib/metadata/schema";
+import "./globals.css";
 
 const robotoMono = Roboto_Mono({
   variable: "--font-roboto-mono",
   subsets: ["latin"]
-})
-
-const SITE_URL = 'https://sumitsute.com';
-const SITE_NAME = 'Sumit Sute\'s Dev Page';
-const SITE_DESCRIPTION = "Sumit Sute's personal dev page — exploring agentic engineering, autonomous systems, and AI-driven development, grounded in simplicity, clear boundaries, and long-term maintainability.";
-const OG_DESCRIPTION = "Projects and writing on agentic engineering, web development, software craftsmanship, and building systems that evolve | from Sumit Sute.";
+});
 
 export const metadata: Metadata = {
   title: {
@@ -41,7 +47,7 @@ export const metadata: Metadata = {
     'developer blog',
     'engineering writing'
   ],
-  authors: [{ name: 'Sumit Sute', url: `${SITE_URL}/about` }],
+  authors: [{ name: SITE_AUTHOR, url: `${SITE_URL}/about` }],
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: SITE_URL,
@@ -56,13 +62,13 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'sumit sute',
-    description: OG_DESCRIPTION,
+    description: SITE_OG_DESCRIPTION,
     url: SITE_URL,
     siteName: SITE_NAME,
     locale: 'en_US',
     images: [
       {
-        url: '/sumit-sute-homepage.jpg',
+        url: DEFAULT_OG_IMAGE,
         width: 800,
         height: 600,
         alt: 'Screenshot of Sumit Sute\'s Dev Page',
@@ -73,10 +79,10 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'sumit sute',
-    description: OG_DESCRIPTION,
+    description: SITE_OG_DESCRIPTION,
     images: [
       {
-        url: '/sumit-sute-homepage.jpg',
+        url: DEFAULT_OG_IMAGE,
         alt: 'Screenshot of Sumit Sute\'s Dev Page in light mode',
       },
     ],
@@ -87,45 +93,16 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLdWebSite = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: SITE_NAME,
-  url: SITE_URL,
-  description: SITE_DESCRIPTION,
-  author: {
-    '@type': 'Person',
-    name: 'Sumit Sute',
-    url: SITE_URL,
-  },
-};
-
-const jsonLdPerson = {
-  '@context': 'https://schema.org',
-  '@type': 'Person',
-  name: 'Sumit Sute',
-  url: SITE_URL,
-  sameAs: [],
-  jobTitle: 'Software Engineer',
-  knowsAbout: ['Web Development', 'TypeScript', 'React', 'Next.js', 'System Design'],
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;  
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en" className={robotoMono.variable} suppressHydrationWarning>
       <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdPerson) }}
-        />
+        {renderJsonLd(buildWebsiteSchema())}
+        {renderJsonLd(buildPersonSchema())}
       </head>
       <body className="font-roboto-mono dark:text-slate-300 overflow-y-scroll" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

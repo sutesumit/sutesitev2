@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
-import { SITE_URL } from '@/config/metadata';
-import { getBloqPosts } from '@/lib/bloq';
+
+import {
+  PROJECTS_SITEMAP_LAST_MODIFIED,
+  STATIC_SITEMAP_LAST_MODIFIED,
+  staticPageMetadata,
+} from '@/config/metadata';
 import { projects } from '@/data/projectlist';
+import { getBloqPosts } from '@/lib/bloq';
 import { getSupabaseServerClient } from '@/lib/supabaseServerClient';
+import { buildCanonicalUrl } from '@/lib/metadata/builders';
 
 export const revalidate = 21600;
 
@@ -47,38 +53,38 @@ function entryToXml(entry: SitemapEntry): string {
 export async function GET() {
   const staticPages: SitemapEntry[] = [
     {
-      url: SITE_URL,
-      lastModified: new Date(),
+      url: buildCanonicalUrl(staticPageMetadata.home.path),
+      lastModified: new Date(STATIC_SITEMAP_LAST_MODIFIED),
       changeFrequency: 'weekly',
       priority: 1,
     },
     {
-      url: `${SITE_URL}/about`,
-      lastModified: new Date(),
+      url: buildCanonicalUrl(staticPageMetadata.about.path),
+      lastModified: new Date(STATIC_SITEMAP_LAST_MODIFIED),
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/work`,
-      lastModified: new Date(),
+      url: buildCanonicalUrl(staticPageMetadata.work.path),
+      lastModified: new Date(STATIC_SITEMAP_LAST_MODIFIED),
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/bloq`,
-      lastModified: new Date(),
+      url: buildCanonicalUrl(staticPageMetadata.bloq.path),
+      lastModified: new Date(STATIC_SITEMAP_LAST_MODIFIED),
       changeFrequency: 'daily',
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/byte`,
-      lastModified: new Date(),
+      url: buildCanonicalUrl(staticPageMetadata.byte.path),
+      lastModified: new Date(STATIC_SITEMAP_LAST_MODIFIED),
       changeFrequency: 'daily',
       priority: 0.6,
     },
     {
-      url: `${SITE_URL}/blip`,
-      lastModified: new Date(),
+      url: buildCanonicalUrl(staticPageMetadata.blip.path),
+      lastModified: new Date(STATIC_SITEMAP_LAST_MODIFIED),
       changeFrequency: 'daily',
       priority: 0.6,
     },
@@ -86,15 +92,15 @@ export async function GET() {
 
   const bloqPosts = getBloqPosts();
   const bloqPages: SitemapEntry[] = bloqPosts.map((post) => ({
-    url: `${SITE_URL}/bloq/${post.url}`,
+    url: buildCanonicalUrl(`/bloq/${post.url}`),
     lastModified: new Date(post.updatedAt || post.publishedAt),
     changeFrequency: 'monthly',
     priority: 0.7,
   }));
 
   const projectPages: SitemapEntry[] = projects.map((project) => ({
-    url: `${SITE_URL}/work/${project.slug}`,
-    lastModified: new Date(),
+    url: buildCanonicalUrl(`/work/${project.slug}`),
+    lastModified: new Date(PROJECTS_SITEMAP_LAST_MODIFIED),
     changeFrequency: 'monthly',
     priority: 0.7,
   }));
@@ -107,7 +113,7 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   const bytePages: SitemapEntry[] = (bytes ?? []).map((byte) => ({
-    url: `${SITE_URL}/byte/${byte.byte_serial}`,
+    url: buildCanonicalUrl(`/byte/${byte.byte_serial}`),
     lastModified: new Date(byte.created_at),
     changeFrequency: 'yearly',
     priority: 0.5,
@@ -119,7 +125,7 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   const blipPages: SitemapEntry[] = (blips ?? []).map((blip) => ({
-    url: `${SITE_URL}/blip/${blip.blip_serial}`,
+    url: buildCanonicalUrl(`/blip/${blip.blip_serial}`),
     lastModified: new Date(blip.updated_at || blip.created_at),
     changeFrequency: 'monthly',
     priority: 0.5,

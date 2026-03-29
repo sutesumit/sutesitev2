@@ -1,33 +1,24 @@
 import type { Metadata } from 'next';
 
 import { Suspense } from 'react';
-import { HomeContent } from "@/components/home/HomeContent";
-import { SITE_URL, pageMetadata } from '@/config/metadata';
+
 import { LatestUpdates } from '@/components/home/LatestUpdates';
 import { LatestUpdatesSkeleton } from '@/components/home/LatestUpdatesSkeleton';
+import { HomeContent } from "@/components/home/HomeContent";
+import { buildStaticMetadata } from '@/lib/metadata/builders';
+import { buildHomeSchema, renderJsonLd } from '@/lib/metadata/schema';
 
-const { home } = pageMetadata;
-
-export const metadata: Metadata = {
-  title: home.title,
-  description: home.description,
-  alternates: { canonical: SITE_URL },
-  openGraph: {
-    title: home.ogTitle,
-    description: home.ogDescription,
-  },
-  twitter: {
-    title: home.ogTitle,
-    description: home.ogDescription,
-  },
-};
+export const metadata: Metadata = buildStaticMetadata('home');
 
 export default async function Home() {
   return (
-    <HomeContent>
-      <Suspense fallback={<LatestUpdatesSkeleton />}>
-        <LatestUpdates />
-      </Suspense>
-    </HomeContent>
+    <>
+      {renderJsonLd(buildHomeSchema())}
+      <HomeContent>
+        <Suspense fallback={<LatestUpdatesSkeleton />}>
+          <LatestUpdates />
+        </Suspense>
+      </HomeContent>
+    </>
   );
 }

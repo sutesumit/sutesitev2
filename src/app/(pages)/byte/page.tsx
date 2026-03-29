@@ -1,35 +1,20 @@
 import React, { Suspense } from "react";
 import type { Metadata } from "next";
-import { getBytes } from "@/lib/byte";
-import ByteCard from "./components/ByteCard";
+
+import PaginationControls from "@/components/shared/PaginationControls";
+import SearchBar from "@/components/shared/SearchBar";
 import IntroCard from '@/components/shared/IntroCard';
+import { buildStaticMetadata } from '@/lib/metadata/builders';
+import { buildByteIndexSchema, renderJsonLd } from '@/lib/metadata/schema';
+import { getBytes } from "@/lib/byte";
+
+import ByteCard from "./components/ByteCard";
 import IntroText from "./components/IntroText";
 import ByteModal from "./components/ByteModal";
-import SearchBar from "@/components/shared/SearchBar";
-import PaginationControls from "@/components/shared/PaginationControls";
-import { SITE_URL, SITE_NAME } from "@/config/metadata";
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'byte',
-  description: 'short thoughts, updates, and quick notes from sumit sute',
-  alternates: {
-    canonical: `${SITE_URL}/byte`,
-  },
-  openGraph: {
-    title: 'byte | sumit sute',
-    description: 'short thoughts, updates, and quick notes from sumit sute',
-    url: `${SITE_URL}/byte`,
-    siteName: SITE_NAME,
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'byte | sumit sute',
-    description: 'short thoughts, updates, and quick notes from sumit sute',
-  },
-};
+export const metadata: Metadata = buildStaticMetadata('byte');
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -39,23 +24,24 @@ const BytePage = async (props: Props) => {
   const searchParams = await props.searchParams;
   const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
   const searchQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
-  
+
   const { data: bytes, pagination } = await getBytes(page, 10, searchQuery);
 
   return (
     <div className="container flex flex-col py-10 px-2 sm:px-0 font-roboto-mono lowercase">
+      {renderJsonLd(buildByteIndexSchema())}
       <IntroCard>
         <IntroText />
       </IntroCard>
 
       <div className="mt-2 p-2 blue-border">
-        <SearchBar 
-          placeholder="Search bytes..." 
+        <SearchBar
+          placeholder="Search bytes..."
           initialValue={searchQuery}
           basePath="/byte"
         />
       </div>
-      
+
       <div className="mt-2">
         {bytes.length === 0 ? (
           <div className="text-center py-10 text-slate-400 dark:text-slate-600">
@@ -74,7 +60,7 @@ const BytePage = async (props: Props) => {
         <ByteModal bytes={bytes} pageNumber={page} />
       </Suspense>
 
-      <PaginationControls 
+      <PaginationControls
         pagination={pagination}
         basePath="/byte"
         searchQuery={searchQuery}
