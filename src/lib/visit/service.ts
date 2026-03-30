@@ -75,6 +75,8 @@ export function createVisitService(notifier: TelegramNotifier) {
           .from("visits")
           .insert([visitorData]);
 
+        const timestamp = new Date().toISOString();
+
         void notifier.notifyVisitor(
           {
             city: body.city,
@@ -84,6 +86,7 @@ export function createVisitService(notifier: TelegramNotifier) {
             deviceType,
             isReturning,
             visitCount,
+            timestamp,
           },
           body.referrer
         ).catch((error: unknown) => {

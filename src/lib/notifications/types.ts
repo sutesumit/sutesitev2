@@ -1,15 +1,16 @@
 import type { Blip } from "@/types/blip";
 import type { Byte } from "@/types/byte";
 
-export type VisitorNotificationPayload = {
-  city?: string;
-  country?: string;
-  region?: string;
-  ip?: string;
-  deviceType?: string;
-  isReturning?: boolean;
-  visitCount?: number;
-};
+ export type VisitorNotificationPayload = {
+          city?: string;
+          country?: string;
+          region?: string;
+          ip?: string;
+          deviceType?: string;
+          isReturning?: boolean;
+          visitCount?: number;
+          timestamp?: string;
+        };
 
 export type BloqNotificationPayload = {
   title: string;
