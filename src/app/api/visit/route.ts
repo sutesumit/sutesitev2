@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { noStoreHeaders } from "@/lib/api/constants";
 import { jsonError } from "@/lib/api/responses";
-import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
-import { createVisitService } from "@/lib/visit/service";
-
-const visitService = createVisitService(telegramNotifier);
+import { visitService } from "@/lib/visit/service";
 
 export async function POST(request: Request) {
   try {

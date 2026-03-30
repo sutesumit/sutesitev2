@@ -31,6 +31,26 @@ describe("telegram replies and formatters", () => {
     expect(result).toContain("google.com");
   });
 
+  it("formats returning visitor counts", () => {
+    const result = replies.visitorNotification(
+      {
+        city: "Vijayawada",
+        region: "Andhra Pradesh",
+        country: "IN",
+        deviceType: "Windows",
+        ip: "49.204.148.221",
+        isReturning: true,
+        visitCount: 520,
+      },
+      "direct"
+    );
+
+    expect(result).toContain("returning");
+    expect(result).toContain("(520)");
+    expect(result).toContain("Vijayawada");
+    expect(result).toContain("Windows");
+  });
+
   it("escapes unsafe content in formatter output", () => {
     const result = formatByte({
       byte_serial: "001",

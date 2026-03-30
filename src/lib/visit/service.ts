@@ -1,26 +1,8 @@
-import { supabase } from "@/lib/supabaseClient";
-import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import type { TelegramNotifier } from "@/lib/notifications/types";
-
-export type VisitRequestPayload = {
-  ip?: string;
-  network?: string;
-  city?: string;
-  region?: string;
-  country_code?: string;
-  postal?: string;
-  latitude?: number;
-  longitude?: number;
-  org?: string;
-  timezone?: string;
-  referrer?: string;
-};
-
-export type VisitSummary = {
-  lastVisitorLocation: string | null;
-  lastVisitTime: string | null;
-  visitorCount: number | null;
-};
+import { noopTelegramNotifier } from "@/lib/notifications/types";
+import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
+import { createSupabaseVisitRepository } from "./repository";
+import type { VisitRepository, VisitRequestPayload, VisitSummary } from "./types";
 
 export function parseDeviceType(userAgent: string | null): string {
   if (!userAgent) return "Unknown";
@@ -44,48 +26,37 @@ export function parseDeviceType(userAgent: string | null): string {
   return "Desktop";
 }
 
-export function createVisitService(notifier: TelegramNotifier) {
+function formatVisitorLocation(city: string | null, country: string | null): string | null {
+  const parts = [city, country].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
+export function createVisitService(deps?: {
+  repository?: VisitRepository;
+  notifier?: TelegramNotifier;
+  now?: () => Date;
+}) {
+  const repository = deps?.repository ?? createSupabaseVisitRepository();
+  const notifier = deps?.notifier ?? noopTelegramNotifier;
+  const now = deps?.now ?? (() => new Date());
+
   return {
     async trackVisit(body: VisitRequestPayload, userAgent: string | null): Promise<VisitSummary> {
       const deviceType = parseDeviceType(userAgent);
 
       if (body.ip) {
-        const visitorData = {
-          ip: body.ip,
-          network: body.network,
-          city: body.city || null,
-          region: body.region || null,
-          country: body.country_code || null,
-          postal: body.postal || null,
-          latitude: body.latitude || null,
-          longitude: body.longitude || null,
-          org: body.org || null,
-          timezone: body.timezone || null,
-        };
-
-        const { data: existingVisits } = await supabase
-          .from("visits")
-          .select("id")
-          .eq("ip", body.ip);
-
-        const isReturning = (existingVisits?.length ?? 0) > 0;
-        const visitCount = (existingVisits?.length ?? 0) + 1;
-
-        await supabase
-          .from("visits")
-          .insert([visitorData]);
-
-        const timestamp = new Date().toISOString();
+        const visitorState = await repository.upsertVisitorState(body);
+        const timestamp = now().toISOString();
 
         void notifier.notifyVisitor(
           {
-            city: body.city,
-            country: body.country_code,
-            region: body.region,
-            ip: body.ip,
+            city: visitorState.city ?? undefined,
+            country: visitorState.country ?? undefined,
+            region: visitorState.region ?? undefined,
+            ip: visitorState.ip,
             deviceType,
-            isReturning,
-            visitCount,
+            isReturning: visitorState.visitCount > 1,
+            visitCount: visitorState.visitCount,
             timestamp,
           },
           body.referrer
@@ -94,30 +65,23 @@ export function createVisitService(notifier: TelegramNotifier) {
         });
       }
 
-      const queryClient = getSupabaseServerClient();
-      let query = queryClient
-        .from("visits")
-        .select("ip, city, country, created_at")
-        .order("created_at", { ascending: false });
-
-      if (body.ip) {
-        query = query.neq("ip", body.ip);
-      }
-
-      const { data: prevVisits, error: fetchError } = await query.limit(1);
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      const { data: uniqueCount } = await queryClient.rpc("get_unique_visitor_count");
-      const lastVisitor = prevVisits?.[0] ?? null;
+      const [lastVisitor, uniqueCount] = await Promise.all([
+        repository.getMostRecentVisitor(body.ip),
+        repository.countUniqueVisitors(),
+      ]);
 
       return {
-        lastVisitorLocation: lastVisitor ? `${lastVisitor.city}, ${lastVisitor.country}` : null,
-        lastVisitTime: lastVisitor?.created_at ?? null,
-        visitorCount: uniqueCount ?? null,
+        lastVisitorLocation: lastVisitor
+          ? formatVisitorLocation(lastVisitor.city, lastVisitor.country)
+          : null,
+        lastVisitTime: lastVisitor?.lastVisitTime ?? null,
+        visitorCount: uniqueCount,
       };
     },
   };
 }
+
+export const visitService = createVisitService({
+  repository: createSupabaseVisitRepository(),
+  notifier: telegramNotifier,
+});

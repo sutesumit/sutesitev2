@@ -425,20 +425,22 @@ CREATE TABLE subscribers (
 );
 ```
 
-#### visitor_analytics
+#### visits
 
 ```sql
-CREATE TABLE visitor_analytics (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ip TEXT,
+CREATE TABLE visits (
+  id BIGSERIAL PRIMARY KEY,
+  ip TEXT UNIQUE NOT NULL,
+  visit_count INTEGER NOT NULL DEFAULT 1,
+  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   city TEXT,
   region TEXT,
-  country TEXT,
-  latitude REAL,
-  longitude REAL,
-  timestamp TIMESTAMPTZ DEFAULT NOW()
+  country TEXT
 );
 ```
+
+`visits` is a visitor-state table, not an append-only event log. One row represents one IP, `visit_count` is the absolute total visits for that IP, and row count is the site's unique visitor count.
 
 #### claps
 
