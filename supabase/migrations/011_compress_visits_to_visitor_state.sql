@@ -87,6 +87,8 @@ ALTER TABLE public.visits_new RENAME TO visits;
 ALTER TABLE public.visits
   ADD CONSTRAINT visits_ip_unique UNIQUE (ip);
 
+ALTER TABLE public.visits ENABLE ROW LEVEL SECURITY;
+
 CREATE INDEX idx_visits_last_seen_at ON public.visits (last_seen_at DESC);
 
 CREATE OR REPLACE FUNCTION public.get_unique_visitor_count()
