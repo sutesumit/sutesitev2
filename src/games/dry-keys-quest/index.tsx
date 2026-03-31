@@ -34,7 +34,7 @@ const DryKeysQuest = () => {
           isOpen={isWon}
           type="win"
           emoji="⌨️"
-          score={{ label: "Keys wasted", value: keysWasted }}
+          scores={[{ label: "Keys wasted", value: keysWasted }]}
           onRestart={() => handleKeyClick('[Esc]')}
           achievement={achievement}
           showConfetti={achievement.unlocked}

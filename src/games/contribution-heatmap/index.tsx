@@ -230,7 +230,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                             transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                             className="inline-block group-hover:[animation-play-state:paused]"
                           >
-                            ❄
+                            💎
                           </m.span>
                         </m.div>
                       )}
@@ -253,7 +253,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                 isOpen={state.isGameOver}
                 type={state.isWin ? "win" : "lose"}
                 emoji={state.isWin ? "💎" : "💀"}
-                score={{ label: "Crystals collected", value: state.score }}
+                scores={[{ label: "Crystals collected", value: state.score }]}
                 onRestart={actions.restart}
                 restartLabel={state.isWin ? "[ Win Again ]" : "[ Try Again ]"}
                 achievement={achievement}

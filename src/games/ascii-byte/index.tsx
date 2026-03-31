@@ -359,7 +359,7 @@ export default function AsciiByteGame() {
           isOpen={gameState.finished}
           type="win"
           emoji="🖱️"
-          score={{ label: "You won in", value: formatTime(gameState.elapsed) }}
+          scores={[{ label: "You won in", value: formatTime(gameState.elapsed) }]}
           onRestart={restartGame}
           achievement={achievement}
           showConfetti={achievement.unlocked}

@@ -8,7 +8,7 @@ import Confetti from './Confetti'
 const GamePopup: React.FC<GamePopupProps> = ({
   isOpen,
   emoji,
-  score,
+  scores,
   onRestart,
   restartLabel = '[ Play Again ]',
   achievement,
@@ -20,7 +20,7 @@ const GamePopup: React.FC<GamePopupProps> = ({
     <>
       {isOpen && (
         <m.div
-          className="absolute inset-0 flex items-center justify-center z-50 pointer-events-auto bg-black/50 dark:bg-black/70"
+          className="absolute inset-0 flex items-center justify-center z-50 pointer-events-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
@@ -38,9 +38,14 @@ const GamePopup: React.FC<GamePopupProps> = ({
                 {achievement.emoji} {achievement.title}
               </span>
             )}
-            <span className="text-[10px] text-slate-600 dark:text-slate-400">
-              {score.label}: {score.value}
-            </span>
+            {scores.map((score) => (
+              <span
+                key={score.label}
+                className="text-[10px] text-slate-600 dark:text-slate-400"
+              >
+                {score.label}: {score.value}
+              </span>
+            ))}
             {hint && (
               <span className="text-[9px] text-slate-500 dark:text-slate-500 italic">
                 {hint}

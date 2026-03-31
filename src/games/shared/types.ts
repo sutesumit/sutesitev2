@@ -15,7 +15,7 @@ export interface GamePopupProps {
   isOpen: boolean;
   type: GameResultType;
   emoji: string;
-  score: GameScore;
+  scores: GameScore[];
   onRestart: () => void;
   restartLabel?: string;
   achievement?: GameAchievement;
