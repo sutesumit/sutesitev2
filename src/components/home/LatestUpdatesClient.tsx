@@ -19,20 +19,14 @@ type UpdateItemProps = {
   label: string;
   text: string;
   date: string | null | undefined;
-  shouldTruncate?: boolean;
 };
 
-const truncateLabel = (text: string, maxLength: number): string => {
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength).trimEnd()}...`;
-};
-
-const UpdateItem = ({ href, label, text, date, shouldTruncate }: UpdateItemProps) => (
+const UpdateItem = ({ href, label, text, date }: UpdateItemProps) => (
   <li className="project-item flex items-center gap-2">
-    <Link href={href}>
-      {label} <ScrambleText text={shouldTruncate ? truncateLabel(text, 35) : text} />
+    <Link href={href} className="flex-1 truncate">
+      {label} <ScrambleText text={text} />
     </Link>
-    <span className="opacity-50 text-gray-500 text-xs">
+    <span className="opacity-50 ml-auto text-gray-500 text-xs">
       <ScrambleText text={formatTimeAgo(date)} />
     </span>
   </li>
@@ -50,7 +44,6 @@ export function LatestUpdatesClient({
       label: "bloq  |",
       text: latestBloq.title,
       date: latestBloq.publishedAt,
-      shouldTruncate: true,
     },
     latestByte && {
       key: "byte",
@@ -58,7 +51,6 @@ export function LatestUpdatesClient({
       label: "byte  |",
       text: latestByte.content,
       date: latestByte.created_at,
-      shouldTruncate: true,
     },
     latestBlip && {
       key: "blip",
@@ -66,7 +58,6 @@ export function LatestUpdatesClient({
       label: "blip  |",
       text: latestBlip.term,
       date: latestBlip.created_at,
-      shouldTruncate: false,
     },
   ].filter((item): item is NonNullable<typeof item> => !!item);
 

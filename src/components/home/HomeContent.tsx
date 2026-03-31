@@ -19,7 +19,7 @@ export function HomeContent({ children }: HomeContentProps) {
   return (
     <article className="p-10 container min-h-screen flex flex-col justify-center font-roboto-mono lowercase">
       <div className="">
-        <div className="flex">
+        <div className="">
           <span>Hello <ScrambleText text={locationString} className="text-blue-500 dark:text-blue-400" />. Sumit Sute here.</span>
           <SeedingPlant />
         </div>
@@ -27,7 +27,7 @@ export function HomeContent({ children }: HomeContentProps) {
         <BioSection />
         <br />
         <p>
-          This is an accidental open notebook of an engineer thinking out loud. Stray thoughts become <Link className="highlight" href="/byte">bytes</Link>, keeper concepts become <Link className="highlight" href="/blip">blips</Link>, and long arguments with agents become <Link className="highlight" href="/bloq">bloqs</Link>. Just varied forms of leaving breadcrumbs so I don&apos;t have to learn the same lesson twice.
+          This is an accidental open notebook of an engineer thinking out loud. Stray thoughts become <Link className="highlight" href="/byte">bytes</Link>, keeper concepts become <Link className="highlight" href="/blip">blips</Link>, and long arguments with agents become <Link className="highlight" href="/bloq">bloqs</Link>. Ultimately, it&apos;s just a habit of thinking in public to save myself from repeating yesterday&apos;s debugging sessions.
         </p>
         <br />
         {children}

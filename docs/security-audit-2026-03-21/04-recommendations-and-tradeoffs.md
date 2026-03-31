@@ -1,28 +1,51 @@
 # Recommendations And Tradeoffs
 
-## 1. Fix `project_views` exposure
+## 1. Redesign visitor tracking for privacy and trust boundaries
 
 ### Recommendation
 
-- enable RLS on `public.project_views`
-- allow public `SELECT` only if the counter must remain readable
-- keep writes limited to `service_role` or a tightly scoped definer function
+- derive visitor identity server-side
+- stop treating client-supplied IP/location fields as the source of truth
+- hash or otherwise irreversibly transform visitor identity if uniqueness is the real requirement
+- remove or coarsen prior-visitor disclosure in public responses
 
 ### Benefit
 
-- closes the clearest direct public table exposure
+- largest privacy improvement
+- better analytics integrity
+- smaller breach impact
 
 ### Tradeoff
 
-- if any current client code depends on direct public writes through Supabase, it will stop working
-- server-mediated writes are safer but add coupling to API routes or RPCs
+- loses some novelty of the current "last visitor" feature
+- makes location storytelling less precise
 
-## 2. Rework `claps` ownership and write model
+## 2. Enforce content existence in unified views and claps flows
+
+### Recommendation
+
+- validate that target content exists before incrementing view or clap state
+- enforce that rule in both the route layer and the DB layer where practical
+- make behavior consistent across `bloq`, `blip`, `byte`, and `project`
+
+### Benefit
+
+- prevents counters from drifting away from real content
+- removes a current integrity regression introduced by the unified architecture
+
+### Tradeoff
+
+- more validation logic
+- some additional read cost or RPC complexity
+- may require clarifying what "existence" means for each content type
+
+## 3. Rework clap ownership and abuse posture
 
 ### Stronger option
 
-- remove direct `INSERT` and `UPDATE` for `anon` and `authenticated`
-- allow clap changes only through a secured RPC or server route
+- remove direct public mutation paths at the DB layer
+- allow clap changes only through tightly scoped RPCs or server routes
+- bind clap limits to something stronger than a client-controlled local-storage identifier if limits truly matter
 
 ### Benefit
 
@@ -32,11 +55,13 @@
 ### Tradeoff
 
 - more backend logic
-- more app complexity for a low-stakes feature
+- more complexity for a low-stakes feature
 
 ### Lightweight option
 
-- keep public access but enforce row ownership in policy
+- keep the anonymous model
+- document clap totals as approximate
+- add rate limiting and cheap replay suppression while keeping fingerprints lightweight
 
 ### Benefit
 
@@ -44,82 +69,43 @@
 
 ### Tradeoff
 
-- still weak if identity remains just a client-controlled fingerprint
-- protects against accidental direct row tampering better than against deliberate abuse
+- still weak against deliberate abuse
 
-## 3. Redesign visitor tracking for privacy
-
-### Stronger option
-
-- derive IP server-side
-- hash or otherwise irreversibly transform visitor identity
-- remove public previous-visitor disclosure
-
-### Benefit
-
-- largest privacy improvement
-- better data integrity
-
-### Tradeoff
-
-- loses some novelty of the “last visitor” feature
-- makes highly specific location storytelling less precise
-
-### Moderate option
-
-- keep visitor feature but return only coarse data such as country or region
-- never expose exact recency beyond broad ranges
-
-### Benefit
-
-- preserves feature flavor
-
-### Tradeoff
-
-- still carries some privacy sensitivity
-
-## 4. Fix `SECURITY DEFINER` hygiene
+## 4. Remove bot-token fallback from broadcast auth
 
 ### Recommendation
 
-- add `SET search_path = public` or `SET search_path = ''` to every definer function
-- schema-qualify table references inside privileged functions
+- require `TELEGRAM_BROADCAST_SECRET`
+- stop falling back to `TELEGRAM_BOT_TOKEN`
+- keep machine-to-machine auth separate from bot credentials
 
 ### Benefit
 
-- makes privileged functions more hermetic and predictable
+- reduces secret reuse and blast radius
+- makes credential intent clearer operationally
 
 ### Tradeoff
 
-- low cost
-- almost no downside beyond migration work
+- deployments must set and rotate one more secret
 
-## 5. Reduce service-role blast radius
+## 5. Add rate limiting to public and secret-protected routes
 
-### Stronger option
+### Recommendation
 
-- reserve `service_role` for only the operations that truly require bypassing RLS
-- use narrower RPCs for public actions
+- rate-limit `/api/views`, `/api/claps/[type]/[id]`, and `/api/visit`
+- also rate-limit `/api/byte`, `/api/blip`, `/api/telegram/webhook`, and `/api/telegram/broadcast`
+- add cheap replay suppression where feasible
 
 ### Benefit
 
-- reduces damage from future route bugs
+- improves data quality
+- reduces spam and operational noise
+- adds defense in depth around shared-secret endpoints
 
 ### Tradeoff
 
-- requires more DB design and role clarity
-
-### Current pragmatic option
-
-- continue using `service_role`, but tighten route auth, validation, and observability
-
-### Benefit
-
-- less refactor effort
-
-### Tradeoff
-
-- keeps route layer as the main security boundary
+- more operational complexity
+- some legitimate repeated interactions may be suppressed
 
 ## 6. Add baseline security headers
 
@@ -137,62 +123,72 @@
 
 ### Tradeoff
 
-- CSP tuning can be annoying with dynamic content, third-party embeds, and Next.js internals
-- needs iterative rollout to avoid breaking pages
+- CSP tuning can be awkward with Next.js, MDX, and third-party assets
+- rollout may require iteration to avoid page breakage
 
-## 7. Remove sensitive debug logging
+## 7. Reduce service-role blast radius
 
-### Recommendation
+### Stronger option
 
-- stop logging IPs, referrers, chat IDs, and allow-list IDs
-- keep only success/failure telemetry and coarse event metadata
-
-### Benefit
-
-- immediate privacy win
-- low implementation cost
-
-### Tradeoff
-
-- slightly less debugging convenience
-
-## 8. Add abuse controls to public counters
-
-### Recommendation
-
-- rate-limit clap, visit, and view endpoints
-- deduplicate obvious replays when cheap to do so
+- reserve `service_role` for only the operations that truly require bypassing RLS
+- move public analytics mutations behind narrowly scoped RPCs with explicit validation
 
 ### Benefit
 
-- improves data quality
-- reduces spam and operational noise
+- reduces damage from future route bugs
 
 ### Tradeoff
 
-- more complexity for metrics that may not need strict accuracy
-- some legitimate repeated interactions may be suppressed
+- requires more DB design and role clarity
+
+### Current pragmatic option
+
+- continue using `service_role`, but tighten route validation, auth boundaries, and observability
+
+### Benefit
+
+- less refactor effort
+
+### Tradeoff
+
+- keeps route correctness as the primary security boundary
+
+## 8. Re-verify privileged function hygiene in the live database
+
+### Recommendation
+
+- re-check all current clap and view helper functions for fixed `search_path`
+- schema-qualify references inside privileged functions
+
+### Benefit
+
+- keeps definer functions hermetic and predictable
+
+### Tradeoff
+
+- low cost
+- depends on a live DB review because the current repo does not prove live definitions
 
 ## Suggested Remediation Sequence
 
-1. enable RLS on `project_views`
-2. remove or tighten public `visits` exposure
-3. fix `claps` write model
-4. patch all `SECURITY DEFINER` functions with fixed `search_path`
-5. remove sensitive logging
-6. add security headers
-7. add rate limiting and abuse controls
+1. redesign `/api/visit` to derive and minimize visitor identity server-side
+2. enforce content existence for unified views and claps
+3. remove bot-token fallback from `/api/telegram/broadcast`
+4. add rate limiting to public and secret-protected routes
+5. add browser security headers
+6. reduce service-role blast radius where practical
+7. re-verify and patch current privileged DB functions if needed
 
 ## Decision Principle
 
-For this app, the right posture is not “maximum enterprise lockdown at any cost.”
+For this app, the right posture is not maximum lockdown at any cost.
 
 The right posture is:
 
 - protect visitor privacy
-- prevent obvious public data tampering
+- prevent obvious counter and content-integrity tampering
 - reduce privileged blast radius
 - keep low-value novelty features proportionate to their risk
 
-Features like claps and views can tolerate approximate counts.
-Visitor identity and leaked metadata should not.
+Views and claps can tolerate approximate counts.
+Visitor identity and prior-visitor disclosure should not.

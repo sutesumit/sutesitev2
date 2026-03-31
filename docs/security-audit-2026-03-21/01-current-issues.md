@@ -1,64 +1,61 @@
 # Current Security Issues
 
-## Confirmed Application Issues
+This file is a current-state rewrite of the March 21 package. It separates findings that are still confirmed in the repo from findings that are only partially current, no longer current, or newly important after later refactors.
 
-### 1. Visitor tracking trusts client-supplied identity and location
+## Evidence Status
+
+- `repo-verified in this pass`: confirmed from current code or current tests
+- `inferred from later internal docs/history`: supported by later repo documentation or test history, but not re-proven live in this pass
+- `still requires live Supabase verification`: depends on current DB policies, grants, functions, or production response behavior
+
+## Still Confirmed
+
+### 1. Visitor tracking still trusts client-supplied identity and location
 
 Severity: High
+Evidence status: `repo-verified in this pass`
 
 Evidence:
 
-- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/visit/route.ts#L36) reads arbitrary request JSON.
-- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/visit/route.ts#L40) trusts `body.ip` and related fields as canonical visitor data.
-- [VisitorAnalytics.tsx](/Users/Sute/Documents/v2.sutesite/src/components/layout/footer/VisitorAnalytics.tsx#L45) sends browser-fetched location data back to the API.
-- [useLocation.ts](/Users/Sute/Documents/v2.sutesite/src/hooks/useLocation.ts#L16) fetches location data client-side from a third-party IP/location service.
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/visit/route.ts) reads arbitrary request JSON and passes it to the visit service.
+- [service.ts](/Users/Sute/Documents/v2.sutesite/src/lib/visit/service.ts) treats `body.ip` and related fields as the canonical visitor record.
+- [VisitorAnalytics.tsx](/Users/Sute/Documents/v2.sutesite/src/components/layout/footer/VisitorAnalytics.tsx) sends browser-fetched location data to `/api/visit`.
+- [useLocation.ts](/Users/Sute/Documents/v2.sutesite/src/hooks/useLocation.ts) still relies on a client-side location lookup path.
 
 Why this is a problem:
 
 - the server is not deriving visitor identity from trusted request metadata
 - any client can forge IP, city, region, or country values
 - analytics integrity is weak
-- privacy exposure is increased because raw IP-linked records are stored and surfaced
+- raw IP-linked records and owner notifications remain privacy-sensitive
 
-### 2. Visitor data is partially exposed back to anonymous users
+### 2. Visitor data is still exposed back to anonymous callers
 
 Severity: High
+Evidence status: `repo-verified in this pass` for the API response, `still requires live Supabase verification` for DB policy posture
 
 Evidence:
 
-- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/visit/route.ts#L103) returns `lastVisitorLocation`, `lastVisitTime`, and `visitorCount`.
-- Supabase policy output shows `visits` has anon `SELECT` access constrained by recent IDs via `get_recent_visit_ids()`.
-- shared function definition shows `public.get_recent_visit_ids()` is `SECURITY DEFINER` and returns the two newest rows.
+- [service.ts](/Users/Sute/Documents/v2.sutesite/src/lib/visit/service.ts) returns `lastVisitorLocation`, `lastVisitTime`, and `visitorCount`.
+- [VisitorAnalytics.tsx](/Users/Sute/Documents/v2.sutesite/src/components/layout/footer/VisitorAnalytics.tsx) consumes that public response on the client.
+- Earlier March 21 audit material recorded anonymous `visits` exposure via `get_recent_visit_ids()`, but that DB posture was not re-queried in this pass.
 
 Why this is a problem:
 
-- recent visitor activity becomes observable
+- recent visitor activity remains observable through the app path itself
 - visitor-presence data can be enumerated over time
-- even coarse location telemetry can become sensitive when combined with timestamps
+- even coarse location telemetry becomes sensitive when combined with timestamps
 
-### 3. Debug logging includes visitor and Telegram metadata
+### 3. Baseline browser security headers still appear absent
 
 Severity: Medium
+Evidence status: `repo-verified in this pass` for repo config, `still requires live Supabase verification` for deployed headers
 
 Evidence:
 
-- [notifications.ts](/Users/Sute/Documents/v2.sutesite/src/lib/telegram/notifications.ts#L11) logs full visitor payload and referrer.
-- [notifications.ts](/Users/Sute/Documents/v2.sutesite/src/lib/telegram/notifications.ts#L14) logs allowed Telegram IDs.
-- [notifications.ts](/Users/Sute/Documents/v2.sutesite/src/lib/telegram/notifications.ts#L23) logs chat destination.
-
-Why this is a problem:
-
-- logs become a secondary source of PII leakage
-- operational logs may expose identifiers that do not need to be retained
-
-### 4. Missing baseline browser security headers
-
-Severity: Medium
-
-Evidence:
-
-- [next.config.ts](/Users/Sute/Documents/v2.sutesite/next.config.ts#L3) does not define headers.
-- no app-level `middleware.ts` is present to apply security headers.
+- [next.config.ts](/Users/Sute/Documents/v2.sutesite/next.config.ts) does not define response headers.
+- no repository-level `middleware.ts` is present to apply security headers.
+- repo-visible API helpers such as [constants.ts](/Users/Sute/Documents/v2.sutesite/src/lib/api/constants.ts) only set `Cache-Control: no-store`.
 
 Why this is a problem:
 
@@ -66,147 +63,178 @@ Why this is a problem:
 - no visible clickjacking protection
 - no visible `Referrer-Policy`, `Permissions-Policy`, or `X-Content-Type-Options`
 
-### 5. Shared-secret authentication is minimal and not layered
+### 4. Public counters remain intentionally gameable
 
 Severity: Medium
+Evidence status: `repo-verified in this pass`
 
 Evidence:
 
-- [validation.ts](/Users/Sute/Documents/v2.sutesite/src/lib/api/validation.ts#L7) compares `BLIP_SECRET_KEY` by direct equality.
-- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/telegram/broadcast/route.ts#L7) uses `TELEGRAM_BOT_TOKEN` as the broadcast secret.
-
-Why this is a problem:
-
-- bot credential reuse increases blast radius
-- there is no request signing, expiry, or IP-based restriction
-- compromise of one secret can expose multiple control paths
-
-### 6. Metrics endpoints are intentionally gameable
-
-Severity: Medium
-
-Evidence:
-
-- public view increment routes accept unauthenticated POSTs
-- [fingerprint.ts](/Users/Sute/Documents/v2.sutesite/src/lib/utils/fingerprint.ts#L18) uses local storage UUIDs for clap identity
-- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/claps/%5Btype%5D/%5Bid%5D/route.ts#L35) trusts caller-provided fingerprints
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/views/route.ts) accepts unauthenticated POSTs for view increments.
+- [fingerprint.ts](/Users/Sute/Documents/v2.sutesite/src/lib/utils/fingerprint.ts) still uses a local-storage UUID as clap identity.
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/claps/[type]/[id]/route.ts) trusts caller-provided fingerprints.
+- [useClaps.ts](/Users/Sute/Documents/v2.sutesite/src/hooks/useClaps.ts) automatically creates and reuses that client-controlled fingerprint.
 
 Why this is a problem:
 
 - counts are easy to inflate
-- clap caps are easy to bypass
-- analytics should be treated as approximate, not authoritative
+- clap caps are easy to bypass through fingerprint rotation
+- analytics should still be treated as approximate, not authoritative
 
-## Confirmed Supabase Issues
-
-### 7. `project_views` has RLS disabled
-
-Severity: High
-
-Evidence:
-
-- live metadata shows `public.project_views` has `rls_enabled = false`
-- grants show `anon` and `authenticated` already have table privileges on `project_views`
-
-Why this is a problem:
-
-- public clients can likely access the table directly through Supabase APIs
-- analytics integrity for projects is exposed to tampering
-
-### 8. `claps` update policy is effectively unrestricted
-
-Severity: High
-
-Evidence:
-
-- policy `"Anyone can update their claps"` has `qual = true` and `with_check = true`
-- `claps` also has anon/authenticated `INSERT` and `SELECT`
-
-Why this is a problem:
-
-- the policy name claims ownership enforcement, but the condition does not
-- callers can potentially update any clap row, not just their own logical record
-
-### 9. Anonymous `visits` read access is intentional at the DB layer
-
-Severity: High
-
-Evidence:
-
-- `visits` policy `"Allow select recent visits"` allows anon `SELECT`
-- that policy uses `get_recent_visit_ids()`
-- `get_recent_visit_ids()` is `SECURITY DEFINER` and returns the newest visit rows
-
-Why this is a problem:
-
-- privacy leakage is not accidental only in the app; it is reinforced by DB policy design
-
-### 10. Several `SECURITY DEFINER` functions lack fixed `search_path`
+### 5. Shared-secret authentication is still minimal and not layered
 
 Severity: Medium
-
-Affected functions confirmed from live metadata:
-
-- `public.get_claps`
-- `public.get_user_claps`
-- `public.increment_bloq_view(text)`
-- `public.increment_bloq_view(uuid)`
-- `public.increment_project_view`
-- `public.upsert_clap`
-
-Safer examples already present:
-
-- `public.increment_blip_view`
-- `public.increment_byte_view`
-- `public.get_recent_visit_ids`
-
-Why this is a problem:
-
-- name resolution in definer functions is less hermetic
-- it increases the risk of search-path confusion and future privilege bugs
-
-### 11. Heavy server dependence on `service_role`
-
-Severity: Medium
+Evidence status: `repo-verified in this pass`
 
 Evidence:
 
-- [server.ts](/Users/Sute/Documents/v2.sutesite/src/lib/supabase/server.ts#L10) uses `SUPABASE_SERVICE_ROLE_KEY`
-- live roles output confirms `service_role` has `rolbypassrls = true`
+- [validation.ts](/Users/Sute/Documents/v2.sutesite/src/lib/api/validation.ts) compares `BLIP_SECRET_KEY` by direct equality.
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/telegram/webhook/route.ts) verifies a static secret-derived value in a header.
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/telegram/broadcast/route.ts) authorizes broadcast by direct equality on `X-Broadcast-Secret`.
 
 Why this is a problem:
 
-- route correctness becomes the primary protection layer
+- there is no request signing, expiry, or IP-based restriction
+- compromise of one secret still opens a privileged route
+- there is still no visible rate limiting on these routes
+
+### 6. Heavy server dependence on `service_role` remains a core blast-radius issue
+
+Severity: Medium
+Evidence status: `repo-verified in this pass` for code, `still requires live Supabase verification` for current DB role posture
+
+Evidence:
+
+- [supabaseServerClient.ts](/Users/Sute/Documents/v2.sutesite/src/lib/supabaseServerClient.ts) builds the server client with `SUPABASE_SERVICE_ROLE_KEY`.
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/views/route.ts), [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/claps/[type]/[id]/route.ts), [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/byte/route.ts), and [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/blip/route.ts) all use the privileged server-side client path directly or through services.
+- the March 21 audit already recorded `service_role` bypassing RLS; that exact role metadata was not re-queried in this pass.
+
+Why this is a problem:
+
+- route correctness remains the primary protection layer
 - an auth bug or input bug in server code can become a privileged DB operation
 
-## Open Issues Still Requiring Verification
+## Partially Remediated Or Narrower Than Before
 
-### 12. Storage policy posture is still unknown
+### 7. Broadcast secret reuse is now a residual risk, not the old March 21 form
+
+Severity: Medium
+Evidence status: `repo-verified in this pass`
+
+Evidence:
+
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/telegram/broadcast/route.ts) now prefers `TELEGRAM_BROADCAST_SECRET`.
+- the same route still falls back to `TELEGRAM_BOT_TOKEN` if the dedicated secret is not set.
+
+Why this is still a problem:
+
+- the strongest version of the March 21 finding is reduced, but not gone
+- deployments that omit `TELEGRAM_BROADCAST_SECRET` still reuse the bot credential for broadcast auth
+- the route still uses a simple shared-secret comparison without additional controls
+
+### 8. Old clap-policy and privileged-function findings may still matter, but need live re-verification
+
+Severity: Medium to High
+Evidence status: `still requires live Supabase verification`
+
+Historical evidence from March 21:
+
+- `claps` policy posture was previously described as overly broad
+- several `SECURITY DEFINER` functions were previously recorded as missing fixed `search_path`
+
+Current status:
+
+- the app still depends on unified clap and view RPCs
+- the current repo does not prove the live definitions, grants, or policies behind those RPCs
+- these findings should remain in scope, but they should not be restated as freshly proven facts without a live Supabase pass
+
+## No Longer Current
+
+### 9. The old `project_views` finding is stale
+
+Severity: Historical only
+Evidence status: `repo-verified in this pass` for the app refactor, `inferred from later internal docs/history` for the `content_views` migration history
 
 Reason:
 
-- storage bucket rows and storage policies were not included in the shared results
+- the app no longer uses the old per-type views routes or `project_views` table surface
+- current code uses unified [`/api/views`](/Users/Sute/Documents/v2.sutesite/src/app/api/views/route.ts) and a unified RPC surface
+- later repo history documents a move to `content_views`
 
-Why it matters:
+Implication:
 
-- storage is a common leak path
-- public buckets or permissive object policies can bypass otherwise careful app design
+- March 21 references to `project_views`, `bloq_views`, `blip_views`, `byte_views`, and old per-type increment functions should not stay in the active issue list
 
-### 13. Full grant posture was only partially reviewed
+### 10. The old visitor and Telegram debug-logging finding appears resolved
+
+Severity: Historical only
+Evidence status: `repo-verified in this pass`
 
 Reason:
 
-- the grants output was very large and was not fully narrowed to public tables of interest
+- current notifier code in [telegram-notifier.ts](/Users/Sute/Documents/v2.sutesite/src/lib/notifications/telegram-notifier.ts) no longer logs visitor payloads, allow-list IDs, or destination chat IDs
 
-Why it matters:
+Implication:
 
-- explicit grants can still create exposure if a table later loses RLS or a view/function is added carelessly
+- this should be removed from the active findings and retained only as a resolved historical note if needed
+
+## New Issues Since 2026-03-21
+
+### 11. `/api/views` can create counts for arbitrary valid `type` and `id` combinations
+
+Severity: High
+Evidence status: `repo-verified in this pass`
+
+Evidence:
+
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/views/route.ts) validates only `type` and presence of `id`; it does not verify that the target content exists before calling the RPC.
+- [integration.test.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/views/__tests__/integration.test.ts) explicitly expects POST requests to create view records for non-existent bloq, blip, and byte IDs.
+- later internal documentary material records the same behavior as accepted test coverage during the refactor.
+
+Why this is a problem:
+
+- callers can create analytics rows for non-existent content identifiers
+- data quality degrades because counters are no longer bounded to real content
+- if live RPCs also accept arbitrary identifiers, this becomes a durable integrity problem rather than just an API-design smell
+
+### 12. `/api/claps/[type]/[id]` validates existence only for `bloq`
+
+Severity: High
+Evidence status: `repo-verified in this pass`
+
+Evidence:
+
+- [route.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/claps/[type]/[id]/route.ts) checks existence only in the `bloq` branch.
+- the same route sends `blip`, `byte`, and `project` IDs directly to privileged RPC calls.
+- [integration.test.ts](/Users/Sute/Documents/v2.sutesite/src/app/api/claps/__tests__/integration.test.ts) has 404 coverage only for non-existent `bloq` posts, not for the other content types.
+
+Why this is a problem:
+
+- non-bloq clap writes depend entirely on RPC-side validation or data constraints
+- if the live RPC surface accepts arbitrary identifiers, privileged server routes can create or mutate engagement data for content that does not exist
+- the validation posture is inconsistent across content types
+
+### 13. The March 21 package itself had become stale enough to misdirect remediation
+
+Severity: Medium
+Evidence status: `repo-verified in this pass`
+
+Evidence:
+
+- the old package still centered removed tables and old per-type view functions
+- the current app uses unified `/api/views` and newer content-publish paths
+
+Why this matters:
+
+- remediation effort can drift toward no-longer-primary surfaces
+- follow-up testing instructions become less reliable if they target old architecture
 
 ## Immediate Risk Ranking
 
-1. `project_views` without RLS
-2. broken `claps` ownership policy
-3. public `visits` exposure and client-trusted visitor identity
+1. client-trusted visitor identity and public prior-visitor disclosure
+2. arbitrary-ID view creation through `/api/views`
+3. incomplete existence validation in `/api/claps/[type]/[id]`
 4. service-role blast radius
-5. missing `search_path` in privileged functions
-6. missing security headers
+5. missing security headers
+6. thin shared-secret auth and missing rate limiting
+7. gameable public counters
