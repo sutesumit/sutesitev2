@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import bullets from "../bullets";
-import { motion as m, AnimatePresence } from "framer-motion";
+import { motion as m } from "framer-motion";
 import Link from "next/link";
+
+import bullets from "../bullets";
 
 const FallingLeaves = dynamic(
   () => import("@/components/specific/FallingLeaves"),
@@ -13,13 +14,51 @@ const FallingLeaves = dynamic(
   }
 );
 
+const HEART_TEXT = " (and in my partner's heart! 💕)";
+const HEART_STEP_INTERVAL_MS = 14;
+
+const segmentHeartText = (text: string): string[] => {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    const segmenter = new Intl.Segmenter(undefined, {
+      granularity: "grapheme",
+    });
+
+    return Array.from(segmenter.segment(text), ({ segment }) => segment);
+  }
+
+  return Array.from(text);
+};
+
+const HEART_TOKENS = segmentHeartText(HEART_TEXT);
+
 export function AboutContent() {
-  const [showHeart, setShowHeart] = React.useState<boolean>(false);
-  const heartText = " (and in my partner's heart! 💕)";
+  const [isHeartHovered, setIsHeartHovered] = React.useState<boolean>(false);
+  const [visibleHeartCount, setVisibleHeartCount] = React.useState<number>(0);
+  const targetHeartCountRef = useRef<number>(0);
 
   useEffect(() => {
-    setShowHeart(true);
+    targetHeartCountRef.current = isHeartHovered ? HEART_TOKENS.length : 0;
+  }, [isHeartHovered]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setVisibleHeartCount((currentCount) => {
+        const targetCount = targetHeartCountRef.current;
+
+        if (currentCount === targetCount) {
+          return currentCount;
+        }
+
+        return currentCount < targetCount ? currentCount + 1 : currentCount - 1;
+      });
+    }, HEART_STEP_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, []);
+
+  const visibleHeartTokens = HEART_TOKENS.slice(0, visibleHeartCount);
 
   return (
     <article className="p-10 container h-auto items-center font-roboto-mono lowercase">
@@ -28,44 +67,50 @@ export function AboutContent() {
           <p className="font-bold">About</p>
         </div>
         <br />
-        <p
-          onMouseEnter={() => setShowHeart(true)}
-          onMouseLeave={() => setShowHeart(false)}
+        <m.p
+          layout
+          onMouseEnter={() => setIsHeartHovered(true)}
+          onMouseLeave={() => setIsHeartHovered(false)}
+          transition={{
+            layout: {
+              duration: 0.45,
+              ease: [0.22, 1, 0.36, 1],
+            },
+          }}
         >
           Before finding my rightful place in web development
-          <AnimatePresence mode="popLayout" initial={false}>
-            {showHeart && (
-              <m.span
-                key="heart"
-                className="heart-text inline-block align-middle"
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
-                style={{ transformOrigin: "top" }}
-              >
-                {heartText.split("").map((letter, index) => (
+          {visibleHeartTokens.length > 0 ? (
+            <m.span
+              key="heart"
+              className="heart-text inline align-middle"
+              initial={false}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              style={{ transformOrigin: "top" }}
+            >
+              {visibleHeartTokens.map((token, index) =>
+                token === " " ? (
+                  <React.Fragment key={`space-${index}`}> </React.Fragment>
+                ) : (
                   <m.span
-                    key={index}
-                    layout
-                    initial={{ opacity: 0 }}
+                    key={`${token}-${index}`}
+                    className="inline-block"
+                    initial={{ opacity: 0, y: 2 }}
                     animate={{
                       opacity: 1,
+                      y: 0,
                     }}
-                    exit={{ opacity: 0 }}
                     transition={{
-                      duration: 0.4,
-                      delay: index * 0.01,
-                      ease: "easeInOut",
+                      duration: 0.16,
+                      ease: "easeOut",
                     }}
                   >
-                    {letter}
+                    {token}
                   </m.span>
-                ))}
-              </m.span>
-            )}
-          </AnimatePresence>
+                )
+              )}
+            </m.span>
+          ) : null}
           <span>
             {" "}
             my journey has taken me through mechanical engineering at iit
@@ -76,7 +121,7 @@ export function AboutContent() {
             runs through all these experiences: the drive to create things that
             enhance and complement life.
           </span>
-        </p>
+        </m.p>
         <br />
         <p className="inline">
           Building backwards and retracing every step that led me here.
@@ -87,16 +132,14 @@ export function AboutContent() {
         <ul className="life-line project-list p-2 pb-5">
           {bullets.map((bullet, index) => (
             <li key={index} className="relative project-item">
-              <span
-                className={`absolute h-full w-full left-2 opacity-0 hover:opacity-100 transition-all duration-300`}
-              >
-                {bullet.icons.map((icon: string, index: number) => (
+              <span className="absolute h-full w-full left-2 opacity-0 hover:opacity-100 transition-all duration-300">
+                {bullet.icons.map((icon: string, iconIndex: number) => (
                   <m.span
-                    key={index}
+                    key={iconIndex}
                     className=""
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    transition={{ duration: 0.3, delay: iconIndex * 0.1 }}
                   >
                     <span>{icon}</span>
                   </m.span>
@@ -109,13 +152,13 @@ export function AboutContent() {
         </ul>
         <p>
           I did expect my love for engineering, storytelling, and photography to
-          lead me to web development, and here I am—happily coding away and
+          lead me to web development, and here I am happily coding away and
           hoping my past adventures make me a better builder!
         </p>
         <br />
         <p>
           Predictably, I&apos;ve found myself crafting web experiences that mix
-          art, storytelling, and systems thinking—whether it&apos;s transforming
+          art, storytelling, and systems thinking, whether it&apos;s transforming
           lens-based work into{" "}
           <Link
             className="text-blue-900 dark:text-blue-400"
