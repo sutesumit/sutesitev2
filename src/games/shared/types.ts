@@ -31,15 +31,6 @@ export interface GameState {
   moves: number;
 }
 
-export interface HeatmapDayState {
-  day: number;
-  dateKey: string;
-  count: number;
-  isRevealed: boolean;
-  isSkull: boolean;
-  isToday: boolean;
-}
-
 export interface HeatmapState extends GameState {
   revealed: Set<number>;
   skullDay: number | null;
