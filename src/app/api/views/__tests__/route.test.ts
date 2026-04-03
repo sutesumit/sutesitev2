@@ -41,6 +41,7 @@ describe("/api/views GET", () => {
     resolveNotificationContentSummaryMock.mockResolvedValue({
       contentType: "bloq",
       contentId: "test-post",
+      displayId: "test-post",
       title: "Test Post",
     });
   });
@@ -184,6 +185,7 @@ describe("/api/views POST", () => {
     resolveNotificationContentSummaryMock.mockResolvedValue({
       contentType: "bloq",
       contentId: "test-post",
+      displayId: "test-post",
       title: "Test Post",
     });
   });
@@ -235,6 +237,7 @@ describe("/api/views POST", () => {
       expect(telegramNotifierMock.notifyViewIncrement).toHaveBeenCalledWith({
         contentType: "bloq",
         contentId: "test-post",
+        displayId: "test-post",
         title: "Test Post",
         total: 43,
         ip: "1.2.3.4",

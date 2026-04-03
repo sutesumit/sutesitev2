@@ -59,19 +59,21 @@ describe("telegram replies and formatters", () => {
     const result = formatViewIncrementNotification({
       contentType: "bloq",
       contentId: "test-title",
+      displayId: "",
       title: "Test Title",
       total: 128,
       ip: "1.2.3.4",
     });
 
     expect(result).toContain("sumitsute.com | Dev Diary");
-    expect(result).toContain("ip 1.2.3.4 viewed | bloq | test-title | Test Title | total 128");
+    expect(result).toContain("ip 1.2.3.4 viewed | bloq | Test Title | total 128");
   });
 
   it("formats clap increment notifications with visitor fallback copy", () => {
     const result = formatClapIncrementNotification({
       contentType: "byte",
       contentId: "001",
+      displayId: "001",
       title: null,
       total: 19,
       ip: null,
@@ -80,6 +82,19 @@ describe("telegram replies and formatters", () => {
     expect(result).toContain("sumitsute.com | Dev Diary");
     expect(result).toContain("a visitor clapped | byte | 001 | total 19");
     expect(result).not.toContain("null");
+  });
+
+  it("keeps display ids for serial-based content", () => {
+    const result = formatClapIncrementNotification({
+      contentType: "blip",
+      contentId: "uuid-123",
+      displayId: "8",
+      title: "Change Amplification",
+      total: 6,
+      ip: "1.2.3.4",
+    });
+
+    expect(result).toContain("ip 1.2.3.4 clapped | blip | 8 | Change Amplification | total 6");
   });
 
   it("escapes unsafe content in formatter output", () => {

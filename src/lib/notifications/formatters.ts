@@ -61,8 +61,12 @@ function formatCounterNotificationLine(
       ? `ip ${escapeHtml(counter.ip)} ${eventType === "view" ? "viewed" : "clapped"}`
       : `a visitor ${eventType === "view" ? "viewed" : "clapped"}`,
     escapeHtml(counter.contentType),
-    escapeHtml(counter.contentId),
   ];
+
+  const displayId = counter.displayId?.trim();
+  if (displayId) {
+    parts.push(escapeHtml(displayId));
+  }
 
   if (counter.title) {
     parts.push(escapeHtml(counter.title));

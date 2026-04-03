@@ -23,6 +23,7 @@ export type CounterNotificationContentType = "bloq" | "blip" | "byte" | "project
 export type CounterNotificationPayload = {
   contentType: CounterNotificationContentType;
   contentId: string;
+  displayId?: string | null;
   title: string | null;
   total: number;
   ip?: string | null;

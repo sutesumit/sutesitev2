@@ -47,6 +47,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     resolveNotificationContentSummaryMock.mockResolvedValue({
       contentType: "bloq",
       contentId: "test-post",
+      displayId: "test-post",
       title: "Test Post",
     });
   });
@@ -175,6 +176,7 @@ describe("/api/claps/[type]/[id] POST", () => {
     resolveNotificationContentSummaryMock.mockResolvedValue({
       contentType: "bloq",
       contentId: "test-post",
+      displayId: "test-post",
       title: "Test Post",
     });
   });
@@ -207,6 +209,7 @@ describe("/api/claps/[type]/[id] POST", () => {
     expect(telegramNotifierMock.notifyClapIncrement).toHaveBeenCalledWith({
       contentType: "bloq",
       contentId: "test-post",
+      displayId: "test-post",
       title: "Test Post",
       total: 11,
       ip: "1.2.3.4",

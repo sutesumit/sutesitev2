@@ -9,6 +9,7 @@ const BYTE_TITLE_LIMIT = 48;
 export type NotificationContentSummary = {
   contentType: CounterNotificationContentType;
   contentId: string;
+  displayId: string;
   title: string | null;
 };
 
@@ -31,6 +32,7 @@ export async function resolveNotificationContentSummary(
     return {
       contentType,
       contentId,
+      displayId: "",
       title: post?.title ?? null,
     };
   }
@@ -40,6 +42,7 @@ export async function resolveNotificationContentSummary(
     return {
       contentType,
       contentId,
+      displayId: blip?.blip_serial ?? contentId,
       title: blip?.term ?? null,
     };
   }
@@ -49,6 +52,7 @@ export async function resolveNotificationContentSummary(
     return {
       contentType,
       contentId,
+      displayId: byte?.byte_serial ?? contentId,
       title: byte ? truncateTitle(byte.content, BYTE_TITLE_LIMIT) : null,
     };
   }
@@ -57,6 +61,7 @@ export async function resolveNotificationContentSummary(
   return {
     contentType,
     contentId,
+    displayId: "",
     title: project?.title ?? null,
   };
 }
