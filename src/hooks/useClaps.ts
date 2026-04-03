@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { getOrCreateFingerprint } from '@/lib/utils/fingerprint';
+import { getCachedLocationData } from '@/services/location/cache';
 import { defaultClapsService, MAX_CLAPS } from '@/services/claps';
 import type { PostType } from '@/services/claps';
 
@@ -66,10 +67,12 @@ export const useClaps = (postId: string, postType: PostType) => {
         }));
 
         try {
+            const locationData = await getCachedLocationData();
             const result = await defaultClapsService.incrementClap(
                 postType, 
                 postId, 
-                fingerprintRef.current
+                fingerprintRef.current,
+                locationData?.ip
             );
             setState({
                 totalClaps: result.totalClaps,

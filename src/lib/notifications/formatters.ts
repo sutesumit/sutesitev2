@@ -1,8 +1,13 @@
 import type { Blip } from "@/types/blip";
 import type { Byte } from "@/types/byte";
-import type { BloqNotificationPayload, VisitorNotificationPayload } from "./types";
+import type {
+  BloqNotificationPayload,
+  CounterNotificationPayload,
+  VisitorNotificationPayload,
+} from "./types";
 
 const SITE_URL = "https://www.sumitsute.com";
+const PROJECT_HEADER = "🌐 sumitsute.com | Dev Diary";
 
 export function escapeHtml(value: string): string {
   return value
@@ -44,6 +49,33 @@ export function formatVisitorNotification(
   const device = escapeHtml(visitor.deviceType || "Unknown");
   const ip = escapeHtml(visitor.ip || "Unknown IP");
 
-  return `🌐 sumitsute.com | Dev Diary\n👤 <b>${returning}${count}</b>\n📍 ${location}\n💻 ${device}\n🌐 <code>${ip}</code>\n🔗 ${source}`;
+  return `${PROJECT_HEADER}\n👤 <b>${returning}${count}</b>\n📍 ${location}\n💻 ${device}\n🌐 <code>${ip}</code>\n🔗 ${source}`;
 }
 
+function formatCounterNotificationLine(
+  eventType: "view" | "clap",
+  counter: CounterNotificationPayload
+): string {
+  const parts = [
+    counter.ip
+      ? `ip ${escapeHtml(counter.ip)} ${eventType === "view" ? "viewed" : "clapped"}`
+      : `a visitor ${eventType === "view" ? "viewed" : "clapped"}`,
+    escapeHtml(counter.contentType),
+    escapeHtml(counter.contentId),
+  ];
+
+  if (counter.title) {
+    parts.push(escapeHtml(counter.title));
+  }
+
+  parts.push(`total ${escapeHtml(counter.total.toString())}`);
+  return parts.join(" | ");
+}
+
+export function formatViewIncrementNotification(counter: CounterNotificationPayload): string {
+  return `${PROJECT_HEADER}\n${formatCounterNotificationLine("view", counter)}`;
+}
+
+export function formatClapIncrementNotification(counter: CounterNotificationPayload): string {
+  return `${PROJECT_HEADER}\n${formatCounterNotificationLine("clap", counter)}`;
+}

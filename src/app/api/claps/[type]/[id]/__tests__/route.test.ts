@@ -13,6 +13,15 @@ const createMockSupabase = () => ({
 });
 
 const supabaseMock = createMockSupabase();
+const {
+  telegramNotifierMock,
+  resolveNotificationContentSummaryMock,
+} = vi.hoisted(() => ({
+  telegramNotifierMock: {
+    notifyClapIncrement: vi.fn().mockResolvedValue(undefined),
+  },
+  resolveNotificationContentSummaryMock: vi.fn(),
+}));
 
 vi.mock("@/lib/supabaseServerClient", () => ({
   getSupabaseServerClient: vi.fn(() => supabaseMock),
@@ -22,11 +31,24 @@ vi.mock("@/lib/bloq", () => ({
   getBloqPostBySlug: vi.fn(),
 }));
 
+vi.mock("@/lib/notifications/telegram-notifier", () => ({
+  telegramNotifier: telegramNotifierMock,
+}));
+
+vi.mock("@/lib/notifications/content-summary", () => ({
+  resolveNotificationContentSummary: resolveNotificationContentSummaryMock,
+}));
+
 import { GET, POST } from "../route";
 
 describe("/api/claps/[type]/[id] GET", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resolveNotificationContentSummaryMock.mockResolvedValue({
+      contentType: "bloq",
+      contentId: "test-post",
+      title: "Test Post",
+    });
   });
 
   it("returns claps for bloq type", async () => {
@@ -150,6 +172,11 @@ describe("/api/claps/[type]/[id] GET", () => {
 describe("/api/claps/[type]/[id] POST", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resolveNotificationContentSummaryMock.mockResolvedValue({
+      contentType: "bloq",
+      contentId: "test-post",
+      title: "Test Post",
+    });
   });
 
   it("increments clap for bloq type", async () => {
@@ -167,14 +194,23 @@ describe("/api/claps/[type]/[id] POST", () => {
     const response = await POST(
       new Request("http://localhost/api/claps/bloq/test-post", {
         method: "POST",
-        body: JSON.stringify({ fingerprint: "abc123" }),
+        body: JSON.stringify({ fingerprint: "abc123", ip: "1.2.3.4" }),
       }),
       { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
     );
     const payload = await response.json();
+    await Promise.resolve();
 
     expect(response.status).toBe(200);
     expect(payload).toEqual({ userClaps: 1, totalClaps: 11, maxReached: false });
+    expect(resolveNotificationContentSummaryMock).toHaveBeenCalledWith("bloq", "test-post");
+    expect(telegramNotifierMock.notifyClapIncrement).toHaveBeenCalledWith({
+      contentType: "bloq",
+      contentId: "test-post",
+      title: "Test Post",
+      total: 11,
+      ip: "1.2.3.4",
+    });
   });
 
   it("increments clap for blip type", async () => {
@@ -322,6 +358,57 @@ describe("/api/claps/[type]/[id] POST", () => {
 
     expect(response.status).toBe(500);
     expect(payload).toEqual({ error: "RPC error" });
+  });
+
+  it("returns success when notification resolution fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    resolveNotificationContentSummaryMock.mockRejectedValueOnce(new Error("Resolver failed"));
+    vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
+      data: { user_claps: 1, total_claps: 11, max_reached: false },
+      error: null,
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/claps/bloq/test-post", {
+        method: "POST",
+        body: JSON.stringify({ fingerprint: "abc123" }),
+      }),
+      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+    );
+    const payload = await response.json();
+    await Promise.resolve();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ userClaps: 1, totalClaps: 11, maxReached: false });
+    expect(consoleError).toHaveBeenCalledWith("Clap notification error:", expect.any(Error));
+
+    consoleError.mockRestore();
+  });
+
+  it("returns success when notifier send fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    telegramNotifierMock.notifyClapIncrement.mockRejectedValueOnce(new Error("Telegram down"));
+    vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
+      data: { user_claps: 1, total_claps: 11, max_reached: false },
+      error: null,
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/claps/bloq/test-post", {
+        method: "POST",
+        body: JSON.stringify({ fingerprint: "abc123" }),
+      }),
+      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+    );
+    const payload = await response.json();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ userClaps: 1, totalClaps: 11, maxReached: false });
+    expect(consoleError).toHaveBeenCalledWith("Clap notification error:", expect.any(Error));
+
+    consoleError.mockRestore();
   });
 });
 

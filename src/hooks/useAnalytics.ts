@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from 'react';
+import { getCachedLocationData } from '@/services/location/cache';
 import { LocationData } from '@/types/location';
 
 export const useAnalytics = () => {
@@ -14,6 +15,23 @@ export const useAnalytics = () => {
     const hasTrackedBlipView = useRef(false);
     const hasTrackedProjectView = useRef(false);
     const hasTrackedByteView = useRef(false);
+
+    const buildTrackingRequestInit = useCallback(async (): Promise<RequestInit> => {
+        const locationData = await getCachedLocationData();
+
+        if (!locationData?.ip) {
+            return { method: 'POST', cache: 'no-store' };
+        }
+
+        return {
+            method: 'POST',
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ip: locationData.ip }),
+        };
+    }, []);
 
     /**
      * Tracks a generic site visit.
@@ -73,11 +91,11 @@ export const useAnalytics = () => {
         hasTrackedBloqView.current = true;
 
         try {
-            await fetch(`/api/views?type=bloq&id=${slug}`, { method: 'POST', cache: 'no-store' });
+            await fetch(`/api/views?type=bloq&id=${slug}`, await buildTrackingRequestInit());
         } catch (error) {
             console.warn(`Unable to track view for ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
         }
-    }, []);
+    }, [buildTrackingRequestInit]);
 
     /**
      * Tracks a specific blip view.
@@ -95,11 +113,11 @@ export const useAnalytics = () => {
         hasTrackedBlipView.current = true;
 
         try {
-            await fetch(`/api/views?type=blip&id=${serial}`, { method: 'POST', cache: 'no-store' });
+            await fetch(`/api/views?type=blip&id=${serial}`, await buildTrackingRequestInit());
         } catch (error) {
             console.warn(`Unable to track view for blip ${serial}:`, error instanceof Error ? error.message : 'Unknown error');
         }
-    }, []);
+    }, [buildTrackingRequestInit]);
 
     /**
      * Tracks a specific project view.
@@ -117,11 +135,11 @@ export const useAnalytics = () => {
         hasTrackedProjectView.current = true;
 
         try {
-            await fetch(`/api/views?type=project&id=${slug}`, { method: 'POST', cache: 'no-store' });
+            await fetch(`/api/views?type=project&id=${slug}`, await buildTrackingRequestInit());
         } catch (error) {
             console.warn(`Unable to track project view for ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
         }
-    }, []);
+    }, [buildTrackingRequestInit]);
 
     /**
      * Tracks a specific byte view.
@@ -139,11 +157,11 @@ export const useAnalytics = () => {
         hasTrackedByteView.current = true;
 
         try {
-            await fetch(`/api/views?type=byte&id=${slug}`, { method: 'POST', cache: 'no-store' });
+            await fetch(`/api/views?type=byte&id=${slug}`, await buildTrackingRequestInit());
         } catch (error) {
             console.warn(`Unable to track view for byte ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
         }
-    }, []);
+    }, [buildTrackingRequestInit]);
 
     return {
         visitorData: { lastVisitorLocation, visitorCount },

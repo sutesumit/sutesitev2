@@ -4,22 +4,45 @@ const supabaseMock = {
   rpc: vi.fn(),
 };
 
+const {
+  telegramNotifierMock,
+  resolveNotificationContentSummaryMock,
+} = vi.hoisted(() => ({
+  telegramNotifierMock: {
+    notifyViewIncrement: vi.fn().mockResolvedValue(undefined),
+  },
+  resolveNotificationContentSummaryMock: vi.fn(),
+}));
+
 vi.mock("@/lib/supabaseServerClient", () => ({
   getSupabaseServerClient: vi.fn(() => supabaseMock),
 }));
 
+vi.mock("@/lib/notifications/telegram-notifier", () => ({
+  telegramNotifier: telegramNotifierMock,
+}));
+
+vi.mock("@/lib/notifications/content-summary", () => ({
+  resolveNotificationContentSummary: resolveNotificationContentSummaryMock,
+}));
+
 import { GET, POST } from "../route";
 
-const createRequest = (type?: string, id?: string) => {
+const createRequest = (type?: string, id?: string, init?: RequestInit) => {
   const params = new URLSearchParams();
   if (type) params.set("type", type);
   if (id) params.set("id", id);
-  return new Request(`http://localhost/api/views?${params.toString()}`);
+  return new Request(`http://localhost/api/views?${params.toString()}`, init);
 };
 
 describe("/api/views GET", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resolveNotificationContentSummaryMock.mockResolvedValue({
+      contentType: "bloq",
+      contentId: "test-post",
+      title: "Test Post",
+    });
   });
 
   describe("validation", () => {
@@ -158,6 +181,11 @@ describe("/api/views GET", () => {
 describe("/api/views POST", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resolveNotificationContentSummaryMock.mockResolvedValue({
+      contentType: "bloq",
+      contentId: "test-post",
+      title: "Test Post",
+    });
   });
 
   describe("validation", () => {
@@ -190,14 +218,26 @@ describe("/api/views POST", () => {
     it("increments view count and returns new count", async () => {
       vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({ data: 43, error: null });
 
-      const response = await POST(createRequest("bloq", "test-post"));
+      const response = await POST(createRequest("bloq", "test-post", {
+        method: "POST",
+        body: JSON.stringify({ ip: "1.2.3.4" }),
+      }));
       const payload = await response.json();
+      await Promise.resolve();
 
       expect(response.status).toBe(200);
       expect(payload).toEqual({ views: 43 });
       expect(supabaseMock.rpc).toHaveBeenCalledWith("increment_content_view", {
         p_content_type: "bloq",
         p_identifier: "test-post",
+      });
+      expect(resolveNotificationContentSummaryMock).toHaveBeenCalledWith("bloq", "test-post");
+      expect(telegramNotifierMock.notifyViewIncrement).toHaveBeenCalledWith({
+        contentType: "bloq",
+        contentId: "test-post",
+        title: "Test Post",
+        total: 43,
+        ip: "1.2.3.4",
       });
     });
   });
@@ -251,6 +291,39 @@ describe("/api/views POST", () => {
   });
 
   describe("error handling", () => {
+    it("returns success when notification resolution fails", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({ data: 43, error: null });
+      resolveNotificationContentSummaryMock.mockRejectedValueOnce(new Error("Resolver failed"));
+
+      const response = await POST(createRequest("bloq", "test-post"));
+      const payload = await response.json();
+      await Promise.resolve();
+
+      expect(response.status).toBe(200);
+      expect(payload).toEqual({ views: 43 });
+      expect(consoleError).toHaveBeenCalledWith("View notification error:", expect.any(Error));
+
+      consoleError.mockRestore();
+    });
+
+    it("returns success when notifier send fails", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({ data: 43, error: null });
+      telegramNotifierMock.notifyViewIncrement.mockRejectedValueOnce(new Error("Telegram down"));
+
+      const response = await POST(createRequest("bloq", "test-post"));
+      const payload = await response.json();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(response.status).toBe(200);
+      expect(payload).toEqual({ views: 43 });
+      expect(consoleError).toHaveBeenCalledWith("View notification error:", expect.any(Error));
+
+      consoleError.mockRestore();
+    });
+
     it("returns 500 on RPC error", async () => {
       vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({ data: null, error: { message: "Database error" } });
 

@@ -1,6 +1,7 @@
 export { 
   getBytes, 
   listAllBytes,
+  getByteByIdentifier,
   getByteBySerial, 
   createByte, 
   updateByte, 

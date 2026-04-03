@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { defaultLocationService } from '@/services/location';
+import { getCachedLocationData } from '@/services/location/cache';
 import type { LocationData } from '@/types/location';
 
 interface UseLocationResult {
@@ -12,20 +12,28 @@ export const useLocation = (): UseLocationResult => {
   const [locationData, setLocationData] = useState<LocationData | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchLocation = async () => {
-      const data = await defaultLocationService.fetchLocation();
+      const data = await getCachedLocationData();
       
-      if (data) {
-        setLocationData(data);
-        if (data.city && data.country_code) {
-          setLocationString(`${data.city}, ${data.country_code}`);
-        } else if (data.country_code) {
-          setLocationString(data.country_code);
-        }
+      if (!data || cancelled) {
+        return;
+      }
+
+      setLocationData(data);
+      if (data.city && data.country_code) {
+        setLocationString(`${data.city}, ${data.country_code}`);
+      } else if (data.country_code) {
+        setLocationString(data.country_code);
       }
     };
 
     fetchLocation();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { locationString, locationData };

@@ -76,6 +76,38 @@ export async function getByteBySerial(serial: string): Promise<Byte | null> {
   return data;
 }
 
+export async function getByteByIdentifier(identifier: string): Promise<Byte | null> {
+  const supabase = getSupabaseServerClient();
+
+  const { data: serialMatch, error: serialError } = await supabase
+    .from("bytes")
+    .select("id, content, created_at, byte_serial")
+    .eq("byte_serial", identifier)
+    .maybeSingle();
+
+  if (serialError) {
+    console.error("Error fetching byte by identifier:", serialError);
+    return null;
+  }
+
+  if (serialMatch) {
+    return serialMatch;
+  }
+
+  const { data: idMatch, error: idError } = await supabase
+    .from("bytes")
+    .select("id, content, created_at, byte_serial")
+    .eq("id", identifier)
+    .maybeSingle();
+
+  if (idError) {
+    console.error("Error fetching byte by identifier:", idError);
+    return null;
+  }
+
+  return idMatch;
+}
+
 export async function getAdjacentBytes(currentSerial: number): Promise<{ newer: Byte | null; older: Byte | null }> {
   const supabase = getSupabaseServerClient();
 

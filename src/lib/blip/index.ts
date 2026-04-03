@@ -1,6 +1,7 @@
 export { 
   getBlips, 
   listAllBlips,
+  getBlipByIdentifier,
   getBlipBySerial, 
   createBlip,
   updateBlip,

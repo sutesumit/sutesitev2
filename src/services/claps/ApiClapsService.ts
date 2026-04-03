@@ -29,12 +29,12 @@ export class ApiClapsService implements ClapsService {
     }
   }
 
-  async incrementClap(postType: PostType, postId: string, fingerprint: string): Promise<ClapsResult> {
+  async incrementClap(postType: PostType, postId: string, fingerprint: string, ip?: string): Promise<ClapsResult> {
     try {
       const res = await fetch(`/api/claps/${postType}/${postId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fingerprint }),
+        body: JSON.stringify({ fingerprint, ip }),
         cache: 'no-store'
       });
 

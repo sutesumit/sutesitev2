@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  formatClapIncrementNotification,
+  formatViewIncrementNotification,
+} from "@/lib/notifications/formatters";
 import { formatByte, formatBlip, formatBloq } from "@/lib/telegram/formatters";
 import { replies } from "@/lib/telegram/replies";
 
@@ -51,6 +55,33 @@ describe("telegram replies and formatters", () => {
     expect(result).toContain("Windows");
   });
 
+  it("formats view increment notifications with IP-aware copy", () => {
+    const result = formatViewIncrementNotification({
+      contentType: "bloq",
+      contentId: "test-title",
+      title: "Test Title",
+      total: 128,
+      ip: "1.2.3.4",
+    });
+
+    expect(result).toContain("sumitsute.com | Dev Diary");
+    expect(result).toContain("ip 1.2.3.4 viewed | bloq | test-title | Test Title | total 128");
+  });
+
+  it("formats clap increment notifications with visitor fallback copy", () => {
+    const result = formatClapIncrementNotification({
+      contentType: "byte",
+      contentId: "001",
+      title: null,
+      total: 19,
+      ip: null,
+    });
+
+    expect(result).toContain("sumitsute.com | Dev Diary");
+    expect(result).toContain("a visitor clapped | byte | 001 | total 19");
+    expect(result).not.toContain("null");
+  });
+
   it("escapes unsafe content in formatter output", () => {
     const result = formatByte({
       byte_serial: "001",
@@ -59,7 +90,7 @@ describe("telegram replies and formatters", () => {
     });
 
     expect(result).toContain("&lt;script&gt;");
-    expect(result).not.toContain('<script>');
+    expect(result).not.toContain("<script>");
   });
 
   it("formats byte entries", () => {

@@ -1,6 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { getBloqPostBySlug } from "@/lib/bloq";
 import { jsonError, jsonSuccess } from "@/lib/api/responses";
+import { resolveNotificationContentSummary } from "@/lib/notifications/content-summary";
+import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
 
 interface RouteParams {
     params: Promise<{ type: string; id: string }>
@@ -33,6 +35,7 @@ export async function POST(
 
         const body = await req.json().catch(() => ({}));
         const fingerprint = body.fingerprint;
+        const ip = typeof body.ip === "string" ? body.ip : null;
 
         if (!fingerprint || typeof fingerprint !== 'string') {
             return jsonError("Fingerprint required", 400);
@@ -50,6 +53,16 @@ export async function POST(
             console.error("Error upserting clap", error);
             return jsonError(error.message, 500);
         }
+
+        void resolveNotificationContentSummary(type, id)
+            .then((summary) => telegramNotifier.notifyClapIncrement({
+                ...summary,
+                ip,
+                total: data.total_claps,
+            }))
+            .catch((error: unknown) => {
+                console.error("Clap notification error:", error);
+            });
 
         return jsonSuccess({
             userClaps: data.user_claps,

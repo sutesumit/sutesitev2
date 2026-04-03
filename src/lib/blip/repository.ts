@@ -125,6 +125,38 @@ export async function getBlipBySerial(serial: string): Promise<Blip | null> {
   return data;
 }
 
+export async function getBlipByIdentifier(identifier: string): Promise<Blip | null> {
+  const supabase = getSupabaseServerClient();
+
+  const { data: serialMatch, error: serialError } = await supabase
+    .from("blips")
+    .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
+    .eq("blip_serial", identifier)
+    .maybeSingle();
+
+  if (serialError) {
+    console.error("Error fetching blip by identifier:", serialError);
+    return null;
+  }
+
+  if (serialMatch) {
+    return serialMatch;
+  }
+
+  const { data: idMatch, error: idError } = await supabase
+    .from("blips")
+    .select("id, blip_serial, term, meaning, tags, created_at, updated_at")
+    .eq("id", identifier)
+    .maybeSingle();
+
+  if (idError) {
+    console.error("Error fetching blip by identifier:", idError);
+    return null;
+  }
+
+  return idMatch;
+}
+
 export async function getAdjacentBlips(currentSerial: number): Promise<{ newer: Blip | null; older: Blip | null }> {
   const supabase = getSupabaseServerClient();
 

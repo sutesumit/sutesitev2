@@ -15,5 +15,5 @@ export interface ClapsService {
   /**
    * Increment clap count for a post
    */
-  incrementClap(postType: PostType, postId: string, fingerprint: string): Promise<ClapsResult>;
+  incrementClap(postType: PostType, postId: string, fingerprint: string, ip?: string): Promise<ClapsResult>;
 }

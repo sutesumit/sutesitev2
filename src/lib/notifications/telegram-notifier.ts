@@ -1,13 +1,16 @@
 import type { Blip } from "@/types/blip";
 import type { Byte } from "@/types/byte";
 import {
+  formatClapIncrementNotification,
   formatBlipChannelMessage,
   formatBloqChannelMessage,
   formatByteChannelMessage,
+  formatViewIncrementNotification,
   formatVisitorNotification,
 } from "./formatters";
 import type {
   BloqNotificationPayload,
+  CounterNotificationPayload,
   TelegramNotifier,
   VisitorNotificationPayload,
 } from "./types";
@@ -73,6 +76,26 @@ export class TelegramBotNotifier implements TelegramNotifier {
     }
 
     await sendMessage(channelId, formatBloqChannelMessage(bloq));
+  }
+
+  async notifyViewIncrement(counter: CounterNotificationPayload): Promise<void> {
+    const ownerChatId = getOwnerChatId();
+
+    if (!ownerChatId) {
+      return;
+    }
+
+    await sendMessage(ownerChatId, formatViewIncrementNotification(counter));
+  }
+
+  async notifyClapIncrement(counter: CounterNotificationPayload): Promise<void> {
+    const ownerChatId = getOwnerChatId();
+
+    if (!ownerChatId) {
+      return;
+    }
+
+    await sendMessage(ownerChatId, formatClapIncrementNotification(counter));
   }
 }
 
