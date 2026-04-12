@@ -30,21 +30,21 @@ const Accordion: React.FC<AccordionProps> = ({ title, children}) => {
                 <TfiArrowCircleDown />
             </span>
         </div>
-            <AnimatePresence mode='wait'>
+        <AnimatePresence mode='wait'>
             { showAbout &&
                 <m.div
-                    key='accordian-text'
-                    className='px-1'
+                    key='accordian-content'
+                    className='px-1 overflow-hidden'
                     layout
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
                 >
                     {children}
                 </m.div>
             }
-            </AnimatePresence>
+        </AnimatePresence>
     </div>
   )
 }
