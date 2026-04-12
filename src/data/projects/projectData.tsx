@@ -15,9 +15,9 @@ export const projects: ProjectProps[] = [
         githublink: 'https://github.com/sutesumit/jaybhim_affirma',
         technologies: getTechDetails(['Next.js', 'React', 'Tailwind CSS', 'Framer Motion', 'Aceternity UI', 'Supabase', 'Radix UI']),
         features: [
-            'Multiple route-specific storytelling experiences built beyond a single reusable gallery template',
-            'Authenticated workflows for OTP login, persistent sessions, profile management, likes, comments, and story submissions',
-            'Modular architecture with metadata-driven navigation, reusable feature modules, and service-layer business logic'
+            'Full-stack interactive publishing platform using Next.js, React, and Supabase, supporting multiple route-specific storytelling experiences instead of a single reusable gallery template',
+            'Authenticated user workflows including email/phone OTP login, persistent sessions, profile management, and protected actions for likes, comments, and story submissions through typed API routes and shared interaction patterns',
+            'Modular architecture with metadata-driven navigation, reusable feature modules, and service-layer business logic, making the platform easier to extend as new experiences and content flows were added'
         ]
     },
     {
@@ -31,9 +31,10 @@ export const projects: ProjectProps[] = [
         githublink: 'https://github.com/sutesumit/dodpage',
         technologies: getTechDetails(['Next.js', 'Tailwind CSS', 'Framer Motion', 'Aceternity UI', 'Vercel']),
         features: [
-            'Open-source facilitation platform for communities, educators, and students running Dramas of Discrimination workshops',
-            'Content and data portal for workshop materials, case studies, participant-generated charters, and the Manifesto of Inclusion',
-            'Responsive reflection-oriented storytelling patterns powered by Tailwind CSS, Framer Motion, and an open GitHub plus Vercel workflow'
+            'Open-source Next.js platform enabling communities, educators, and students to independently facilitate Dramas of Discrimination workshops on caste equity and inclusion',
+            'Content and data portal hosting workshop materials, case studies, participant-generated charters, and a collective Manifesto of Inclusion',
+            'Responsive interaction patterns using Tailwind CSS and Framer Motion to support reflection-oriented storytelling across devices',
+            'Open GitHub + Vercel workflow, enabling transparent iteration and community reuse of the facilitation infrastructure'
         ]
     },
     {
@@ -58,12 +59,10 @@ export const projects: ProjectProps[] = [
             'MDX'
         ]),
         features: [
-            'Unified publishing system for bloqs, bytes, blips, and project pages',
-            'Private content workflows exposed through Telegram and terminal-friendly entry points',
-            'Dynamic RSS and sitemap generation from canonical content sources',
-            'Per-page metadata and JSON-LD for machine-readable distribution',
-            'Supabase-backed views, claps, and short-form publishing flows',
-            'Architecture designed for maintainability and agent-assisted development'
+            'Full-stack publishing platform using Next.js, TypeScript, MDX, and Supabase, supporting articles, micro-posts, concept notes, and project pages through a unified content architecture',
+            'Telegram bot and CLI workflows for fast content capture, editing, and publishing, reducing friction between ideation and release across mobile and terminal-based interfaces',
+            'Backend systems for content storage, analytics, view counting, and user interactions, alongside automated RSS, sitemap, and JSON-LD generation to improve discoverability and distribution',
+            'Improved reliability and security of external publishing flows through authenticated webhooks, secret-based API protection, and test coverage with Vitest and Playwright'
         ]
     }
 ]
