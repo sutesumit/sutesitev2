@@ -108,6 +108,15 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
               repolink={project.githublink}
             />
             <Accordion title="About">{project.about}</Accordion>
+            <Accordion title="Features">
+              <ul className="list-none ml-4 space-y-1">
+                {project.features.map((feature, index) => (
+                  <li key={index} className="text-sm opacity-90 leading-relaxed before:content-['–'] before:mr-2 before:opacity-50">
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </Accordion>
             <Accordion title="Tech Stack">
               <div className="project-technologies flex flex-wrap gap-2">
                 {project.technologies.map((tech, index) => (
