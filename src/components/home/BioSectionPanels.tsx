@@ -13,7 +13,7 @@ export const CreativeBackgroundPanel = () => {
         The Wire
       </Link>{" "}
       to shaping the visual voice for the headlines at{" "}
-      <Link className="highlight" href="https://www.hindustantimes.com/">
+      <Link className="highlight" href="https://epaper.hindustantimes.com/mumbai?eddate=22/06/2022&pageid=429623">
         Hindustan Times
       </Link>
       , I learned how narratives move through people. Rooted in the political
