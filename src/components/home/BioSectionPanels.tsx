@@ -8,12 +8,16 @@ export const CreativeBackgroundPanel = () => {
       documenting atrocity and resilience on the ground for{" "}
       <Link
         className="highlight"
+        target="_blank"
         href="https://thewire.in/rights/in-photos-documenting-atrocities-against-dalits-in-gujarat"
       >
         The Wire
       </Link>{" "}
       to shaping the visual voice for the headlines at{" "}
-      <Link className="highlight" href="https://epaper.hindustantimes.com/mumbai?eddate=22/06/2022&pageid=429623">
+      <Link 
+        className="highlight" 
+        target="_blank"
+        href="https://epaper.hindustantimes.com/mumbai?eddate=22/06/2022&pageid=429623">
         Hindustan Times
       </Link>
       , I learned how narratives move through people. Rooted in the political
@@ -21,6 +25,7 @@ export const CreativeBackgroundPanel = () => {
       at{" "}
       <Link
         className="highlight"
+        target="_blank"
         href="https://calarts.edu/academics/programs-and-degrees/mfa-photography-and-media"
       >
         CalArts, Los Angeles
@@ -28,23 +33,36 @@ export const CreativeBackgroundPanel = () => {
       , and the{" "}
       <Link
         className="highlight"
+        target="_blank"
         href="https://www.icp.org/sites/default/files/20ICP_MFA_Catalog-low.pdf"
       >
         ICP, New York
       </Link>
       . Through fellowships, exhibitions and features, my visual practice
       traced how art meets resistance. At{" "}
-      <Link className="highlight" href="https://www.fieldsofview.in/">
+      <Link 
+        className="highlight" 
+        target="_blank"
+        href="https://www.fieldsofview.in/"
+      >
         Fields of View
       </Link>
       , I wove art, data, and design into participatory games and tools for
       policymaking, and at the Ambedkar Reading Circle, I fused systems
       thinking, dramaturgy and code to create{" "}
-      <Link className="highlight" href="https://www.dod.sumitsute.com/">
+      <Link 
+        className="highlight" 
+        target="_blank"
+        href="https://www.dod.sumitsute.com/"
+      >
         Dramas of Discrimination
       </Link>{" "}
       - an open-source toolkit for inclusive practices. But before all this, at{" "}
-      <Link className="highlight" href="https://mech.iitm.ac.in/">
+      <Link 
+        className="highlight" 
+        target="_blank"
+        href="https://mech.iitm.ac.in/"
+      >
         IIT Madras
       </Link>
       , I was also coding in Python to study how Rapidly-Exploring Random Tree
