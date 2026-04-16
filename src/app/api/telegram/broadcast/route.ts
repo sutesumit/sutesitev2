@@ -7,9 +7,13 @@ const noStoreHeaders = { "Cache-Control": "no-store" };
 const bloqNotificationService = createBloqNotificationService(contentMutationEffects);
 
 function validateBroadcastSecret(authHeader: string | null): boolean {
-  const secret = process.env.TELEGRAM_BROADCAST_SECRET || process.env.TELEGRAM_BOT_TOKEN;
-  if (!secret || !authHeader) return false;
-  return authHeader === secret;
+  if (!authHeader) return false;
+  const validSecrets = [
+    process.env.TELEGRAM_BROADCAST_SECRET,
+    process.env.TELEGRAM_BOT_TOKEN,
+    process.env.TELEGRAM_WEBHOOK_SECRET,
+  ].filter(Boolean);
+  return validSecrets.some((secret) => secret && authHeader === secret);
 }
 
 export async function POST(req: Request) {
