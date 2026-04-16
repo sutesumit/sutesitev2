@@ -27,7 +27,18 @@ export async function POST(req: Request) {
   }
 
   try {
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      const raw = await req.text();
+      console.error("Broadcast JSON parse error. Raw body:", raw.substring(0, 500));
+      return NextResponse.json(
+        { error: `Invalid JSON: ${raw.substring(0, 200)}` },
+        { status: 400, headers: noStoreHeaders }
+      );
+    }
+
     const { type, title, slug, tags } = body;
 
     if (type !== "bloq") {
