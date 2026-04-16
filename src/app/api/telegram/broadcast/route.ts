@@ -27,14 +27,14 @@ export async function POST(req: Request) {
   }
 
   try {
+    const rawBody = await req.text();
     let body;
     try {
-      body = await req.json();
+      body = JSON.parse(rawBody);
     } catch {
-      const raw = await req.text();
-      console.error("Broadcast JSON parse error. Raw body:", raw.substring(0, 500));
+      console.error("Broadcast JSON parse error. Raw body:", rawBody.substring(0, 500));
       return NextResponse.json(
-        { error: `Invalid JSON: ${raw.substring(0, 200)}` },
+        { error: `Invalid JSON: ${rawBody.substring(0, 200)}` },
         { status: 400, headers: noStoreHeaders }
       );
     }
