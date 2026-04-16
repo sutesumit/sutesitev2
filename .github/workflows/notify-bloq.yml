@@ -20,6 +20,15 @@ jobs:
           BROADCAST_URL: https://sumitsute.com/api/telegram/broadcast
         run: |
           set -euo pipefail
+          set -x
+          
+          echo "=== Detecting new bloq index.mdx ==="
+          NEW_BLOQS=$(git diff --name-only --diff-filter=A HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
+          echo "NEW_BLOQS: $NEW_BLOQS"
+          
+          MODIFIED_BLOQS=$(git diff --name-only --diff-filter=M HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
+          echo "MODIFIED_BLOQS: $MODIFIED_BLOQS"
+          echo "=== End detection ==="
           
           send_notification() {
             local bloq="$1"
