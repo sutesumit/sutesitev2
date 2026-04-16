@@ -28,9 +28,12 @@ export async function POST(req: Request) {
 
   try {
     const rawBody = await req.text();
+    const jsonStart = rawBody.indexOf('{');
+    const jsonBody = jsonStart >= 0 ? rawBody.substring(jsonStart) : rawBody;
+
     let body;
     try {
-      body = JSON.parse(rawBody);
+      body = JSON.parse(jsonBody);
     } catch {
       console.error("Broadcast JSON parse error. Raw body:", rawBody.substring(0, 500));
       return NextResponse.json(
