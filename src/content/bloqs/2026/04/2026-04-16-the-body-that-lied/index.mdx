@@ -1,0 +1,114 @@
+---
+title: "The Body That Lied"
+publishedAt: "2026-04-16"
+summary: "A GitHub Action that sends a Telegram notification. Five lines of curl. Twenty-eight commits later, I finally saw what the server was actually receiving."
+slug: "the-body-that-lied"
+tags:
+  - debugging
+  - architecture
+  - reflections
+  - devops
+authors:
+  - Sumit Sute
+category: "Reflections"
+draft: true
+featured: false
+---
+
+> "You can't trust what you send. Only what arrives."
+
+A GitHub Action that sends a Telegram notification. Five lines of curl. How hard could it be?
+
+---
+
+## The Silent Green Checkmark
+
+The first commit that should have triggered the notification arrived on a Tuesday. The workflow ran. The checkmark was green. The notification never appeared in the channel.
+
+I added `set -euo pipefail` to the workflow — a habit I should have had from the start. Without it, when curl sent an empty `X-Broadcast-Secret` header (because the GitHub secret wasn't set yet), the API responded with a 401. The script exited 0 because there was no `set -e`. A green checkmark on a silent failure. The worst kind of bug.
+
+There was another problem: the workflow triggered on every push, but the file was created with `draft: false` from the start. That meant it was detected as **modified**, not **new**. The "new file" path never fired. The workflow logic was correct. We were testing the wrong code path.
+
+Two invisible failures. Neither one killed the script. Both prevented the notification.
+
+---
+
+## The Redirect That Lied
+
+With a real secret now set, I toggled draft to trigger the "published" path. The curl ran. The response was "Redirecting..." — not a notification, not an error, just that one word in the response body.
+
+The workflow used `https://sumitsute.com/api/telegram/broadcast`. My site lives at `https://www.sumitsute.com`. The non-www domain returned a redirect page with a 200 status code. Curl followed the redirect and got the HTML of a redirect page, not the JSON API response. Success in appearance, void in substance. A 200 that meant nothing. The API was never even called.
+
+I changed the URL to use the canonical domain. That should have been the fix.
+
+It wasn't.
+
+---
+
+## The Stream That Could Only Be Read Once
+
+With the correct URL, curl returned a 500. Progress — we were hitting the actual API now. But the response body was hidden behind `--silent --fail`, so I couldn't see what went wrong. I added response capture to see the error.
+
+The error was "Body has already been read." The Web Streams API — used by Next.js App Router — lets you read the request body exactly once. I called `req.json()`, which consumed the stream. When the call failed (for some other reason), the subsequent `req.text()` in the catch block had nothing left to read. The error wasn't about the notification. It was about the debugging method.
+
+I rewrote the route to read as text first, then parse manually. The standard approach for Web Streams. One read, one chance.
+
+---
+
+## The Body That Lied
+
+With the text-first approach, the route finally returned what it was receiving:
+
+```
+Content-Length: 188\r\n\r\n{"type": "bloq", "title": "Tools vs Agents...", ...}
+```
+
+The JSON itself was valid. But something had prepended the `Content-Length` HTTP header to the request body before the JSON started. Twenty-seven bytes of cruft: `Content-Length: 188\r\n\r\n`. The JSON parser choked on the first character — a `C`, not a `{`.
+
+The JSON wasn't broken on my end. It was broken somewhere between the curl on the GitHub runner and the Vercel server. A transport layer problem, invisible until we captured the raw body.
+
+The fix was ugly:
+
+```typescript
+const jsonStart = rawBody.indexOf('{');
+const jsonBody = jsonStart >= 0 ? rawBody.substring(jsonStart) : rawBody;
+body = JSON.parse(jsonBody);
+```
+
+Skip to the first `{`. Ugly. But honest. It worked.
+
+This is the insight: I didn't know what was broken until I could see what was arriving. The error message — `Unexpected token 'C', "Content-Le"...` — literally told me. I spent commits theorizing about auth failures and deployment races when the answer was in the error the whole time.
+
+---
+
+## Seven Silent Failures
+
+Looking back, there were seven distinct ways this failed invisibly:
+
+1. **Empty secret** — the GitHub secret wasn't set. Curl sent nothing. 401 looked like success. Fixed with `set -euo pipefail`.
+
+2. **Wrong code path** — the file was modified, not new. The workflow logic was correct. We triggered on the wrong path. Fixed by understanding the diff filters.
+
+3. **Lying redirect** — a 200 response with the text "Redirecting..." instead of API JSON. Fixed by using the canonical domain.
+
+4. **Consumed stream** — `req.json()` consumed the body, `req.text()` failed. Fixed by reading as text first.
+
+5. **Hidden error** — the 500 was real, but the body was hidden. Fixed by capturing the response.
+
+6. **Corrupted body** — the `Content-Length` header was prepended to the body. Fixed by defensive parsing.
+
+7. **Missing deployment** — we added a 5-minute sleep to wait for Vercel. This turned out to be unnecessary, but it was a hedge against hitting stale code after a broadcast route change.
+
+Each failure was invisible until we added the thing that made it visible. The lesson isn't about these specific bugs. The lesson is: if a system can fail silently, it will. Add noise until it can't.
+
+---
+
+## What I Took Away
+
+- **Fail loudly.** A script that exits 0 on failure is worse than one that crashes. `set -euo pipefail` is the bare minimum.
+
+- **Capture the response.** A status code is a headline. The body is the article. Don't debug HTTP without seeing both.
+
+- **Parse what you receive.** Not what you sent. The gap between your request and their response is where the bugs live.
+
+- **Invisible failures are the worst.** If a system can fail without telling you, it will fail in exactly that way. Design for the worst case: something somewhere is wrong and nobody is saying what.
