@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 2
 
       - name: Wait for Vercel deployment
-        run: sleep 60
+        run: sleep 300
 
       - name: Detect and notify new bloqs
         env:
