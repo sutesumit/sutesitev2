@@ -38,14 +38,11 @@ jobs:
             echo "Slug: $SLUG"
             echo "Tags: $TAGS"
 
-            RESPONSE=$(curl -X POST "$BROADCAST_URL" \
+            curl -X POST "$BROADCAST_URL" \
               -H "Content-Type: application/json" \
               -H "X-Broadcast-Secret: $TELEGRAM_BOT_TOKEN" \
               -d "{\"type\": \"bloq\", \"title\": \"$TITLE\", \"slug\": \"$SLUG\", \"tags\": \"$TAGS\"}" \
-              -w "\n%{http_code}" \
-              --silent --show-error) || true
-            
-            echo "API Response: $RESPONSE"
+              --fail --silent --show-error
 
             echo "Notification sent for: $TITLE"
           }
