@@ -14,9 +14,6 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Wait for Vercel deployment
-        run: sleep 300
-
       - name: Detect and notify new bloqs
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
