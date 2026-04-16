@@ -20,7 +20,7 @@ jobs:
       - name: Detect and notify new bloqs
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          BROADCAST_URL: https://sumitsute.com/api/telegram/broadcast
+          BROADCAST_URL: https://www.sumitsute.com/api/telegram/broadcast
         run: |
           set -euo pipefail
 
