@@ -14,48 +14,42 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Wait for Vercel deployment
+        run: sleep 60
+
       - name: Detect and notify new bloqs
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           BROADCAST_URL: https://sumitsute.com/api/telegram/broadcast
         run: |
           set -euo pipefail
-          set -x
-          
-          echo "=== Detecting new bloq index.mdx ==="
-          NEW_BLOQS=$(git diff --name-only --diff-filter=A HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
-          echo "NEW_BLOQS: $NEW_BLOQS"
-          
-          MODIFIED_BLOQS=$(git diff --name-only --diff-filter=M HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
-          echo "MODIFIED_BLOQS: $MODIFIED_BLOQS"
-          echo "=== End detection ==="
-          
+
           send_notification() {
             local bloq="$1"
             local reason="$2"
-            
+
             echo "Processing ($reason): $bloq"
-            
+
             TITLE=$(grep '^title:' "$bloq" | head -1 | sed 's/title: *["'"'"']\?//' | sed 's/["'"'"']$//')
-            SLUG=$(grep '^slug:' "$bloq" | head -1 | sed 's/slug: *//')
+            SLUG=$(grep '^slug:' "$bloq" | head -1 | sed 's/slug: *["'"'"']\?//' | sed 's/["'"'"']$//')
             TAGS=$(sed -n '/^tags:/,/^[a-z]/p' "$bloq" | grep '  - ' | sed 's/  - //' | tr '\n' ',' | sed 's/,$//')
-            
+
             echo "Title: $TITLE"
             echo "Slug: $SLUG"
             echo "Tags: $TAGS"
-            
+
             curl -X POST "$BROADCAST_URL" \
               -H "Content-Type: application/json" \
               -H "X-Broadcast-Secret: $TELEGRAM_BOT_TOKEN" \
               -d "{\"type\": \"bloq\", \"title\": \"$TITLE\", \"slug\": \"$SLUG\", \"tags\": \"$TAGS\"}" \
               --fail --silent --show-error
-              
+
             echo "Notification sent for: $TITLE"
           }
-          
+
           # Process newly added files
           NEW_BLOQS=$(git diff --name-only --diff-filter=A HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
-          
+
           for bloq in $NEW_BLOQS; do
             DRAFT=$(grep '^draft:' "$bloq" | head -1 | sed 's/draft: *//')
             if [ "$DRAFT" = "true" ]; then
@@ -64,17 +58,17 @@ jobs:
             fi
             send_notification "$bloq" "new"
           done
-          
+
           # Process modified files where draft changed from true to false
           MODIFIED_BLOQS=$(git diff --name-only --diff-filter=M HEAD^ HEAD -- 'src/content/bloqs/**/index.mdx')
-          
+
           for bloq in $MODIFIED_BLOQS; do
             if git diff HEAD^ HEAD -- "$bloq" | grep -q '^-draft: *true' && \
                git diff HEAD^ HEAD -- "$bloq" | grep -q '^+draft: *false'; then
               send_notification "$bloq" "published"
             fi
           done
-          
+
           if [ -z "$NEW_BLOQS" ] && [ -z "$MODIFIED_BLOQS" ]; then
             echo "No bloqs to notify"
           fi
