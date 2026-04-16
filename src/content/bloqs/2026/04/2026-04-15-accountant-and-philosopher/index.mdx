@@ -2,7 +2,7 @@
 title: "Tools vs Agents: What Gets Lost When You Stop Reaching"
 publishedAt: "2026-04-15"
 summary: "Static analysis is O(V+E). Agentic workflows are O(I-have-no-idea). What happened when I installed Knip, handed it to an agent, and stopped thinking about input sets."
-slug: "tools-vs-agents-when-to-use-static-analysis"
+slug: "what-gets-lost-when-you-stop-reaching"
 tags:
   - ai
   - debugging
@@ -139,19 +139,19 @@ The pipeline:
 
 Each stage is **composable** — you can swap the parser, change the resolver, add a new plugin — and the pipeline still produces a valid answer because each stage's output is a well-defined function of its input. This is **referential transparency**, borrowed from functional programming: the same input always produces the same output, with no side effects.
 
-An LLM doesn't work this way. When you ask an LLM "is this file unused?", it doesn't parse the code, allocate memory for a graph, and compute an exact set difference. Instead, it relies on statistical probabilities. Even advanced models that "reason" are essentially using their context window to simulate a graph traversal probabilistically. Make the codebase large enough, and that simulation will hallucinate or drop context. The LLM lacks a deterministic data structure it can traverse with mathematical certainty. It is performing an incredibly sophisticated probabilistic approximation of computation.
+Most production agents — LangChain, Claude Code, OpenAI's Agents SDK, LlamaIndex workflows — operate by tool calling: the model decides what to invoke, a deterministic function executes it, and the result is returned to context. The agent in this very article called Knip via bash. It didn't try to probabilistically simulate import graph traversal. This means the "agent vs tool" framing in most discussions is slightly false. They're not rivals — they're a stack.
 
-This isn't a flaw. It's a different paradigm. We see advanced models solve complex security puzzles, chaining seemingly unrelated vulnerabilities into genius exploits. That works beautifully because finding an exploit is an open-ended search through a massive possibility space where "correct" is found through synthesis and creative leaps. Pruning unused code is fundamentally different. It is a closed-system problem where the algorithm is known, the input is structured, and the answer is binary. A probabilistic engine excels at discovering novel exploit chains but struggles to confidently subtract two sets of ten thousand files. The mistake is using a creative synthesizer where an accountant belongs.
+That said, an LLM trying to *replace* a tool — performing the tool's job by reading files pairwise and guessing at reachability — hits a wall. The model can *orchestrate* the tool (deciding when to call it, with what inputs), but it can't *simulate* the tool's determinism. When you ask an LLM "is this file unused?", it doesn't parse the code and compute a set difference. Instead, it uses its context window to simulate traversal probabilistically. Make the codebase large enough, and that simulation will hallucinate or drop context.
 
 ---
 
 ## The Run, and the Crash
 
-The setup. I already had `.next/` (381MB) and `node_modules/` (594MB) sitting in my project from prior work. The agent didn't create them. They were just there, like that one kitchen drawer everyone has that's full of takeout menus and dead batteries. Like, you don't put them there. They just are.
+This is where the agent's lack of an operational cost-model became visible.
 
-The agent's configuration. It created a `knip.jsonc` with `project: ["src/**/*.{ts,tsx}"]`. On paper, correct. The glob scopes analysis to source files only. The agent knew the syntax. The agent did not, however, know that Knip's Next.js plugin has opinions about what constitutes "analysis scope" that differ from what the glob says. It's like writing "vegetarian only" on a restaurant reservation and the waiter keeps bringing you the tasting menu because the chef "knows what you'll like."
+The setup. I already had `.next/` (381MB) and `node_modules/` (594MB) sitting in my project from prior work. They were just there, like that one kitchen drawer everyone has that's full of takeout menus and dead batteries.
 
-What actually happened. Knip's Next.js plugin doesn't just respect your `project` glob. It also parses `next.config.ts` for referenced dependencies. And the dependency resolver walks into `node_modules/` to trace package consumption. So despite the very reasonable glob, Knip was parsing:
+The agent's configuration. It created a `knip.jsonc` with `project: ["src/**/*.{ts,tsx}"]`. Correct — the glob scopes analysis to source files only. What the agent missed: Knip's Next.js plugin expands scope beyond the glob. It parses `next.config.ts` for referenced dependencies and walks into `node_modules/` to trace package consumption. So despite the reasonable glob, Knip was parsing:
 
 ```text
   Source files (src/):            ~100 files     ~2 MB
@@ -162,23 +162,23 @@ What actually happened. Knip's Next.js plugin doesn't just respect your `project
   Total parsed:                  ~15,250 files  ~983 MB
 ```
 
-To answer a question about 100 files. That's a signal-to-noise ratio of 100:15,150. For context, that's like asking someone to find a specific book in your house and they respond by reading every book in the city library, two grocery stores, and a nearby school, then complaining about the font size.
+To answer a question about 100 files. That's a signal-to-noise ratio of 100:15,150.
 
-The crash. `npx knip` died with `RangeError: Array buffer allocation failed`. The `oxc-parser` uses a flat `ArrayBuffer` for AST transfer between Rust and JavaScript. The buffer scales with file content. After parsing thousands of `node_modules` files, the accumulated pressure made it choke on a 38KB data file with extremely long lines. Think of it like eating through an entire buffet, then dying on a single olive because your stomach finally noticed.
+The crash. `npx knip` died with `RangeError: Array buffer allocation failed`. The `oxc-parser` uses a flat `ArrayBuffer` for AST transfer between Rust and JavaScript. The buffer scales with file content. After parsing thousands of `node_modules` files, the accumulated pressure made it choke on a 38KB data file with extremely long lines — like eating through a buffet, then dying on a single olive.
 
-The agent's diagnosis: it investigated file sizes, found the two data-heavy files (`flash_fiction_object.ts` at 38KB/81 lines, `content.ts` at 37KB/69 lines), and blamed them. It patched `oxc-parser` inside `node_modules` to disable `experimentalRawTransfer`. The reports finally ran.
+The agent's diagnosis: it investigated file sizes, found the two data-heavy files, and patched `oxc-parser` to disable `experimentalRawTransfer`. The reports finally ran.
 
-But the data files weren't the problem. The problem was parsing 15,000 irrelevant files before reaching them. I had to manually delete `.next/` and `node_modules/` to make Knip run cleanly. The agent never considered this because it didn't model the computational cost of what it was asking Knip to do. It's like ordering an Uber to go next door. Technically correct. Computationally absurd.
+But it was treating the symptom (crash) rather than the cause (15,000 irrelevant files in the input set). I deleted `.next/` and `node_modules/` manually to make Knip run cleanly. The agent never modeled the computational cost. It's like ordering an Uber to go next door. Correct destination. Absurd journey.
 
-Did removing them affect the output quality? No, and here's why. The `.next/types/` directory contains generated type definitions that are *derived from* source files — they're a projection, not a source. The reachability information already exists in the import graph of `src/`. Parsing them adds no new signal. The `node_modules/` dependency check resolves imports against `package.json` — it cross-references package names, not file contents. Parsing 15,000 files to check if `eslint` is listed in `package.json` is like reading every book in the library to check if the library has a card catalog. The card catalog is right there. You just have to look at it.
+Did removing them affect output quality? No. The `.next/types/` directory contains generated types derived from source files — parsing them adds no new signal. The `node_modules/` dependency check resolves imports against `package.json` — it checks package names, not file contents. Parsing 15,000 files to verify `eslint` is in `package.json` is reading every book in the library to check for a card catalog. The catalog is right there.
 
 The crash meant the output quality was zero. After removal, Knip ran in seconds and found real unused code. The "good design choices" in the plugin system — parsing `next.config.ts` for referenced dependencies, walking `node_modules/` for package consumption — are what caused the crash. Thoroughness without an escape hatch isn't thoroughness. It's a denial-of-service attack on your own RAM.
 
 The agent treated Knip as a black box. It configured the input correctly (the `project` glob) and ran the command. When it crashed, it debugged the symptom (the crash) rather than the cause (the input set was 150x larger than necessary).
 
-You don't think about this explicitly. But you carry an implicit mental model: "this tool parses files. I have 15,000 files in node_modules. The tool doesn't need to parse those. I should make sure it doesn't." That model comes from scar tissue. From watching linters eat your RAM. From `tsc` taking twenty minutes because someone added `**/*.ts` to the include instead of `src/**/*.ts`. From that one time you ran ESLint on `node_modules` and your laptop sounded like it was preparing for liftoff.
+You don't think about this explicitly. But you carry an implicit mental model: "this tool parses files. I have 15,000 files in node_modules. The tool doesn't need to parse those. I should make sure it doesn't." That model comes from experience — from watching linters eat your RAM, from `tsc` taking twenty minutes because someone added `**/*.ts` to the include instead of `src/**/*.ts`. From that one time you ran ESLint on `node_modules` and your laptop sounded like it was preparing for liftoff.
 
-The agent didn't have that scar tissue. Not because it can't form the model, but because the context it was working in — the Knip plugin docs and the `knip.jsonc` schema — didn't surface the right information at the right time. The Knip docs do have a [performance guide](https://knip.dev/guides/performance) that recommends "negated entry and project patterns to exclude files from the analysis" and suggests that "improving configuration may have a significant impact on performance." The [troubleshooting guide](https://knip.dev/guides/troubleshooting) offers `--debug` and `--performance` flags to diagnose bottlenecks. The information was there. The agent just didn't connect it to the problem at hand — because the connection requires the kind of operational intuition that comes from watching tools choke, not from reading documentation. And I, sitting there watching it, had the experience but had outsourced the driving.
+The agent didn't have this operational model. Not because it can't form one, but because the context it was working in — the Knip plugin docs and the `knip.jsonc` schema — didn't surface the right information at the right time. The Knip docs do have a [performance guide](https://knip.dev/guides/performance) that recommends excluding files from analysis and an [`--debug` flag](https://knip.dev/guides/troubleshooting) to diagnose bottlenecks. The information was there. The agent just didn't connect it to the problem at hand.
 
 ---
 
@@ -200,7 +200,7 @@ The agent's recovery: mark exports as `"warn"` in the rules config, skip the aut
 
 Beat 3: The final tally.
 
-- 8 subagent tasks dispatched. 4 failed or needed recovery. A 50% success rate. In baseball, that gets you sent to the minors. In agentic coding, that's Tuesday.
+- 8 subagent tasks dispatched. 4 failed or needed recovery. A 50% success rate — but without a baseline, the number mostly conveys the texture of the session rather than measuring anything real. What matters: the agent correctly configured the project glob, diagnosed the crash symptoms accurately, and successfully landed a cleanup with a passing build. That's worth a sentence, not just a parenthetical.
 - 1 full git revert.
 - 3 Knip crashes.
 - 1 patched `node_modules` file. Yes, the agent monkey-patched a dependency to work around a parser bug. No, I'm not proud of us.
@@ -208,7 +208,7 @@ Beat 3: The final tally.
 - ~30 discrete operations, ~150,000 tokens consumed.
 - Result: 9,707 lines removed, 65 files deleted, 13 dependencies cleaned, build passing.
 
-Knip's contribution: the analysis. 15 seconds, $0, deterministic. The agent's contribution: the orchestration, the debugging, the recovery, the patching, the reverting, the general chaos. Slower, expensive, imperfect, but it got there. Like a taxi driver who takes the scenic route through three wrong neighborhoods but eventually drops you at the right address.
+Knip's contribution: the analysis. 15 seconds, $0, deterministic. The agent's contribution: the orchestration, the debugging, the recovery. Slower, expensive, imperfect, but it landed. The task — cleaning a Next.js codebase with framework-specific transitive dependencies, barrel re-exports, and plugin-driven scope expansion — genuinely was hard. Even a senior developer might have tripped on the eslint transitivity problem. What the agent got wrong was the input scope. Everything else it executed well.
 
 I later learned this division of labor isn't unique to my project. Anthropic published a [breakdown of their SWE-bench agent](https://www.anthropic.com/research/swe-bench-sonnet) — the same setup: a model that reasons about what to do, and two tools (Bash and a file editor) that execute. The model's job is knowing *what* to run. The tools' job is running it. When that boundary blurs, you get 15,000 files parsed to answer a question about 100.
 
@@ -241,42 +241,42 @@ The irony: Knip has since shipped an [MCP Server](https://knip.dev/blog/for-edit
 So when do you reach for a tool, and when do you ask an agent? I've been thinking about this in terms of a rough heuristic. Not a decision tree — those are for people who think the world has clean branches. More like a set of forces that pull you in one direction or the other.
 
 ```text
-                    REACH FOR A TOOL
-                         ◄─────────────────────────────────
-                         │                                  │
-    ┌────────────────────┤                                  ├────────────────────┐
-    │                    │                                  │                    │
-    │   Well-defined     │     THE SPECTRUM                 │   Ill-defined      │
-    │   problem space    │                                  │   problem space    │
-    │                    │                                  │                    │
-    │   Known algorithm  │                                  │   No known algo    │
-    │   exists           │                                  │   (or many options)│
-    │                    │                                  │                    │
-    │   Binary answer    │                                  │   Fuzzy answer     │
-    │   (correct/wrong)  │                                  │   (better/worse)   │
-    │                    │                                  │                    │
-    │   Input is         │                                  │   Input requires   │
-    │   structured       │                                  │   interpretation   │
-    │                    │                                  │                    │
-    │   Cost of wrong    │                                  │   Cost of wrong    │
-    │   answer is HIGH   │                                  │   answer is LOW    │
-    │                    │                                  │                    │
-    │   Deterministic    │                                  │   Probabilistic    │
-    │   output needed    │                                  │   output is fine   │
-    │                    │                                  │                    │
-    │   Large input set  │                                  │   Small input set  │
-    │   (scales poorly   │                                  │   (fits in context)│
-    │   with brute force)│                                  │                    │
-    └────────────────────┤                                  ├────────────────────┘
-                         │                                  │
-                         ─────────────────► ASK THE AGENT ──►
+                      REACH FOR A TOOL
+                     ◄────────────────────
+                     │                   │
+  ┌──────────────────┤                   ├──────────────────┐
+  │                  │                   │                  │
+  │ Well-defined     │                   │ Ill-defined      │
+  │ problem space    │                   │ problem space    │
+  │                  │                   │                  │
+  │ Known algorithm  │                   │ No known algo    │
+  │ exists           │                   │ (or many options)│
+  │                  │                   │                  │
+  │ Binary answer    │                   │ Fuzzy answer     │
+  │ (correct/wrong)  │                   │ (better/worse)   │
+  │                  │                   │                  │
+  │ Input is         │   THE SPECTRUM    │ Input requires   │
+  │ structured       │                   │ interpretation   │
+  │                  │                   │                  │
+  │ Cost of wrong    │                   │ Cost of wrong    │
+  │ answer is HIGH   │                   │ answer is LOW    │
+  │                  │                   │                  │
+  │ Deterministic    │                   │ Probabilistic    │
+  │ output needed    │                   │ output is fine   │
+  │                  │                   │                  │
+  │ Large input set  │                   │ Small input set  │
+  │ (scales poorly   │                   │ (fits in context)│
+  │ with brute force)│                   │                  │
+  └──────────────────┤                   ├──────────────────┘
+                     │                   │
+                     ──► ASK THE AGENT ──►
 ```
 
-The left column describes static analysis, type checking, linting, formatting, build systems — things where the problem is a graph, a tree, or a set, and the answer is a set difference, a type error, or a formatted string. The right column describes code generation, architecture decisions, debugging hypotheses, test case design — things where the problem is a conversation, and the answer is a draft that you iterate on.
+The left column — "reach for a tool" — describes static analysis, type checking, linting, formatting, build systems: problems where the algorithm is known, the input is structured, and the answer is binary (correct/wrong). The right column — "ask the agent" — describes code generation, architecture decisions, debugging hypotheses, test case design: problems where the answer is a draft you iterate on (better/worse).
 
-Most real tasks sit somewhere in the middle. The Knip session was a left-column task (find unused code) that I delegated to a right-column worker (an LLM agent). The mismatch is where things broke. The agent could *orchestrate* the left-column task, but it couldn't *replace* it. When I let it replace Knip's deterministic analysis with its own probabilistic reasoning — reading files pairwise, guessing at reachability — the result was 150,000 tokens of chaos.
+Most real tasks sit somewhere in the middle. The Knip session was a left-column task (find unused code) that I delegated to a right-column worker (an LLM agent), with mixed results. The failure wasn't that the agent "tried to replace Knip with vibes." It was weaker orchestration: poor tool configuration (didn't scope the input set correctly before invoking), weak pre-call reasoning (didn't model the computational cost), and reactive diagnosis (debugged the symptom, not the cause). These are orchestration failures, not paradigm failures.
 
-The taste develops from scar tissue. You reach for a tool, it works, you remember. You ask an agent, it hallucinates, you remember. Over time you build an internal model of which problems are "tool problems" and which are "agent problems." The model isn't perfect. But it's better than treating every problem the same way.
+The taste develops from experience. You reach for a tool, it works, you remember. You ask an agent, it hallucinates, you remember. Over time you build an internal model of which problems are "tool problems" and which are "agent problems." The model isn't perfect. But it's better than treating every problem the same way.
 
 ---
 
@@ -284,7 +284,7 @@ The taste develops from scar tissue. You reach for a tool, it works, you remembe
 
 - **Purpose-built tools have a computational advantage that agents can't replicate.** Knip parses 100 files in linear time, finishing in seconds for $0. An agent doing the same analysis by reading files pairwise would need exponentially more token calls. Anthropic's own SWE-bench report notes that successful agent runs "took hundreds of turns... and >100k tokens" — and that the model's tenacity "can be expensive." In my session, the agent consumed ~150,000 tokens to orchestrate what Knip did in 15 seconds. The math doesn't care how smart the model is. And the industry knows it: Anthropic's [agent design guide](https://www.anthropic.com/engineering/building-effective-agents) explicitly frames every architectural decision as a "latency and cost" tradeoff, recommending that easy tasks be routed to cheaper models and agent complexity be added only when simpler solutions fail. The billable unit of agent efficiency isn't operations — it's tokens. The billable unit of tool efficiency isn't tokens — it's milliseconds. These are different currencies, and the exchange rate is not in the agent's favor.
 
-  The models *are* getting smarter — [scaling laws](https://arxiv.org/abs/2001.08361) show performance improves predictably with compute, and Claude 3.5 Sonnet [solves 49% of real-world GitHub issues](https://www.anthropic.com/research/swe-bench-sonnet) on SWE-bench, up from 22% a year prior. But smarter models consume more tokens per inference, and the cost-per-task curve hasn't flattened. A faster racehorse is still more expensive than a bicycle, if the bicycle gets you there.
+  The models *are* getting smarter — [scaling laws](https://arxiv.org/abs/2001.08361) show performance improves predictably with compute. At time of writing (early 2025), Claude 3.5 Sonnet [solved 49% of real-world GitHub issues](https://www.anthropic.com/research/swe-bench-sonnet) on SWE-bench, up from 22% a year prior. By mid-2026, the scores have shifted further. But smarter models consume more tokens per inference, and the cost-per-task curve hasn't flattened. A faster racehorse is still more expensive than a bicycle, if the bicycle gets you there.
 
 - **The agent's job is orchestration, not simulation.** Knip removed 9,707 lines in seconds. The agent spent 150,000 tokens setting up, debugging, and recovering. The right division of labor: the tool does the analysis, the agent does the plumbing. <del>You don't ask your search engine to also write the email</del>.
 
@@ -292,7 +292,9 @@ The taste develops from scar tissue. You reach for a tool, it works, you remembe
 
 - **Context boundaries explain most agent failures, not capability boundaries.** The agent didn't exclude `.next/` because it didn't have the operational context to know it should. Not because it can't understand folder sizes. The distinction matters because it points to the fix: better prompts, better tooling, better context management. Not a bigger model. You don't need a bigger hammer. You need to stop hitting the same nail.
 
-- **Can an LLM think of a smarter way?** This is the question I keep coming back to. The honest answer: it depends on what "think" means. Google DeepMind's [FunSearch](https://www.nature.com/articles/s41586-023-06924-6) used an LLM to discover better algorithms for the bin-packing problem — algorithms that outperform established human-designed heuristics. But FunSearch didn't just "think" of a better algorithm. It used an evolutionary loop: the LLM generates code, a deterministic evaluator scores it, the best solutions are fed back, and the cycle repeats. The LLM provided creativity. The evaluator provided correctness. Neither could have done it alone. This is the same pattern as Knip and the agent — the tool executes, the model reasons — but inverted: the model *generates*, the tool *evaluates*. The implication: LLMs can discover efficient approaches *when paired with deterministic verification*. Without the evaluator, you're just sampling from a probability distribution and hoping the output is correct. With the evaluator, you're doing directed search in solution space. The difference between "hoping" and "searching" is the difference between O(2^n) and O(n log n). The LLM makes the search smarter. The tool makes the search honest.
+The FunSearch insight is what stays with me. Google DeepMind's [FunSearch](https://www.nature.com/articles/s41586-023-06924-6) used an LLM to discover better algorithms for the bin-packing problem — but it wasn't a magic moment of "thinking" a better algorithm. It was an evolutionary loop: the LLM generates code, a deterministic evaluator scores it, the best solutions are fed back, the cycle repeats. The LLM provides creativity. The evaluator provides correctness. Neither could have done it alone.
+
+This is the article's thesis in its sharpest form: the model generates, the tool evaluates, and the tool makes the search honest. Without the deterministic check, you're just sampling from a probability distribution and hoping the output is correct. With it, you're doing directed search. The difference between "hoping" and "searching" is the difference between O(2^n) and O(n log n).
 
 ---
 
@@ -303,7 +305,7 @@ The taste develops from scar tissue. You reach for a tool, it works, you remembe
 - [FunSearch: Making New Discoveries in Mathematical Sciences Using LLMs](https://www.nature.com/articles/s41586-023-06924-6) — Fawzi et al., Nature (2023). The first LLM-driven discovery in open mathematical problems. An LLM generates algorithms, a deterministic evaluator scores them, and the cycle discovers solutions that outperform human-designed heuristics. The model provides creativity; the tool provides correctness.
 - [Claude Code Best Practices](https://code.claude.com/docs/best-practices) — Anthropic (2025). The company that builds Claude says context management is the #1 constraint. "Claude's context window fills up fast, and performance degrades as it fills." Practical guidance on when to use subagents, when to clear context, and how to structure agentic workflows.
 - [A Survey on Large Language Model based Autonomous Agents](https://arxiv.org/abs/2308.11432) — Wang et al. (2023). Comprehensive survey of LLM-based agents across domains. Useful for understanding the architectural patterns that make agents work (or fail).
-- [Coercing LLMs to Do and Reveal (Almost) Anything](https://arxiv.org/abs/2402.14020) — Geiping et al. (2024). A broad survey of adversarial attack surfaces on LLMs beyond jailbreaking: misdirection, model control, denial-of-service, data extraction. Why agent behavior can't be taken for granted, even with guardrails.
+
 - [Knip Documentation](https://knip.dev) — The tool that started all this. Read the plugin docs, not just the config docs.
 - [How To Avoid O-Abuse and Bribes](https://rjlipton.com/2009/07/24/how-to-avoid-o-abuse-and-bribes/) — R.J. Lipton (2009). Bob Sedgewick's argument that Big O notation is widely misused to predict performance, and that ≈ notation with explicit constants is more honest. "Experimental verification of hypotheses is easy with ≈ notation and impossible with O-notation."
 - [Galactic Algorithms](https://rjlipton.com/2010/10/23/galactic-algorithms/) — R.J. Lipton (2010). Coined the term for algorithms with wonderful asymptotic behavior that are never used in practice. David Johnson: "I would easily prefer |V|^70 to even constant time, if that constant had to be one of Robertson and Seymour's."
