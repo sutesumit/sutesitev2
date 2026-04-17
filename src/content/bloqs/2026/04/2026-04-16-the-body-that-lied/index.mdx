@@ -1,8 +1,8 @@
 ---
-title: "The Body That Lied"
+title: "Observe, Don't Assume"
 publishedAt: "2026-04-16"
-summary: "A GitHub Action that sends a Telegram notification. Five lines of curl. Twenty-eight commits later, I finally saw what the server was actually receiving."
-slug: "the-body-that-lied"
+summary: "A GitHub Action, a Telegram notification, and seven invisible ways the system failed without telling me. The bugs weren't technical. They were in my assumptions."
+slug: "debugging-invisible-failures-observe-dont-assume"
 tags:
   - debugging
   - architecture
@@ -11,63 +11,123 @@ tags:
 authors:
   - Sumit Sute
 category: "Reflections"
-draft: true
+draft: false
 featured: false
 ---
 
 > "You can't trust what you send. Only what arrives."
 
-A GitHub Action that sends a Telegram notification. Five lines of curl. How hard could it be?
+I wanted one thing. Publish a blog post, get a Telegram notification on <Link className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' target='_blank' href='https://t.me/blipbotlive'><FaTelegram /></Link> channel. That's it. A single ping. A little "hey, your words are live" from the void. How hard could it be?
+
+Hard. Extremely, humiliatingly, "maybe I should reconsider my life choices" hard. Twenty-eight commits. Forty-something hours. Seven distinct failure modes, all invisible, all silent, all politely pretending everything was fine.
+
+And the worst part? Every single one was my fault. Not the framework's, not the network's, not the cloud provider's. Mine. I had enough confidence to be dangerous and not enough humility to verify. Which, come to think of it, is exactly how I used to walk into mechanical engineering labs — convinced the simulation was right and the physical part was just being difficult. Turns out the physical part is always right. So is the server. It's always telling you something. You just have to listen.
+
+Let me tell you the story. Not because the bugs matter — by the time you read this, I'll have forgotten half the specifics. What matters is the pattern. The way all of us, whether we're hands-on-keyboard or prompting an agent, keep walking into the same walls. We code the happy path — the "everything works perfectly" scenario — and then act surprised when reality doesn't cooperate.
 
 ---
 
-## The Silent Green Checkmark
+## The Setup (I'll Be Quick)
 
-The first commit that should have triggered the notification arrived on a Tuesday. The workflow ran. The checkmark was green. The notification never appeared in the channel.
+Blog. Next.js. Deployed on Vercel. When I publish a post, a GitHub Action — a little automated script that runs on GitHub's servers every time I push code — calls an API endpoint on my site, which then pings the <Link className='inline-flex blue-border p-1 rounded-sm items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 cursor-pointer transition-all duration-200' target='_blank' href='https://t.me/blipbotlive'><FaTelegram /></Link> Telegram channel. A pipeline. A chain of dominos. Push code, dominos fall, phone goes brrr. [I've written about the full architecture before](/bloq/private-publishing-system-telegram-cli-architecture) — it's one content system with three doorways, and this particular doorway was supposed to be the simplest one.
 
-I added `set -euo pipefail` to the workflow — a habit I should have had from the start. Without it, when curl sent an empty `X-Broadcast-Secret` header (because the GitHub secret wasn't set yet), the API responded with a 401. The script exited 0 because there was no `set -e`. A green checkmark on a silent failure. The worst kind of bug.
+Five lines of `curl` in the Action. A single API route on the server. What could go wrong?
 
-There was another problem: the workflow triggered on every push, but the file was created with `draft: false` from the start. That meant it was detected as **modified**, not **new**. The "new file" path never fired. The workflow logic was correct. We were testing the wrong code path.
-
-Two invisible failures. Neither one killed the script. Both prevented the notification.
+Everything. Everything could go wrong.
 
 ---
 
-## The Redirect That Lied
+## Mistake #1: The Silent Green Checkmark
 
-With a real secret now set, I toggled draft to trigger the "published" path. The curl ran. The response was "Redirecting..." — not a notification, not an error, just that one word in the response body.
+First push. The Action runs. Green checkmark. Beautiful. I lean back, crack my knuckles, wait for the Telegram notification.
 
-The workflow used `https://sumitsute.com/api/telegram/broadcast`. My site lives at `https://www.sumitsute.com`. The non-www domain returned a redirect page with a 200 status code. Curl followed the redirect and got the HTML of a redirect page, not the JSON API response. Success in appearance, void in substance. A 200 that meant nothing. The API was never even called.
+Nothing. Silence. The kind of silence that makes you check if your phone is on mute. It was not on mute.
 
-I changed the URL to use the canonical domain. That should have been the fix.
+Here's what happened. The script sends an HTTP request to my API with a secret token — like a VIP wristband at a concert. No wristband, no entry. The server shot back a 401 — which is HTTP's way of saying "who are you and why are you in my house?" But my script didn't have `set -euo pipefail` at the top.
 
-It wasn't.
+Let me unpack that. `set -e` means "if any command fails, stop immediately." `set -u` means "if any variable is unset, stop immediately." `set -o pipefail` means "if any command in a chain of piped commands fails, the whole chain fails." Together, they turn your script from that overly agreeable friend who says "sounds great!" to every plan into a drill sergeant who stops the drill the instant something's off. Without them, bash just... keeps going. The curl command failed — got that 401 — and bash shrugged, exited with code 0, which is Unix for "everything went perfectly." A green checkmark. On a failure.
 
----
+It's like your smoke detector saying "all clear" while the kitchen's on fire. The building burns down and the fire marshal reads the log: "System reports nominal." Thanks.
 
-## The Stream That Could Only Be Read Once
+The fix was one line. `set -euo pipefail`. Crash on error, crash on unset variables, crash if anything in a pipeline fails. Your scripts should be like a nervous intern: if anything looks wrong, tell someone immediately. You can relax them later. Start tight.
 
-With the correct URL, curl returned a 500. Progress — we were hitting the actual API now. But the response body was hidden behind `--silent --fail`, so I couldn't see what went wrong. I added response capture to see the error.
-
-The error was "Body has already been read." The Web Streams API — used by Next.js App Router — lets you read the request body exactly once. I called `req.json()`, which consumed the stream. When the call failed (for some other reason), the subsequent `req.text()` in the catch block had nothing left to read. The error wasn't about the notification. It was about the debugging method.
-
-I rewrote the route to read as text first, then parse manually. The standard approach for Web Streams. One read, one chance.
+I keep learning this lesson. [I've written before about vibing my way into walls](/bloq/lessons-learned-collaborating-with-ai-agents) because I didn't stop to verify what the agent was actually doing. Same pattern. The checkmark was green. The code was "working." Nothing was working. I just didn't build the system to tell me when it wasn't.
 
 ---
 
-## The Body That Lied
+## Mistake #2: Right Logic, Wrong Door
 
-With the text-first approach, the route finally returned what it was receiving:
+Okay, secret's set. Let's try again. Push. Green checkmark. Still no notification.
 
-```
+The Action uses diff filters — it checks what files changed in the commit. It only triggers the notification when a *new* post is detected, not when an existing one is modified. Makes sense. You don't want a "NEW POST!" alert every time you fix a comma splice. That's the kind of thing that makes you mute the channel, and then you miss actual new posts, and the whole notification system becomes decorative.
+
+But here's the thing. When I first created the file, I set `draft: false`. Not draft. Published. From commit one. So every subsequent edit? The Action saw it as "modified," not "added." The new-file path never fired. The workflow was logically correct. The trigger was wrong.
+
+I was ringing the right doorbell on the wrong house and wondering why my friend wasn't answering.
+
+This one's insidious because the code is right. An agent would write this correctly too. "Notify on new posts" — done. But what counts as "new"? That's a boundary condition — an edge in the spec where the definition gets fuzzy. These are exactly the places where agent-assisted code falls apart, because the agent implements the spec faithfully, and the spec is wrong in ways I'd never think to check until the system silently ignores me.
+
+I noticed a version of this pattern in [The Bug Was In The Conversation](/bloq/how-to-prompt-ai-agents-for-complex-refactors) — the bug wasn't in the agent's implementation, it was in what I'd failed to ask. Same here. The code did what I said. I just said the wrong thing.
+
+---
+
+## Mistake #3: The 200 That Meant Nothing
+
+Secret set. Right trigger. Let's go. The curl runs. The response: "Redirecting..."
+
+Just that word. Not a success. Not an error. "Redirecting..." Like getting a postcard from your data that says "Wish you were here — went somewhere else."
+
+The Action was calling `sumitsute.com/api/...`. My site lives at `www.sumitsute.com`. The bare domain doesn't serve content — it tells the browser "the thing you want has permanently moved, try over there" with a 301 status code. That's HTTP for "I know where this lives, but it's not here." Curl followed the redirect like a golden retriever chasing a ball — helpful, eager, completely unaware of the bigger picture — and landed on a page that just said "Redirecting..." in HTML.
+
+And the HTTP status code for that page? 200 OK. Which is HTTP's way of saying "here's something, I'm not dead." But that "something" was a redirect page. Not my API. Not JSON. Not a notification. A webpage with one word on it.
+
+I got a 200 and told myself the notification was sent. It was like ordering food on DoorDash, getting a notification that says "order received," and then waiting three hours before realizing "received" doesn't mean "cooked." The restaurant never got the order. The app just acknowledged that it existed.
+
+[The Bug That Returned 200 OK](/bloq/hardcoded-page-size-data-loss) — a story about a different bug but the same category of lie — drilled this into me. A 200 doesn't mean "it worked." It means "I gave you something." That something could be an apology page, a redirect, or an empty JSON object with `"success": false` inside it. The status code is the envelope. The response body is the letter. I kept reading the envelope and throwing away the letter.
+
+---
+
+## Mistake #4: The One-Time Read (Or: How My Debugging Broke My Debugging)
+
+Fixed the URL. Hit the actual API. Got a 500 Internal Server Error — which is HTTP's way of saying "something broke on my end and I'm not entirely sure what." Progress! We're finally talking to the right endpoint and it's having a crisis. That's a real conversation. That's something to work with.
+
+But I couldn't see *why* it was having a crisis, because my curl command had `--silent --fail` — flags that suppress output. `--silent` mutes the progress bar and response body. `--fail` makes curl exit with an error code on HTTP errors but still hides the body. The HTTP equivalent of putting duct tape over someone's mouth and then asking why they're not answering your question. The server was screaming. I had earmuffs on.
+
+So I added error capturing to the API route. Read the body as JSON first, and if that fails, read it as text to see what came in. Reasonable, right? Standard fallback pattern. Try the structured parse, degrade gracefully to raw text.
+
+Except. Here's the thing about how HTTP requests work. When a client — curl, a browser, an agent — sends a POST request to a server, the data doesn't arrive all at once like a PDF attachment. It arrives as a stream of bytes. A river. The server holds one end of the hose and the data flows through. In Node.js, and by extension Next.js, this is modeled as a `ReadableStream` — an object that lets you pull data out, piece by piece, until it's empty.
+
+Why a stream and not just... a string? Because the body could be enormous. File uploads, large JSON payloads, form data with attachments. Holding all of that in memory at once is wasteful and sometimes dangerous. So the runtime gives you a stream — a lazy, efficient way to process data as it comes in. Pull what you need, move on. But there's a tradeoff: the stream can only be consumed once. The bytes flow through the hose and they don't come back. There's no rewind button. The runtime doesn't keep a copy.
+
+So when my code called `req.json()`, it pulled all the bytes from the stream, tried to parse them as JSON, and the stream was drained. The parse failed — for a different reason I hadn't discovered yet. The catch block tried `req.text()`, but the stream was already empty. The hose had run dry. I was squeezing an empty tube of toothpaste.
+
+The error wasn't "your notification failed." The error was "you already used your one shot at reading the data and you wasted it on a broken parse."
+
+It's a Heisenbug-adjacent situation — the act of observing the bug *was* the bug. My diagnostic code was the thing that needed diagnosing. Like your flashlight batteries dying mid-power-outage, so now you can't find the spare batteries because it's dark.
+
+The standard fix: always read as raw text first — `const raw = await req.text()` — then parse that string yourself with `JSON.parse(raw)`. The `req.text()` call is your one read. Use it on the raw data. Once it's a string in memory, it's yours to keep. Parse it, log it, print it, frame it. The stream is gone, but the string persists.
+
+This is a constraint that's invisible until it bites you. And it's exactly the kind of thing I now mention upfront when prompting agents for API route code: "Read the body as text first. Streams are single-consume." One sentence of scar tissue, shared. The agent doesn't have war stories from production stream bugs. I do. So I hand it the bandage before it bleeds.
+
+---
+
+## Mistake #5: The Body That Lied (The One That Broke Me)
+
+Alright. Text-first parsing in place. The server finally shows me what it's actually receiving:
+
+```text
 Content-Length: 188\r\n\r\n{"type": "bloq", "title": "Tools vs Agents...", ...}
 ```
 
-The JSON itself was valid. But something had prepended the `Content-Length` HTTP header to the request body before the JSON started. Twenty-seven bytes of cruft: `Content-Length: 188\r\n\r\n`. The JSON parser choked on the first character — a `C`, not a `{`.
+I stared at this for a full minute.
 
-The JSON wasn't broken on my end. It was broken somewhere between the curl on the GitHub runner and the Vercel server. A transport layer problem, invisible until we captured the raw body.
+That `Content-Length: 188` at the beginning? That's an HTTP header — metadata that's supposed to travel *alongside* the request body like a mailing label on a package. It tells the server "hey, the stuff inside this envelope is 188 bytes long." Useful information. Meant to be on the envelope, not stuffed inside the letter.
 
-The fix was ugly:
+But there it was. Twenty-seven bytes of header garbage prepended to my perfectly valid JSON. The parser hit the `C` in `Content-Length` instead of the `{` that starts valid JSON and said "what is this nonsense?" And honestly? Fair.
+
+My JSON was pristine. What arrived at the server was a crime scene. Somewhere between GitHub's runner and Vercel's edge — some proxy, some CDN node, some invisible middlebox in the network — something mangled the payload. Like a mail carrier who opens your letters, reads them, tapes them back shut, and accidentally leaves the forwarding label inside the envelope.
+
+The fix was what polite company calls "defensive" and honest company calls "ugly":
 
 ```typescript
 const jsonStart = rawBody.indexOf('{');
@@ -75,40 +135,59 @@ const jsonBody = jsonStart >= 0 ? rawBody.substring(jsonStart) : rawBody;
 body = JSON.parse(jsonBody);
 ```
 
-Skip to the first `{`. Ugly. But honest. It worked.
+Find the first `{`. Start there. Skip everything before it. Don't trust what you receive. Just find the structure you need and extract it. It's the coding equivalent of eating around the moldy part of the bread. Not elegant. But it works, because it meets reality where it is instead of where I wish it were.
 
-This is the insight: I didn't know what was broken until I could see what was arriving. The error message — `Unexpected token 'C', "Content-Le"...` — literally told me. I spent commits theorizing about auth failures and deployment races when the answer was in the error the whole time.
+**And here's the insight that should have saved me hours.** The original error message was: `Unexpected token 'C', "Content-Le"...` See that `C`? That's the `C` in `Content-Length`. The error message was literally spelling out what was wrong. It was right there, in the first error I ever saw. I spent twenty commits chasing auth issues and deployment races, and the answer was printed in my console from day one.
 
----
-
-## Seven Silent Failures
-
-Looking back, there were seven distinct ways this failed invisibly:
-
-1. **Empty secret** — the GitHub secret wasn't set. Curl sent nothing. 401 looked like success. Fixed with `set -euo pipefail`.
-
-2. **Wrong code path** — the file was modified, not new. The workflow logic was correct. We triggered on the wrong path. Fixed by understanding the diff filters.
-
-3. **Lying redirect** — a 200 response with the text "Redirecting..." instead of API JSON. Fixed by using the canonical domain.
-
-4. **Consumed stream** — `req.json()` consumed the body, `req.text()` failed. Fixed by reading as text first.
-
-5. **Hidden error** — the 500 was real, but the body was hidden. Fixed by capturing the response.
-
-6. **Corrupted body** — the `Content-Length` header was prepended to the body. Fixed by defensive parsing.
-
-7. **Missing deployment** — we added a 5-minute sleep to wait for Vercel. This turned out to be unnecessary, but it was a hedge against hitting stale code after a broadcast route change.
-
-Each failure was invisible until we added the thing that made it visible. The lesson isn't about these specific bugs. The lesson is: if a system can fail silently, it will. Add noise until it can't.
+I didn't read it. I *saw* it — registered "there's an error" — and immediately started theorizing. I had enough experience to generate hypotheses faster than I could test them, so I was firing off theories like a machine gun while the answer sat patiently in the error log like a dog holding its leash, waiting for me to notice. [The fix was never just force-dynamic](/bloq/ai-agent-prompting-for-architecture-decisions) — I've been here before, chasing impressive-sounding explanations when the boring truth was printed in front of me the whole time.
 
 ---
 
-## What I Took Away
+## The Meta-Pattern: One Mistake, Seven Costumes
 
-- **Fail loudly.** A script that exits 0 on failure is worse than one that crashes. `set -euo pipefail` is the bare minimum.
+Let me zoom out. Here are all seven failures, and the *category* of mistake each one really was:
 
-- **Capture the response.** A status code is a headline. The body is the article. Don't debug HTTP without seeing both.
+1. **Silent failure** — Empty secret, script didn't complain. I assumed errors would be loud. They weren't.
 
-- **Parse what you receive.** Not what you sent. The gap between your request and their response is where the bugs live.
+2. **Wrong trigger** — File was "modified" not "added." I assumed my mental model of "new" matched the system's. It didn't.
 
-- **Invisible failures are the worst.** If a system can fail without telling you, it will fail in exactly that way. Design for the worst case: something somewhere is wrong and nobody is saying what.
+3. **Lying success** — A 200 that was actually a redirect page. I assumed status codes were honest. They weren't.
+
+4. **Consumed stream** — Read the body twice in a single-read world. I assumed I could observe the data as many times as I wanted. I couldn't.
+
+5. **Hidden error** — Suppressed the output that would've told me what was wrong. I assumed I could debug without diagnostic data. I couldn't.
+
+6. **Corrupted body** — The network mangled my payload in transit. I assumed the wire was transparent. It wasn't.
+
+7. **Phantom timing** — Added a 5-minute sleep out of paranoia about deployment timing. I assumed throwing time at the problem would help. It didn't. This is cargo-cult debugging — performing a ritual that looks like problem-solving without understanding why it would help. Like wearing a lucky jersey because your team won once when you happened to be wearing it.
+
+Every single one: same mistake, different outfit. I was reasoning from assumptions instead of observations. And assumptions in software don't fail loudly. They fail silently. They produce green checkmarks on broken pipelines. They produce 200s that mean nothing. They produce "working" code that's testing the wrong path.
+
+[Plans, Agents, and the Illusion of Completion](/bloq/ai-agent-followed-plan-built-wrong-system) — the agent followed the plan and the plan was wrong. [Tools vs Agents](/bloq/what-gets-lost-when-you-stop-reaching) — I stopped reaching for the right tool because the agent was convenient. Same thread running through all of it. The system did what I asked. I asked the wrong thing, observed the wrong metric, trusted the wrong signal.
+
+---
+
+## The Agent Playbook (Or: What I'll Tell Myself Next Time)
+
+This whole saga — twenty-eight commits of increasing desperation — would have been maybe five commits if I'd given the agent the right context upfront. Here's what I'm writing down for next time:
+
+**Make every failure visible.** Scripts should crash on errors, not soldier on. Pipelines should log their inputs and outputs at every junction. If something can fail silently, assume it already has. When I tell an agent to write automation, this is step zero: "Crash loudly on every error. No silent exits."
+
+**Verify at boundaries, not just endpoints.** Don't just check "did the Action run?" Check "what did the server *receive*?" Each seam between systems — GitHub to the network, the network to Vercel, Vercel to my API — is a place where the truth gets modified. Log both sides of every seam.
+
+**Don't trust the wire.** What I send is not what arrives. I know, it should be. It isn't. Log the incoming payload on the server side. Compare it to what the client sent. The delta is where the bugs live. When prompting agents for HTTP-heavy code, I now add: "Log what the server receives, not just what it sends back."
+
+**Read error messages like they're trying to save me time.** Because they are. That `Unexpected token 'C'` was the system saying "hey, there's a `C` at the start of your JSON, maybe look into that." And I said "nah, probably an auth thing." The system was right. I was not. Next time an agent shows me an error, I'll read it twice before I start guessing.
+
+**Specify edge cases in prompts, not just happy paths.** "Notify on new posts" also needs: "a post counts as new only on the commit where it first appears. If it was created as non-draft, subsequent commits are modifications, not publications. Handle both paths." The agent isn't being lazy. I'm being imprecise. [The bugs aren't in the agent's implementation. They're in the space between what I meant and what I said](/bloq/how-to-prompt-ai-agents-for-complex-refactors).
+
+**Share the scar tissue upfront.** I know that streams are single-read. I know that redirects can return 200. I know that `set -e` exists. The agent doesn't know any of this unless I mention it. A one-line note — "Web Streams are single-consume, always read as text first" — saves an entire debugging cycle. My battle scars are the agent's guard rails. I just have to remember to hand them over.
+
+---
+###
+
+The lesson isn't about curl. It's not about GitHub Actions or Web Streams or HTTP status codes. Those are just today's scenery. The lesson is: **the gap between what I think is happening and what's actually happening is where all my bugs live.** And the only way to close that gap is to stop assuming and start observing.
+
+Also, next time I'll just send the Telegram notification manually. For about six months. Until I forget to do that too.
+
+> *To the green checkmarks that lied to me — may you all one day turn yellow, so I know you're trying.*
