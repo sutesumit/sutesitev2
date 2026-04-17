@@ -16,61 +16,42 @@ const mockPagination = {
 };
 
 describe('PaginationControls', () => {
-  it('should render pagination when there are multiple pages', () => {
+  it('should render page numbers when there are multiple pages', () => {
     renderWithRouter(
       <PaginationControls pagination={mockPagination} basePath="/byte" />
     );
 
-    expect(screen.getByText('2 / 5')).toBeInTheDocument();
+    // Should render page numbers 1, 2, 3, 4, 5
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
   });
 
-  it('should show "Showing X-Y of Z" text', () => {
+  it('should render current page as a span', () => {
     renderWithRouter(
       <PaginationControls pagination={mockPagination} basePath="/byte" />
     );
 
-    expect(screen.getByText('Showing 11 - 20 of 50')).toBeInTheDocument();
+    const currentPage = screen.getByText('2');
+    expect(currentPage.tagName).toBe('SPAN');
+    expect(currentPage).toHaveClass('bg-blue-600');
   });
 
-  it('should NOT render prev button on page 1', () => {
-    renderWithRouter(
-      <PaginationControls
-        pagination={{ ...mockPagination, page: 1, hasMore: true }}
-        basePath="/byte"
-      />
-    );
-
-    expect(screen.queryByRole('link', { name: /prev/i })).not.toBeInTheDocument();
-  });
-
-  it('should NOT render next button on last page', () => {
-    renderWithRouter(
-      <PaginationControls
-        pagination={{ ...mockPagination, page: 5, hasMore: false }}
-        basePath="/byte"
-      />
-    );
-
-    expect(screen.queryByRole('link', { name: /next/i })).not.toBeInTheDocument();
-  });
-
-  it('should render prev button when not on first page', () => {
+  it('should render other pages as links', () => {
     renderWithRouter(
       <PaginationControls pagination={mockPagination} basePath="/byte" />
     );
 
-    expect(screen.getByRole('link', { name: /prev/i })).toBeInTheDocument();
+    const page1 = screen.getByRole('link', { name: /Page 1/i });
+    expect(page1).toHaveAttribute('href', '/byte?page=1');
+
+    const page3 = screen.getByRole('link', { name: /Page 3/i });
+    expect(page3).toHaveAttribute('href', '/byte?page=3');
   });
 
-  it('should render next button when has more pages', () => {
-    renderWithRouter(
-      <PaginationControls pagination={mockPagination} basePath="/byte" />
-    );
-
-    expect(screen.getByRole('link', { name: /next/i })).toBeInTheDocument();
-  });
-
-  it('should preserve search query in prev link', () => {
+  it('should preserve search query in links', () => {
     renderWithRouter(
       <PaginationControls
         pagination={mockPagination}
@@ -79,24 +60,26 @@ describe('PaginationControls', () => {
       />
     );
 
-    const prevLink = screen.getByRole('link', { name: /prev/i });
-    // URLSearchParams may order params differently, so check both params exist
-    expect(prevLink).toHaveAttribute('href', expect.stringContaining('q=test'));
-    expect(prevLink).toHaveAttribute('href', expect.stringContaining('page=1'));
+    const page1 = screen.getByRole('link', { name: /Page 1/i });
+    expect(page1.getAttribute('href')).toContain('q=test');
+    expect(page1.getAttribute('href')).toContain('page=1');
   });
 
-  it('should preserve search query in next link', () => {
+  it('should render ellipsis for many pages', () => {
     renderWithRouter(
       <PaginationControls
-        pagination={mockPagination}
+        pagination={{ ...mockPagination, page: 5, totalPages: 10 }}
         basePath="/byte"
-        searchQuery="test"
       />
     );
 
-    const nextLink = screen.getByRole('link', { name: /next/i });
-    expect(nextLink).toHaveAttribute('href', expect.stringContaining('q=test'));
-    expect(nextLink).toHaveAttribute('href', expect.stringContaining('page=3'));
+    // For page 5 of 10, it should show 1, ..., 4, 5, 6, ..., 10
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getAllByText('...')).toHaveLength(2);
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
   });
 
   it('should not render when only one page', () => {
@@ -108,16 +91,5 @@ describe('PaginationControls', () => {
     );
 
     expect(container.firstChild).toBeNull();
-  });
-
-  it('should handle last page with partial items', () => {
-    renderWithRouter(
-      <PaginationControls
-        pagination={{ page: 2, limit: 10, total: 15, totalPages: 2, hasMore: false }}
-        basePath="/byte"
-      />
-    );
-
-    expect(screen.getByText('Showing 11 - 15 of 15')).toBeInTheDocument();
   });
 });
