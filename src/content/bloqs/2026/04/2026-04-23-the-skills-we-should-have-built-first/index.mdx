@@ -1,0 +1,312 @@
+---
+title: "The Workflow I Kept Postponing Was the Point"
+publishedAt: "2026-04-23"
+summary: "The embarrassing realization that the engineering discipline I kept treating as overhead was the actual work. A post-mortem on repeated failures, the skill gaps behind them, and what a real operating model looks like when the workflow finally has to contain wisdom."
+slug: "2026-04-23-the-skills-we-should-have-built-first"
+tags:
+  - ai
+  - architecture
+  - debugging
+  - reflections
+  - development
+authors:
+  - Sumit Sute
+category: "Reflections"
+draft: false
+featured: false
+---
+
+> "The embarrassing part is not that I made the mistake. It is that I made the same mistake, with slightly better vocabulary, and then called it learning."
+
+I have been having this conversation with myself long enough now that the clipboard should probably get a chair. I admitted something I should probably have admitted a year earlier: I have been hoping the models would become disciplined engineers without first building the discipline around them.
+
+That is a very expensive way to discover that raw intelligence is not the same thing as reliable execution.
+
+I keep repeating the same class of mistakes. I start from the symptom. I ask for a fix. I admire the diff. I celebrate the green checkmark. I then act surprised when reality, which was never consulted, continues to behave like reality.
+
+At some point, this stops being a tooling problem and starts being a workflow problem. Then it becomes a skill problem. Then it becomes the classic dev humility problem: I had enough confidence to be dangerous and not enough process to be boring. I have also used the phrase "just a small refactor" enough times to know it is usually code for "future me is about to file a complaint."
+
+The good news is that the shape of the failure is now pretty clear. The bad news is that the shape is embarrassingly familiar.
+
+---
+
+## The Mistakes Kept Returning
+
+The archive has been trying to tell me the same thing in different costumes.
+
+In [Observe, Don't Assume](/bloq/debugging-invisible-failures-observe-dont-assume), the system failed in seven silent ways because I kept trusting signals that only looked like truth. In [The Bug That Returned 200 OK](/bloq/hardcoded-page-size-data-loss), the code was confidently wrong because it was operating on partial data and I did not smell the rot early enough. In [The Bug Was In The Conversation](/bloq/how-to-prompt-ai-agents-for-complex-refactors), the real bug was not the implementation, it was the conversation that made the implementation inevitable. In [Vibing Your Way Into a Wall](/bloq/lessons-learned-collaborating-with-ai-agents), I kept treating the agent like a mirror for my assumptions instead of a partner for my curiosity. In [How Not To Ask An Agent For A Fix](/bloq/ai-agent-prompting-for-architecture-decisions), the first plausible answer was not wrong, it was just too ready to own the architecture before I understood what I had handed over.
+
+That is the pattern. I am not battling a cursed codebase. I am mostly battling my own talent for turning one missing question into four hours of architectural fan fiction.
+
+I am not mainly failing because the model is weak.
+I am failing because my workflow lets ambiguity survive too long.
+
+That means the right answer is not to ask for more vibes. It is to build scaffolding that makes vague work less vague, risky work more visible, and implementation less free to improvise itself into a ditch. My current process should not resemble a vaguely caffeinated improv troupe.
+
+Here is what I can draw from the archive so far.
+
+- **Assuming before observing** *(Very high impact)*
+  - Seen in: [Observe, Don't Assume](/bloq/debugging-invisible-failures-observe-dont-assume), [The Bug That Returned 200 OK](/bloq/hardcoded-page-size-data-loss), [How Not To Ask An Agent For A Fix](/bloq/ai-agent-prompting-for-architecture-decisions)
+  - What went wrong: I trusted the first calm-looking signal instead of verifying what actually happened.
+  - Skills that would have helped: `debugging-and-error-recovery`, `browser-testing-with-devtools`, `observability-and-instrumentation`
+
+- **Writing the wrong contract** *(Very high impact)*
+  - Seen in: [The Bug Was In The Conversation](/bloq/how-to-prompt-ai-agents-for-complex-refactors), [The Lazy Way to Build Better Software](/bloq/spec-driven-development-clap-feature-nextjs), [Plans, Agents, and the Illusion of Completion](/bloq/ai-agent-followed-plan-built-wrong-system)
+  - What went wrong: I described an outcome but not the boundary, invariant, or failure mode.
+  - Skills that would have helped: `idea-refine`, `prd-writing`, `api-and-interface-design`, `documentation-and-adrs`
+
+- **Starting implementation before mapping the system** *(Very high impact)*
+  - Seen in: [Vibing Your Way Into a Wall](/bloq/lessons-learned-collaborating-with-ai-agents), [How Not To Ask An Agent For A Fix](/bloq/ai-agent-prompting-for-architecture-decisions)
+  - What went wrong: I fixed symptoms before tracing read path, write path, and ownership.
+  - Skills that would have helped: `planning-and-task-breakdown`, `incremental-implementation`, `context-engineering`
+
+- **Trusting green lights too early** *(High impact)*
+  - Seen in: [Observe, Don't Assume](/bloq/debugging-invisible-failures-observe-dont-assume), [The Bug That Returned 200 OK](/bloq/hardcoded-page-size-data-loss), [Plans, Agents, and the Illusion of Completion](/bloq/ai-agent-followed-plan-built-wrong-system)
+  - What went wrong: I treated a passing artifact as proof of correctness.
+  - Skills that would have helped: `test-driven-development`, `code-review-and-quality`, `browser-testing-with-devtools`
+
+- **Letting agents guess instead of asking them to think** *(High impact)*
+  - Seen in: [My AI is Smarter Than Me](/bloq/how-to-learn-from-ai-not-just-delegate), [The Bug Was In The Conversation](/bloq/how-to-prompt-ai-agents-for-complex-refactors), [Observe, Don't Assume](/bloq/debugging-invisible-failures-observe-dont-assume)
+  - What went wrong: I delegated the fix without first extracting the lesson.
+  - Skills that would have helped: `context-engineering`, `source-driven-development`, `documentation-and-adrs`
+
+- **Growing workaround forests** *(Medium-high impact)*
+  - Seen in: [Vibing Your Way Into a Wall](/bloq/lessons-learned-collaborating-with-ai-agents), [The YAGNI in Reverse](/bloq/yagni-in-reverse), [How Not To Ask An Agent For A Fix](/bloq/ai-agent-prompting-for-architecture-decisions)
+  - What went wrong: I stacked compensations on top of an unresolved root cause.
+  - Skills that would have helped: `code-simplification`, `deprecation-and-migration`, `debugging-and-error-recovery`
+
+That is the uncomfortable part of the conversation. The part where I stop joking long enough to admit that the same class of failure keeps finding my address because I keep leaving the porch light on for it. The bugs are not impressed by my facade.
+
+That is also why these [`bloq`](/bloq) posts exist in the first place. I started them as a diary of my learning logs, not as a polished parade of engineering certainty. The whole point was to keep a catalogue of the mistakes I was learning from, because the same problem can feel novel five times in a row until I write it down and notice the loop. A catalogue turns "I think I have seen this before" into "I have definitely seen this before, and here is the receipt."
+
+[Peter Girnus had a tweet about repetition at Amazon](https://x.com/gothburz/status/2046575505160225010) that stuck with me for the same reason: repetition can look like motion until I realize I am just cycling the same habit through a bigger machine. That is the part that stings. It is also why I need to remember the motto `dry` from the start of this bloq-writer brain of mine. If I wanted clean learning logs, I should have resisted turning every insight into a tiny soap opera. Alas, I am still here, documenting the repeat.
+
+The useful version of that embarrassment is simple: writing about the mistakes is what made the loop visible. The loop being visible is what made it measurable. The loop being measurable is what made it boring. And boring problems are the best ones to hand to a disciplined skill workflow.
+
+---
+
+## What These Skills Would Fix
+
+These skills do not exist yet. They are proposals I want to turn into actual `SKILL.md` files, and I mostly want to follow the anatomy already used in [Addy Osmani's `agent-skills` repo](https://github.com/addyosmani/agent-skills): clear frontmatter, overview, when-to-use guidance, process, rationalizations, red flags, and verification. That source gives me the shape; my work is to create the skills that match the failures I keep repeating.
+
+This proposed skill stack is not decorative. It is a direct attack on the failure modes above.
+
+The first cluster is about turning vague intent into something concrete enough to inspect.
+
+`idea-refine` shall be the skill I reach for when the idea is still wet cement. It shall give me divergent and convergent thinking, which is a very civilized way of saying, "please do not let me turn the first half-formed idea into architecture just because it feels productive." That would have helped in every post where I wrote or accepted a prompt too early.
+
+`prd-writing` shall formalize objectives, commands, structure, code style, testing, and boundaries before code starts. That is the antidote to "I thought I meant that." It shall also protect against the charming but dangerous habit of treating a feature request like a rumor. A PRD shall force me to say what success is, what failure is, and what is out of contract.
+
+`planning-and-task-breakdown` shall be the bridge between intention and execution. It shall decompose the PRD into ordered, verifiable tasks with acceptance criteria and dependency ordering. That would have saved me from the classic move of building the visible part first and discovering the hidden work after the calendar has already become hostile. It shall be the difference between "the plan is clear" and "the branch is already on fire."
+
+Then comes the build layer.
+
+`incremental-implementation` shall be the skill that says the work should move in thin vertical slices: implement, test, verify, commit. That is the grown-up version of "let me just get the whole thing working first and then I will clean it up later," which is a sentence that has probably financed several caffeinated debugging sessions all by itself. It shall be the software equivalent of buying a second desk because the first one is covered in unresolved decisions.
+
+`test-driven-development` shall give the red-green-refactor loop, plus the test pyramid discipline. It shall stop me from writing only the tests that are easy to pass and then acting surprised when the real world arrives with a stronger opinion. It shall also be where the 80/15/5 split matters: mostly focused unit coverage, some integration coverage, and a small but serious layer of end-to-end proof.
+
+`browser-testing-with-devtools` shall matter because so many of my mistakes are not abstract. They happen in a browser, in the DOM, in hydration, in actual network requests, in layout, in runtime behavior. If it only looks right in the source file but breaks at runtime, that is not a code style problem. That is reality asking for a better witness.
+
+`frontend-ui-engineering` shall stop me from shipping interfaces that are technically functional and emotionally unconvincing. It shall cover component architecture, design systems, responsive design, state management, and accessibility. That might sound far from the debugging stories, but it is actually the same discipline: make the intended behavior explicit and testable instead of hoping the UI will behave because it was rendered with confidence.
+
+`api-and-interface-design` shall be one of the most directly relevant skills in the whole pile. It shall push contract-first design, boundary validation, Hyrum's law, one-version rule, and error semantics. That is the exact antidote to the "works locally, fails at the seam" pattern. If the archive had a mascot, it would be a polite API that lied by omission.
+
+The next cluster is about feeding the agent at the right time with the right context.
+
+`context-engineering` shall be the skill that says the model should not be expected to teleport into wisdom. It shall require the right rules files, the right context packing, the right MCP integrations, and the right timing. This shall be especially important when starting a new session, switching tasks, or noticing that output quality has quietly taken a walk.
+
+`source-driven-development` shall be the antidote to framework folklore. It shall ground decisions in official documentation, verify claims, cite sources, and mark what is still unverified. That would have saved me from a class of "pretty sure this is how Next.js works" decisions that only remain pretty until production has a different opinion. Production, as ever, is the least impressed reviewer.
+
+`documentation-and-adrs` shall be the memory layer. It shall write down the why before I forget the why and start lying to myself with the after-the-fact version of events. This is not paperwork for the sake of paperwork. It shall be an insurance policy against future me becoming confidently unhelpful.
+
+`git-workflow-and-versioning`, `ci-cd-and-automation`, and `shipping-and-launch` shall be the release discipline trio. They shall turn the work from "it seems fine on my machine" into "I can ship this without holding my breath and calling that a process." That matters because a good workflow is not just about writing code. It is about making the path to production less theatrical.
+
+`security-and-hardening` and `performance-optimization` shall not be the first pain points in the archive, but they absolutely belong in the future of the system. If I keep growing the system, these shall not be optional specialties. They are the taxes that arrive when the software starts behaving like software instead of a demo.
+
+`code-review-and-quality` and `code-reviewer` shall close the loop. One shall be the process, one shall be the lens. Together they shall make it much harder to merge a confident mistake just because it was formatted politely. A badly wrong diff with perfect formatting is still just a tuxedo on a dummy.
+
+The skill families:
+
+- `idea-refine` and `prd-writing`
+  - This changes vague intent into concrete proposals with boundaries, failure modes, and real success criteria.
+  - It prevents the classic "I thought I meant that" problem, which is my least favorite species of rework.
+  - It helps a lot when the idea is still wet cement and I am tempted to build a cathedral anyway.
+
+- `planning-and-task-breakdown` and `incremental-implementation`
+  - This changes one intimidating blob of work into small, verifiable slices with acceptance criteria.
+  - It prevents big-bang drift, hidden dependencies, and the slow realization that the branch is now a small software landfill.
+  - It is the difference between "I have a plan" and "I have a branch on fire but with lint passing."
+
+- `test-driven-development` and `browser-testing-with-devtools`
+  - This changes code from "looks right in the editor" to "proved in runtime."
+  - It prevents happy-path delusion, especially when the browser is the actual battlefield.
+  - It gives me a way to stop guessing and start measuring, which is always cheaper than pretending the UI is fine because the screenshot is polite.
+
+- `context-engineering` and `source-driven-development`
+  - This changes agent prompting from random access memory to deliberate context delivery.
+  - It prevents stale assumptions, weak confidence, and framework folklore from sneaking into the implementation wearing a fake moustache.
+  - It is also the cleanest way I know to keep the agent from hallucinating a workflow I never asked for.
+
+- `api-and-interface-design` and `documentation-and-adrs`
+  - This changes contracts from implied to explicit.
+  - It prevents silent ownership leaks, fuzzy boundaries, and the sort of design ambiguity that later turns into a migration with emotional damage.
+  - It also gives future me something to read besides my own regret.
+
+- `code-review-and-quality` plus persona-based review
+  - This changes review from "looks clean" to "would a staff engineer approve this?"
+  - It prevents polished mistakes, oversized diffs, and the particularly annoying class of bug that arrives dressed like a best practice.
+  - It is the last good checkpoint before I convince myself the diff is wiser than I am.
+
+That is the part where the new operating model starts to feel less like "I made more prompts" and more like "I finally built a real engineering system for thought."
+
+---
+
+## What Skills I Still Want, Even If They Do Not Feel Urgent
+
+This is where the imagination gets a little more expensive and the senior-dev sarcasm starts earning its keep.
+
+Some skills are obvious because they map directly to the current failures. Others are future-facing because they solve the problems I have not fully paid for yet.
+
+`deprecation-and-migration` is one of those. Right now it might not feel central, but systems always accumulate dead paths, obsolete contracts, and old code that looks harmless until it becomes a liability with a commit history. If I do not learn how to remove things deliberately, I will end up preserving my own clutter with the dignity of a museum curator who has lost the keys.
+
+`code-simplification` is another one that looks optional until the system becomes unreadable. Chesterton's fence and the rule of 500 are not cute ideas. They are guardrails against turning a clever workaround into a permanent maintenance burden. The bugs in my archive were often not caused by code that was too simple. They were caused by code that had quietly become too busy compensating for assumptions nobody challenged.
+
+`security-and-hardening` may not appear in every story, but it becomes non-optional the moment a system touches user input, auth, secrets, or external integrations. The world gets less forgiving exactly when I decide the system is now real. Strange but consistent.
+
+`performance-optimization` often arrives later than correctness work, but it should still be in the family. The lesson is not "optimize early." The lesson is "learn to measure before you philosophize." That habit is useful even when the current bug is not a perf bug.
+
+`shipping-and-launch` matters more than it sounds like it should. Feature flags, staged rollouts, rollback plans, monitoring. That is the grown-up part of the release lifecycle, and it becomes painfully relevant the moment the thing leaves the safe little nest of local dev and starts meeting users, traffic, and the many kinds of reality that do not read my PR descriptions.
+
+`observability-and-instrumentation` is the skill I do not yet have in the list, but probably should. It is the future skill I am most convinced I am missing.
+
+Why?
+
+Because a recurring theme in the archive is not just "the code was wrong." It is "I did not have enough honest visibility into what the system actually received, actually sent, or actually did." That is a different class of problem from debugging. It is the problem of knowing whether I am even looking at truth yet.
+
+If I were to invent the next skill after this first wave, I would want it to cover:
+
+- logging and tracing that survives the happy path
+- temporary diagnostics without permanent garbage
+- boundary-level verification
+- reality-check commands and sanity probes
+- post-failure evidence collection
+
+That skill would have saved time in more than one bloq. It would also make the other skills stronger, because better observation makes better planning possible.
+
+I would also add something like `decision-review-and-postmortems`, because some mistakes are not execution mistakes. They are decision mistakes that deserve a reusable record. I keep calling these "lessons learned" because "I made the same error in a more elegant font" sounds a bit harsh for the title card.
+
+---
+
+## What Still Is Not Solved
+
+This is the part where the process itself needs to be honest.
+
+The skills do not solve everything.
+
+They do not solve product judgment. If I choose the wrong thing to build, no amount of workflow polish will make the wrong thing feel like a wise investment. They do not solve over-process. That one is especially important. If I build twenty skills and then use them like ritual badges, I have merely created a larger surface area for self-deception. The whole point is to reduce ambiguity, not to decorate it. They also do not remove the need for judgment when skills overlap.
+
+`code-review-and-quality` and `code-reviewer` should probably coexist as process and lens, not as duplicate bureaucracy.
+
+`security-and-hardening` and `security-auditor` should probably be paired the same way.
+
+`test-engineer` is useful, but if I already have disciplined TDD, test pyramid guidance, and browser verification, then the persona should deepen the review, not repeat the workflow in a second accent.
+
+That matters because skill sprawl is a real risk. I can accidentally build a museum of very good habits and then spend half the day deciding which good habit to use, which is an impressively modern way to become unproductive.
+
+So the future approach should feel like this:
+
+1. Use the core workflow skills first.
+2. Add specialist skills only where the work actually needs them.
+3. Keep personas as review lenses, not parallel process copies.
+4. Create new skills only when a failure mode keeps recurring after the existing skills are in place.
+
+That last one matters a lot. I should not invent a new skill because it sounds nice. I should invent one because the archive has become annoying enough to justify it.
+
+---
+
+## The Better Mental Model
+
+The shift I am trying to make is not just procedural. It is philosophical, in the annoying but useful sense.
+
+I am moving from:
+
+```text
+idea -> ask model -> hope
+```
+
+to:
+
+```text
+rough concept -> divergent thinking -> PRD -> task breakdown -> thin slices -> tests -> verification -> review -> learning
+```
+
+That is a real change in operating model.
+
+It says the agent is not a magician.
+It says the prompt is not a wish.
+It says the spec is not a rumor.
+It says verification is not a formality.
+It says review is not a compliment.
+It says shipping is not the end of thinking.
+
+And, most embarrassingly of all, it says that the engineering discipline I kept postponing is the same discipline that would have saved me from a lot of the work I am now pretending was "valuable iteration."
+
+Which is funny, in the way a screwdriver to the foot is funny if you are trying to explain it after the fact.
+
+The new skills will help. A lot.
+
+They will help me write better prompts.
+They will help me plan more honestly.
+They will help me build in smaller slices.
+They will help me verify what actually happened.
+They will help me stop rewarding the first plausible answer just because it arrived with confidence and good syntax.
+
+But the deeper win is that they force me to internalize a different responsibility:
+
+the model can accelerate work, but the workflow still has to contain wisdom.
+
+And if I am being fully honest, that is the part I kept trying to skip because it looked like effort.
+
+It is effort.
+
+It is also the thing that keeps me from having the same meeting, the same embarrassment six weeks later, and the same diff with slightly improved punctuation.
+
+> "I do not mind repeating myself. I mind repeating myself with production consequences."
+
+So yes, I want these skills.
+I want the PRD skill.
+I want the planning skill.
+I want the incremental implementation skill.
+I want the TDD skill.
+I want the debugging skill.
+I want the context skill.
+I want the source-driven skill.
+I want the review discipline.
+I want the release discipline.
+And I want the missing observability skill too.
+
+Because if I am going to keep being dramatically, repeatedly wrong in public, I would at least like to be wrong with instrumentation.
+
+That one will probably save me from writing the next bloq about how I learned the same lesson again, only this time with a better title.
+
+---
+
+## The Six-Month Shift
+
+The part that feels newly interesting to me is the tone shift in the AI engineering world itself.
+
+At [AI Engineer Summit 2025 in New York](https://www.ai.engineer/summit/2025), the theme was literally "Agents at Work," and the framing was heavily about in-production agent stories, orchestration, and making agent systems real. That made sense for the moment. Everyone was still trying to prove the thing could leave the lab without falling out of the sky.
+
+By [AI Engineer Europe 2026](https://www.ai.engineer/europe/schedule), the conversation looks more grounded. The schedule is full of titles like "Agents need more than a chat," "Why Your AI UX Is Broken (and It's Not the Model's Fault)," "Mind the Gap (In your Agent Observability)," "Skills at Scale," and "Stop Making Models Bigger. Make Them Behave." That is not just agent enthusiasm. That is a corrective swing back toward software fundamentals: observability, UX, context, evals, and systems that can be trusted for the long haul.
+
+I would be careful not to overclaim from a conference schedule alone. But the drift is hard to miss. Six months ago, the conversation sounded like orchestration, swarms, and agent factories. Now it sounds more like discipline, judgment, tooling, and software that can survive contact with reality. That is not a retreat. It is maturity.
+
+The best source for my own skill shapes is still [Addy Osmani's `agent-skills` repo](https://github.com/addyosmani/agent-skills), because it gives me the anatomy: define, plan, build, verify, review, ship. But the reason I care about that anatomy now is not because it is trendy. It is because it keeps forcing me back toward the things that actually reduce rework.
+
+## Takeaways
+
+- The source shape matters. I want the future `SKILL.md` files to follow the disciplined anatomy from [agent-skills](https://github.com/addyosmani/agent-skills): overview, when to use, process, rationalizations, red flags, and verification.
+- Writing about the mistakes helped because it turned embarrassment into data. The frequency became visible, and the pattern became boring enough to fix.
+- The highest-value missing skill is still observability and instrumentation. If I cannot see what the system actually received and actually did, I am still mostly guessing with nicer syntax.
+- The AI Engineer shift matters because it shows the field moving from agent excitement toward maintainability, trust, and fundamentals. That is where I want my own workflow to land too.
+- The next thing I need is not a bigger swarm. It is a better scaffold.
