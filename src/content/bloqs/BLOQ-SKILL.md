@@ -1,460 +1,491 @@
-# Bloq Skill — A Living Writing Practice
+# Bloq Skill: Current System, Living Practice
 
-> **Last evolved:** 2026-03-17 | **Articles written:** 23 | **Version:** 1.16.0 (2026-03)
+> **Last reviewed:** 2026-04-22 | **Metric:** 32 total bloq files in `src/content/bloqs`, 25 currently visible, 7 archived or trashed | **Version:** 2.0.0
 
-This skill grows with every article. It distills patterns from real writing, not hypothetical best practices. When you invoke it, you inherit the accumulated judgment of every bloq that came before.
+This file has three jobs:
 
----
+1. Act as the technical source of truth for creating and maintaining bloqs in this repo.
+2. Capture the writing patterns that have actually held up across published bloqs.
+3. Preserve the practice's memory without pretending every memorable flourish is now a rule.
 
-## Evolution Log
-
-A changelog of what this skill has learned over time.
-
-| Date | Version | Article | What Changed | Proposed By |
-|------|---------|---------|--------------|-------------|
-| 2026-03-12 | 1.13.0 | SEO Slug Refactoring | Refactored all 21 bloq slugs to be SEO-friendly; updated frontmatter, directory names, and internal links; added pattern for slug-to-directory sync | Agent |
-| 2026-03-12 | 1.14.0 | Supabase Data Migration | Migrated `bloq_views` and `claps` data to match new SEO slugs; added migration script to project history | Agent |
-| 2026-03-17 | 1.16.0 | The Testing Infrastructure We Have, and the One We Need | Analyzed existing Vitest and Playwright setup; documented 33 tests (26 pass, 7 fail due to stale PaginationControls tests); proposed three-phase roadmap for agentic testing infrastructure including test orchestration, generation, and self-healing capabilities | Agent |
-| 2026-03-14 | 1.15.0 | Where Agents Fail: Lessons from Building Robust Metadata Plans | Analyzed gaps between plan and implementation in metadata project; documented how agent collaborations can fail when optimizing for task completion over outcome; provided framework for building robust plans that survive contact with reality | Human |
+If code behavior and this file disagree, code behavior wins. The parser defines what the site supports. Recent published bloqs define what the voice currently sounds like. This file summarizes both.
 
 ---
 
-## Tag Registry
+## Source of Truth Hierarchy
 
-Tags serve discoverability and related-post suggestions. Every article must have **3-7 tags**, with **at least two shared** with other bloqs.
+Use this order when there is any ambiguity:
 
-### Core shared tags (high connectivity)
+1. `src/lib/bloq/types.ts` and `src/lib/bloq/parser.ts`
+2. The current `src/content/bloqs/` directory structure and frontmatter in real posts
+3. This skill
 
-| Tag | Articles | SEO Value | Use When |
-|-----|----------|-----------|----------|
-| `typescript` | 7+ | High | Any TypeScript code |
-| `react` | 4+ | High | React components, hooks, patterns |
-| `nextjs` | 4+ | High | Next.js features, routing, API routes |
-| `debugging` | 3+ | Medium | Troubleshooting, DevTools, investigation |
-| `frontend` | 2+ | Medium | UI, components, client-side work |
-| `backend` | 2+ | Medium | API routes, database, server-side |
-| `ai` | 3+ | High (buzz) | AI tools, agents, Claude, LLMs |
-| `experiments` | 3+ | Low | Creative/technical explorations |
-| `reflections` | 2+ | Low | Personal learning arcs, events |
-| `seo` | 1+ | High | Metadata, OpenGraph, JSON-LD, search optimization |
-| `architecture` | 2+ | Medium | System design, trade-offs, layer separation, patterns |
-
-### Tag rules
-
-1. **Minimum 3 tags, maximum 7** — enough for connectivity, not so many it dilutes meaning
-2. **At least 2 shared tags** — verify overlap with existing articles before publishing
-3. **Prefer core tags** — use from the registry when they fit
-4. **Normalize variants:**
-   - `nextjs` (not `next.js` or `Next.js`)
-   - `ai` (not `ai-collaboration`, `agentic-mode`, `llm`)
-   - `typescript` (not `ts`)
-   - `supabase` (not `postgres` when using Supabase)
-5. **Lowercase except proper nouns** — `react`, `typescript`, `supabase`
-
-### Tag selection workflow
-
-```
-1. Core technology → typescript, react, nextjs
-2. Domain → frontend, backend, debugging, experiments
-3. Verify → at least 2 tags must exist in other articles
-4. Ask → "Is there a theme here that doesn't have a tag yet?"
-5. If yes → add it freely (no permission needed)
-```
-
-The goal is balance: enough shared tags for discoverability, room for new tags when they genuinely fit.
+This matters because the skill is descriptive and opinionated. The code is authoritative.
 
 ---
 
-## Directory Structure
+## Canonical Rules
 
-```
-src/content/bloqs/
-├── 2025/
-│   ├── 2025-11-23-building-mdx-blog-system-nextjs-ai/
-│   │   └── index.mdx
-│   └── 2025-12-09-building-real-time-last-visitor-feature/
-│       └── index.mdx
-├── 2026/
-│   └── 2026-02-18-vibe-shift-hackathon/
-│       └── index.mdx
-└── BLOQ-SKILL.md  ← this file
+These are the rules for repository behavior, post creation, and publishing workflow.
+
+### Directory Structure
+
+All bloqs use the nested year and month structure:
+
+```text
+src/content/bloqs/2026/04/2026-04-22-example-post/index.mdx
 ```
 
-Each article lives in its own folder containing an `index.mdx` file. The folder can also hold colocated assets (images, embedded components) alongside the post content.
+Why this shape is used:
 
-### Folder naming
+- It matches the current repository organization.
+- It scales better as each year fills up.
+- It keeps month-based browsing and maintenance simpler.
 
-```
-YYYY-MM-DD-slug-name/
-```
+### Folder and Slug Rules
 
-- Date should match the `publishedAt` frontmatter value.
-- Slug should be kebab-case, 3–6 words, descriptive.
+| Item | Requirement | Notes |
+|------|-------------|-------|
+| Folder name | `YYYY-MM-DD-slug-name` | Date prefix should match `publishedAt` |
+| Slug | kebab-case URL segment | Short, descriptive, not a sentence |
+| Preferred length | 3-8 words | Recent bloqs often run longer when needed |
+| `url` on site | derived from `slug` | The parser normalizes it |
 
----
+### Frontmatter
 
-## Frontmatter Template
-
-Copy this exactly. Preserve the field order.
+Preserve field order for new posts. The parser is flexible, but consistency helps humans and agents.
 
 ```yaml
 ---
-title: "Your Post Title Here"
-publishedAt: "2025-01-30"
-summary: "A one-to-two sentence summary for feed cards. Write in the bloq voice."
+title: "Your Post Title"
+publishedAt: "2026-04-22"
+updatedAt: "2026-04-22"
+summary: "A one to two sentence summary written in the bloq voice."
 slug: "your-kebab-case-slug"
 tags:
-  - react
-  - typescript
   - debugging
+  - architecture
+  - reflections
+authors:
+  - Sumit Sute
+category: "Engineering"
+image: "/images/example.png"
+draft: true
+featured: false
+status: "published"
+---
+```
+
+### Frontmatter Field Guide
+
+| Field | Status | Requirement level | Notes |
+|-------|--------|-------------------|-------|
+| `title` | Supported | Required | Display title |
+| `publishedAt` | Supported | Required | Quoted `YYYY-MM-DD` |
+| `updatedAt` | Supported | Optional | Documented because parser supports it, even if rarely used |
+| `summary` | Supported | Required | Feed cards and listing summaries |
+| `slug` | Supported | Required | Must be a clean URL segment |
+| `tags` | Supported | Required | Lowercased by parser |
+| `authors` | Supported | Required in practice | Parser also tolerates singular author forms |
+| `category` | Supported | Required in practice | Keep to the category guidance below |
+| `image` | Supported | Optional | Parser supports it, current posts rarely use it |
+| `draft` | Supported | Required in practice | Controls visibility in production |
+| `featured` | Supported | Required in practice | Promoted in feed and listings |
+| `status` | Supported | Optional | `published`, `draft`, `archived`, `trashed`; only `archived` and `trashed` affect parser visibility directly |
+
+### Publishing State Semantics
+
+| State | Meaning | Visible in dev | Visible in production |
+|-------|---------|----------------|-----------------------|
+| `draft: true` | Work in progress | Yes | No |
+| `status: "draft"` | Semantic draft marker | Yes | Yes, unless `draft: true` is also set |
+| `status: "archived"` | Soft deleted, kept for reference | No | No |
+| `status: "trashed"` | Hidden, effectively removed | No | No |
+| no `status` or `status: "published"` | Normal published post | Yes | Yes, unless `draft: true` |
+
+Use `draft: true` to hide unfinished work. Treat `status: "draft"` as descriptive only unless the parser is later changed to enforce it. Use `archived` or `trashed` only when intentionally removing a post from active circulation.
+
+### Categories
+
+These categories are current and safe to use:
+
+| Category | Use when | Status |
+|----------|----------|--------|
+| `Engineering` | Feature work, debugging, architecture, systems thinking | Current |
+| `Reflections` | Personal learning, meta-commentary, events, process | Current |
+| `Development` | Tooling, workflow, setup, developer experience | Current |
+| `Getting Started` | Introductory or foundational posts | Current but uncommon |
+| `Testing` | Exists in historical content | Legacy, avoid for new posts unless there is a clear reason |
+
+Default to `Engineering` or `Reflections` unless another category is obviously better.
+
+### Tags and Related Posts
+
+Tags are not decorative. The related-post system scores overlap by shared tags. Shared tags create discoverability and recommendation edges between bloqs.
+
+#### Current shared tags
+
+| Tag | Use when |
+|-----|----------|
+| `typescript` | TypeScript-heavy implementation or language-level reasoning |
+| `react` | React components, hooks, rendering behavior |
+| `nextjs` | App Router, metadata, routes, Next.js platform work |
+| `debugging` | Investigation, failures, diagnosis, tracing |
+| `architecture` | Boundaries, contracts, layering, trade-offs |
+| `frontend` | UI, client-side behavior, interaction details |
+| `backend` | APIs, services, persistence, server-side work |
+| `ai` | Agents, prompting, collaboration with models |
+| `experiments` | Technical experiments and exploratory builds |
+| `reflections` | Personal and philosophical framing |
+| `seo` | Metadata, feeds, sitemap, discoverability |
+| `supabase` | Supabase-specific infra or data work |
+| `devops` | Deployments, CI, pipelines, operational failures |
+
+#### Tag rules
+
+| Rule | Requirement level | Notes |
+|------|-------------------|-------|
+| Use 3-7 tags | Required | Enough signal, not taxonomy sprawl |
+| Include at least 2 shared tags | Required | Helps related-post scoring |
+| Lowercase tags | Required | Parser normalizes to lowercase |
+| Prefer existing shared tags when they fit | Recommended | Keeps the graph connected |
+| Add a new tag when the theme is genuinely new | Recommended | Do not force old vocabulary onto new work |
+
+#### Tag selection workflow
+
+```text
+1. Pick the technical center: typescript, react, nextjs, debugging, architecture
+2. Pick the domain: frontend, backend, seo, devops, ai, reflections
+3. Check overlap with existing posts
+4. Ask: is there a real theme here that current tags miss?
+5. If yes, add the new tag without apology
+```
+
+### MDX and Component Constraints
+
+| Item | Rule | Requirement level |
+|------|------|-------------------|
+| Heading depth | Start content sections at `##` | Required |
+| Imports | Place directly after frontmatter | Required when needed |
+| Code fences | Always include language identifiers | Required |
+| Interactive MDX components | Wrap in padded container when needed | Recommended |
+| Links to internal routes | Use normal route links like `/bloq/...` | Required in practice |
+| Images | Use only when they earn their place | Recommended |
+
+#### Current MDX rendering support
+
+The site provides custom rendering for:
+
+- headings
+- paragraphs and lists
+- blockquotes
+- tables
+- inline and fenced code
+- links
+- `del`
+- `iframe`
+- custom `Image`
+
+Write with those primitives in mind. Do not assume arbitrary markdown plugins exist.
+
+### Canonical Examples
+
+#### Directory example
+
+```text
+src/content/bloqs/2026/04/2026-04-22-observe-dont-assume/index.mdx
+```
+
+#### Minimal frontmatter example
+
+```yaml
+---
+title: "Observe, Don't Assume"
+publishedAt: "2026-04-16"
+summary: "A GitHub Action, a Telegram notification, and seven invisible ways the system failed without telling me."
+slug: "debugging-invisible-failures-observe-dont-assume"
+tags:
+  - debugging
+  - architecture
+  - reflections
+authors:
+  - Sumit Sute
+category: "Reflections"
+draft: false
+featured: false
+---
+```
+
+#### Section opening example
+
+```mdx
+## The Setup
+
+> "You can't trust what you send. Only what arrives."
+
+I wanted one thing. Publish a bloq, get a Telegram notification, and move on with my life. The system had other plans.
+```
+
+---
+
+## Agent Checklist
+
+Follow this sequence when creating a new bloq:
+
+1. Inspect recent bloqs, especially from the last 1-2 months.
+2. Confirm the folder shape: `YYYY/MM/YYYY-MM-DD-slug/index.mdx`.
+3. Choose the slug, then verify folder date, `publishedAt`, and slug all match.
+4. Select 3-7 tags and ensure at least 2 are already shared tags.
+5. Decide the publishing intent up front:
+   - `draft: true` for work in progress
+   - `status: "archived"` or `status: "trashed"` only for intentionally hidden posts
+6. Write the summary before the body so the piece has a center of gravity.
+7. Write the post.
+8. After publication, decide whether the skill actually learned something new.
+
+---
+
+## New Post Template
+
+Use this when drafting a fresh post.
+
+```mdx
+---
+title: "Your Title"
+publishedAt: "2026-04-22"
+summary: "One to two sentences that carry both the technical topic and the human tension."
+slug: "your-kebab-case-slug"
+tags:
+  - debugging
+  - architecture
+  - reflections
 authors:
   - Sumit Sute
 category: "Engineering"
 draft: true
 featured: false
 ---
+
+## Opening Section
+
+> "A self-authored line that captures the article's pressure point."
+
+Open with a moment, a premise, or a concrete tension.
+
+---
+
+## What I Thought Was Happening
+
+Name the mistaken belief, not just the implementation task.
+
+---
+
+## What Actually Happened
+
+Walk through the friction, dead ends, code, and shift in understanding.
+
+```typescript
+// Show real code and explain why it matters
 ```
 
-### Field rules
+---
 
-| Field | Required | Format | Notes |
-|-------|----------|--------|-------|
-| `title` | Yes | Quoted string | The display title. Can be creative/literary, not just descriptive. |
-| `publishedAt` | Yes | `"YYYY-MM-DD"` (quoted) | Must match the date prefix in the folder name. |
-| `summary` | Yes | Quoted string, 1–2 sentences | Written in the bloq voice. Appears on feed cards. |
-| `slug` | Yes | `"kebab-case-slug"` (quoted) | URL path. Must be a valid URL segment, never a sentence. |
-| `tags` | Yes | 2-space indented list | Lowercase except proper nouns/brands (`react`, `supabase`). 3-7 tags, at least 2 shared. |
-| `authors` | Yes | 2-space indented list | Full name. |
-| `category` | Yes | Quoted string | One of: `"Engineering"`, `"Reflections"`, `"Getting Started"`, `"Development"`. |
-| `draft` | Yes | `true` / `false` | `true` = visible in dev, hidden in production. |
-| `featured` | Yes | `true` / `false` | `true` = promoted in the feed. |
-| `status` | No | `"published"`, `"archived"`, `"trashed"` | Only set when soft-deleting. Defaults to `"published"`. |
+## What Changed In My Head
 
-### Categories
+End with takeaways, reflection, or a forward-looking synthesis.
+```
 
-| Category | Use when |
-|----------|----------|
-| `Engineering` | Building a feature, debugging, system design, performance, code-heavy |
-| `Reflections` | Events, personal learning arcs, meta-commentary on tools/process |
-| `Development` | Setup, tooling, workflow, developer experience |
-| `Getting Started` | Introductory or foundational setup posts |
+## Revision and Update Template
+
+Use this when an existing article teaches the skill something new.
+
+```markdown
+- Re-check technical guidance against parser and current repo structure
+- Decide whether the new article adds:
+  - a stable pattern
+  - a candidate pattern
+  - a tag update
+  - a maintenance note only
+- Update header metrics if the repo count changed
+- Add an evolution entry only if the article changed the practice, not just because it exists
+```
 
 ---
 
-## Removing / Hiding Articles
+## Evolving Patterns
 
-### Draft mode (work in progress)
-Set `draft: true`. Visible in `npm run dev`, hidden in production.
+These are current dominant patterns in the bloq voice and structure. They are not all mandatory. They are what has actually held up across recent posts.
 
-### Soft delete (archived / trashed)
-Set `status: "archived"` or `status: "trashed"`. Hidden everywhere. File stays for reference.
+### Voice Position
 
-### Hard delete
-Delete the entire folder.
+| Pattern | Status | Notes |
+|---------|--------|-------|
+| First-person singular | Dominant | "I built", "I thought", "I missed" |
+| Reflective practitioner | Dominant | Learning in public without pretending mastery arrived first |
+| Technically precise, conversational delivery | Dominant | Explain clearly, but like talking to a sharp friend |
+| Honest about agent collaboration | Dominant | Neither evangelism nor cynicism |
+| Senior-engineer framing through trade-offs | Growing stronger | Increasingly explains principles, not just events |
 
----
+### Stable Patterns From Recent Bloqs
 
-## Voice & Style Guide
+These have shown up repeatedly across March and April 2026 posts:
 
-These conventions are distilled from the existing bloqs. Follow them to keep the voice consistent, whether writing manually or prompting an AI agent.
+1. Open with a sharp premise, scene, or pressure point.
+2. Use an epigraph at the article opening, and often before major sections.
+3. Show the mistaken belief first, not only the broken implementation.
+4. Name the failure mode when possible: `scope leak`, `contract leak`, `silent failure`, `wrong trigger`, `lying success`.
+5. Embed technical explanation inside the narrative instead of switching into tutorial voice.
+6. Generalize outward near the end: move from one bug to a broader principle about engineering, agency, or judgment.
 
-### Identity
+### Structural Guidance
 
-- **First person, singular.** "I built", "I wanted", "I realised."
-- **Reflective practitioner.** You are learning in public. You don't pretend to have had the answer before you started.
-- **Comfortable with uncertainty.** "I'm not sure if…", "Maybe I'll add this later when I finally have a learned opinion."
-- **Self-aware about the human-agent dynamic.** You work alongside AI agents and you write about that friction honestly — neither evangelising nor dismissing.
+| Pattern | Requirement level | Notes |
+|---------|-------------------|-------|
+| Start sections with `##` | Required | Layout owns the page title |
+| Open with a concrete moment or claim | Recommended | Recent posts do this consistently |
+| Use epigraphs | Recommended | One at the start is common; section-level epigraphs are increasingly common |
+| Use `---` between major sections | Recommended | Helps pacing and scannability |
+| Show false starts and wrong turns | Dominant pattern | The dead end often carries the insight |
+| End with takeaways, reflection, or forward-looking synthesis | Recommended | Do not default to a dry recap |
 
-### Tone
+### Writing Devices That Fit the Current Practice
 
-- **Conversational but precise.** Technical explanations should be rigorous. Prose should feel like talking to a sharp friend over coffee, not lecturing a classroom.
-- **Anti-tutorial.** Never write "Step 1, Step 2." Write "Here's what happened when I tried X." Show the dead ends, the wrong turns, the moment a cauliflower at the vegetable shop triggered an architectural insight.
-- **Self-deprecating humour is welcome.** "At this point, I wasn't debugging. I was bargaining."
-- **Philosophical undercurrent.** Each post should surface at least one broader insight — about agency, tools, creative practice, or what it means to build things in the age of AI.
+| Device | Status | Notes |
+|--------|--------|-------|
+| Epigraph blockquotes | Strongly established | Often self-authored, occasionally quoted when clearly marked |
+| Parenthetical asides | Established | Good for self-awareness and interior monologue |
+| Failure taxonomies | Emerging into stable pattern | Especially in debugging and architecture posts |
+| ASCII diagrams | Established | Useful when they clarify system behavior |
+| Mermaid diagrams | Allowed | Keep them simple and purposeful |
+| Strikethrough via `<del>` | Occasional | Use sparingly so it still feels intentional |
+| Embedded live components | Established | Best when the article is about the thing being embedded |
 
-### Voice maturation trajectory
+### What the Voice Is Not
 
-| Stage | Characteristics | Example |
-|-------|-----------------|---------|
-| Early | Tentative, explains basics, apologetic | "I'm not sure if this is right, but..." |
-| Current | Confident uncertainty, philosophical undercurrent | "I'm not sure I understand all of it. But I can read the graphs now." |
-| Aspiration | Senior engineer voice — assumes competence, explains trade-offs not basics, points to principles | "The GC was never broken. It was doing exactly what it was told." |
+- Not tutorial-first prose with "Step 1, Step 2" pacing by default
+- Not impersonal documentation voice
+- Not generic startup optimism
+- Not uncritical AI boosterism
+- Not emoji-heavy writing
+- Not breathless punctuation
 
-### Aspiration: Senior Engineer Voice
+### Do Not Overfit One Article
 
-The senior engineer voice:
-- **Assumes reader competence.** Don't explain what a function is. Explain why this function matters.
-- **Privileges trade-offs over best practices.** "The monolithic design was a choice, not an accident."
-- **Points to principles, not steps.** "Every leak came down to the same thing: something kept a reference alive."
-- **Owns uncertainty without apologizing.** "I'm still not sure I understand all of it."
-- **Speaks from experience, not authority.** "What struck me is..." not "You should..."
+Not every striking sentence, metaphor, or section gimmick deserves promotion into the skill.
 
-### Structural conventions
+Promote something only when it is:
 
-- **Start with a `##` heading**, not `#`. The `#` heading is reserved for the title rendered by the layout.
-- **Epigraph blockquotes.** Open a post or major section with a short, self-authored philosophical one-liner in a blockquote:
-  ```markdown
-  > "A developer's homepage often feels like an empty hallway."
-  ```
-- **Section dividers.** Use `---` (standard horizontal rule) between major sections.
-- **Progressive narrative arc.** Structure the post as: problem → attempt → friction/failure → insight → reflection. Not: definition → implementation → conclusion.
-- **Closing section.** End with either:
-  - Bullet-point takeaways distilling the journey into portable wisdom, OR
-  - A reflective closing paragraph that points forward, OR
-  - A call to action inviting the reader to build their own version.
+- repeatable
+- useful to future writing
+- aligned with the broader voice
+- visible across more than one post
 
-### Writing devices
-
-- **Strikethrough for self-correction.** Use `<del>` tags as a literary device to show the author editing her own thoughts in real time:
-  ```markdown
-  (<del>I keep thinking about</del> those Aceternity UI code blocks I <del>haven't</del> integrated <del>yet.</del>)
-  ```
-- **ASCII/plaintext diagrams.** Prefer text-based visuals over images. They fit the brutalist aesthetic and stay in the reader's flow:
-  ```text
-  JS Heap
-    ^
-    |     ┌───
-    |  ───┘   └─┐
-    |           └─ (abort) ── drop
-    +----------------------------> time
-  ```
-- **Mermaid diagrams.** Use for system architecture and data flow. Keep them simple.
-- **Inline code flow notation.** For quick pipelines: `` `Click` → `Key.tsx` → `useIntroGame.ts` → `State Update` ``
-- **Parenthetical asides.** Use parentheses for tangential thoughts, interior monologue, or wry commentary.
-- **Plaintext checklists as literary devices** (not functional checkboxes):
-  ```text
-  Can I understand a file in under 60 seconds?
-  [ ] yes
-  [ ] maybe
-  [ ] with the agent open
-  ```
-
-### Code
-
-- Always include language identifiers on fenced code blocks (` ```typescript `, ` ```sql `, ` ```bash `).
-- Annotate code blocks with comments that explain *why*, not *what*.
-- When sharing full component code, show the file tree first, then walk through files in logical order.
-- Prefer real, working code over pseudocode. If the code is from the actual project, keep it accurate.
-
-### MDX components
-
-- Import statements go directly after the frontmatter closing `---`.
-- Wrap interactive components in a `<div>` with padding: `<div className="py-4">`.
-- Mention when a component is ornamental vs functional for accessibility context.
-
-### What the voice is NOT
-
-- Tutorial-style step-by-step instructions
-- Impersonal, corporate, or documentation-tone
-- Exhaustive API references (prefer narrative over reference)
-- Uncritical AI boosterism (the voice is nuanced, sometimes skeptical)
-- Emoji-heavy or exclamation-mark-heavy
-- **Em dashes (—).** Never use them. They feel generated and robotic. Use commas, colons, or periods instead.
+The skill should capture patterns, not souvenirs.
 
 ---
 
 ## Distilled Patterns
 
-Patterns that have emerged across multiple articles. These are observations that have held up.
+### What Consistently Works
 
-### What consistently works
+- Ground the post in a specific pressure point, not a vague topic.
+- Let the reader feel the mistaken belief before revealing the fix.
+- Name the architectural or debugging pattern once it becomes visible.
+- Alternate concrete evidence with broader interpretation.
+- End with a sentence or section that widens the frame.
 
-- **Open with a specific moment.** A PR comment, a broken build, a cauliflower at the vegetable shop. Ground the reader in time and place.
-- **One epigraph per major section.** Not just the opening — use blockquotes as section anchors.
-- **Show the wrong path first.** The dead end teaches more than the solution.
-- **End forward-looking.** A question, a next step, an invitation — not a summary.
-- **Name the thing.** "Context object," "Domain Layer" — giving something a name creates clarity.
-- **ASCII diagrams over images.** They fit the brutalist aesthetic and stay in flow.
+### What Consistently Fails
 
-### What consistently fails
+- Generic "how to build X" framing when the real value is in the journey.
+- Listing steps without the tension that made them necessary.
+- Explaining basics the audience probably already knows.
+- Treating AI involvement as either magic or embarrassment.
+- Summaries that only repeat what the reader just finished reading.
 
-- **Tutorial structure.** "Step 1, Step 2" kills narrative momentum.
-- **Apologizing for uncertainty.** Own it. "I'm not sure" is honest, not weak.
-- **Summarizing at the end.** The reader just read it. Give them something new.
-- **Generic titles.** "How to Build X" vs. "The Ghost in the Footer."
+### Candidate Patterns
 
-### Pattern proposals (pending verification)
+Promote from candidate to stable only after repeated use in multiple bloqs.
 
-*Agents may propose patterns here. They graduate to "consistently works" after appearing in 3+ articles.*
-
-| Pattern | Proposed In | Status |
-|---------|-------------|--------|
-| Connectivity as constraint | The Skill That Writes Itself | Pending (1/3) — requiring minimum shared tags forces discovery of common themes |
-| Reading as mirror | The Skill That Writes Itself (revision) | Pending (1/3) — reading AI output reveals what you actually think; the draft shows gaps |
-| Honest disclosure | The Skill That Writes Itself (revision) | Pending (1/3) — admitting AI involvement is part of learning in public; hiding it is performing a false authorship |
-| Design for the third case | The Lazy Way to Build Better Software | Pending (1/3) — when building for two, ask what happens with three; reveals whether to unify or separate |
-| Specs as documentation | The Lazy Way to Build Better Software | Pending (1/3) — the spec written before coding becomes the mental model for future maintenance |
-| Duplication as domain separation | When Not To Unify | Pending (1/3) — code that looks duplicated may be serving different intents; unify infrastructure, not domain |
-| Unify infrastructure, not intent | When Not To Unify | Pending (1/3) — extract shared utilities (error handling, validation) but keep semantically different APIs separate |
-| Orchestrate when context bloats | Orchestrating Agents | Pending (1/3) — use multi-agent orchestration when single-context quality degrades; isolation preserves focus at cost of latency |
-| Parallelism compounds | Orchestrating Agents (revision) | Pending (1/3) — N agents measuring simultaneously beats one agent measuring N things sequentially; time savings compound |
-| Verification closes the loop | Orchestrating Agents (revision) | Pending (1/3) — orchestration isn't complete until changes are proven; build output, lint, tests provide objective evidence |
+| Pattern | Status | Note |
+|---------|--------|------|
+| Failure taxonomy as structure | Candidate, close to stable | Strong in recent debugging and agent-work posts |
+| "Wrong assumption first" framing | Candidate, close to stable | Repeated across several March-April posts |
+| Section epigraph cadence | Candidate, close to stable | Increasingly frequent in newer bloqs |
+| Broader engineering principle in closing beat | Stable enough to encourage | A strong current habit |
 
 ---
 
-## Writing a Technical Feature or Learning Bloq
+## Evolution Log
 
-When documenting a progressive feature build or a learning experiment, follow this recipe:
+Only log entries that changed the practice, not every article publication.
 
-### 1. Title
-Creative, literary, slightly oblique. Not "How to Build a View Counter" but "So I Built My Own View Counter" or "The Ghost in the Footer."
-
-### 2. Summary
-One to two sentences in the bloq voice. Hint at the human story, not just the tech:
-> "A small story about making a static Next.js site feel a little less alone, and the detours through RLS logic that taught me why trust has to live on the server."
-
-### 3. Opening section
-Set the scene. Why did you start this? What itch, what PR comment, what broken build? Ground it in a specific moment.
-
-### 4. The build (middle sections)
-Walk through the work as a narrative. For each section:
-- State the sub-problem
-- Show what you tried (including wrong approaches)
-- Show the code that solved it
-- Reflect briefly on what it taught you
-
-Use `##` headings for each section. Use diagrams (ASCII, mermaid) to make architecture visible.
-
-### 5. Closing
-Choose one of the three closing patterns:
-- **Takeaways**: 3–5 bullet points. Start each with a dash and a bold phrase.
-- **Reflection**: A paragraph that connects the technical work back to a broader theme.
-- **Call to action**: Invite the reader to try it themselves.
-
-### Template skeleton
-
-```mdx
----
-title: "Your Creative Title"
-publishedAt: "2026-03-01"
-summary: "One line about what this is and why it matters, in the bloq voice."
-slug: "your-slug-here"
-tags:
-  - react
-  - typescript
-  - debugging
-authors:
-  - Sumit Sute
-category: "Engineering"
-draft: true
-featured: false
----
-
-## Opening Heading
-
-> "A self-authored epigraph that captures the post's theme."
-
-The scene-setting paragraph. What triggered this work? Ground it in a moment.
+| Date | Version | Trigger | What Changed | Proposed By |
+|------|---------|---------|--------------|-------------|
+| 2026-03-12 | 1.13.0 | SEO slug refactoring | Added guidance around slug normalization and slug-to-directory alignment | Agent |
+| 2026-03-12 | 1.14.0 | Supabase data migration | Recorded slug migration implications for historical data | Agent |
+| 2026-03-14 | 1.15.0 | Robust planning reflections | Strengthened planning and anti-vague-spec guidance | Human |
+| 2026-03-17 | 1.16.0 | Testing infrastructure bloq | Added test-infrastructure observations and maintenance ideas | Agent |
+| 2026-04-22 | 2.0.0 | Full skill refresh | Reframed the skill into canonical rules plus evolving patterns; updated repo facts, frontmatter support, tag rationale, maintenance protocol, and current voice guidance | Agent |
 
 ---
 
-## The Problem / The Setup
+## Maintenance Protocol
 
-What were you trying to solve? What constraints did you have?
+After a new published bloq, use this routine:
 
----
+1. Re-check whether the repo metrics changed:
+   - total bloq files
+   - currently visible bloqs
+   - archived or trashed count
+2. Update the header only when the metric values change.
+3. Add an evolution log entry only if the article taught the skill something reusable.
+4. Promote a candidate pattern only after repeated use, not excitement.
+5. Review whether any new tags have become genuinely shared tags.
+6. Re-read the current parser and types if technical guidance might have changed.
 
-## First Attempt (or: The Wrong Way)
+### Header Metric Guidance
 
-What did you try first? What went wrong?
+Do not guess the counts. Derive them from the repo before editing the header.
 
-```typescript
-// The code that didn't work, or the naive approach
+Suggested checks:
+
+```powershell
+Get-ChildItem -Path src/content/bloqs -Recurse -Filter index.mdx
+Select-String -Path (Get-ChildItem -Path src/content/bloqs -Recurse -Filter index.mdx).FullName -Pattern '^status:\s+"(archived|trashed)"'
 ```
 
----
-
-## The Fix / The Insight
-
-What actually worked? Why?
-
-```typescript
-// The working code, annotated
-```
-
----
-
-## What I Took Away
-
-- **Takeaway one.** Explanation.
-- **Takeaway two.** Explanation.
-- **Takeaway three.** Explanation.
-```
-
----
-
-## Agent Invocation Protocol
-
-When an agent is tasked with creating a new bloq:
-
-### Before writing
-1. **Read this skill completely.** The patterns exist because they earned their place.
-2. **Scan existing articles.** Verify tag connectivity, absorb voice.
-3. **Check the tag registry.** Plan for at least 2 shared tags.
-
-### During writing
-1. Follow frontmatter template exactly — field order, quoting, indentation
-2. Write in first person, narrative arc
-3. Include epigraph blockquotes (self-authored)
-4. Show wrong approaches, not just solutions
-5. Use ASCII diagrams over images
-6. End reflectively, not summarizing
-7. Tag casing: lowercase except proper nouns (`react`, `typescript`, `supabase`)
-8. Do not add emoji
-9. Keep the philosophical undercurrent — every post should say something about learning, agency, or building
-10. Ensure at least 2 tags from the core shared tags list, minimum 3 tags total
-11. Normalize tag names: `nextjs` not `next.js`, `ai` not `ai-collaboration`
-12. After selecting core tags, ask: "Is there a theme here that doesn't have a tag yet?" — add freely if yes
-
-### After publication
-1. **Update Evolution Log** — what did this article teach?
-2. **Refine Distilled Patterns** — did you notice something new?
-3. **Propose new patterns** — add to "pending verification" if noticed
-4. **Propose voice aspirations** — how should the voice mature?
-5. **Update tag registry** — any new shared tags emerge?
-6. **Increment version:**
-   - Minor (1.0 → 1.1): refinements, new patterns
-   - Major (1.0 → 2.0): structural changes, new sections
-7. **Update header:** date, article count, version
-
----
-
-## Post-Article Update Checklist
-
-After every new article is published, the agent or human should:
+### Review Checklist
 
 ```markdown
-- [ ] Add entry to Evolution Log (date, version, article, what changed, proposed by)
-- [ ] Update tag registry if new shared tags emerged
-- [ ] Refine Distilled Patterns if new observations hold
-- [ ] Propose new patterns in "pending verification" if noticed
-- [ ] Update voice maturation notes if voice evolved
-- [ ] Increment version (minor for refinements, major for structural changes)
-- [ ] Update header: Last evolved date, Articles written count, Version
+- [ ] Folder examples match the current preferred structure
+- [ ] Frontmatter fields match parser support
+- [ ] Category guidance still matches real usage
+- [ ] Tag advice still reflects related-post behavior
+- [ ] "Required" items are truly required
+- [ ] Voice guidance reflects repeated practice, not one-off style
 ```
 
 ---
 
 ## Quick Reference
 
-### Essential tags (pick 2+)
-`typescript` | `react` | `nextjs` | `debugging` | `frontend` | `backend` | `ai` | `experiments` | `reflections` | `seo`
+### Technical essentials
 
-### Tag limits
-3-7 tags per article, at least 2 shared with existing articles
+- Preferred path: `src/content/bloqs/YYYY/MM/YYYY-MM-DD-slug/index.mdx`
+- Required in practice: `title`, `publishedAt`, `summary`, `slug`, `tags`, `authors`, `category`, `draft`, `featured`
+- Optional but supported: `updatedAt`, `image`, `status`
+- Tag target: 3-7 tags, at least 2 shared tags
 
-### Voice checklist
-- [ ] First person singular
-- [ ] Specific opening moment
-- [ ] At least one epigraph
-- [ ] Wrong approach shown
-- [ ] Forward-looking close
-- [ ] No tutorial steps
-- [ ] No emoji
-- [ ] No em dashes (use commas, colons, or periods)
-- [ ] Like explaining to a friend, not preaching
+### Writing essentials
 
-### File structure
-```
-src/content/bloqs/YYYY/YYYY-MM-DD-slug/index.mdx
-```
+- Open with tension, not topic labeling
+- Use at least one strong epigraph when it fits
+- Show the wrong assumption, not just the fix
+- Explain technical ideas through the story
+- End by widening the frame
+
+### Final reminder
+
+This skill is allowed to evolve. It is not allowed to drift.
+
+When in doubt, prefer accuracy over lore and repeatable patterns over cleverness.

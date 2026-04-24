@@ -105,9 +105,6 @@ export function getBloqPosts(): BloqPost[] {
             const post = processPostEntry(monthPostEntry, monthPath);
             if (post) allPostsData.push(post);
           }
-        } else {
-          const post = processPostEntry(postEntry, yearPath);
-          if (post) allPostsData.push(post);
         }
       }
     } else {
