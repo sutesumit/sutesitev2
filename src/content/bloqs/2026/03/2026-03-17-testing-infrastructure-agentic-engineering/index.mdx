@@ -1,13 +1,15 @@
 ---
-title: "The Testing Infrastructure We Have, and the One We Need"
+title: "Trust Is a Build Artifact: A Testing Philosophy for Agentic Work"
 publishedAt: "2026-03-17"
-summary: "A deep dive into what our testing setup actually does, why it matters more than ever in the age of AI agents, and the honest gaps we need to close before we can trust swarms to help us build."
+summary: "Testing is not proof, and it is definitely not virtue. It is the system I use to turn refactors, AI-assisted code, and late-night confidence into something deterministic enough to trust."
 slug: "testing-infrastructure-agentic-engineering"
 tags:
+  - testing
+  - vitest
+  - playwright
   - typescript
   - ai
   - architecture
-  - experiments
 authors:
   - Sumit Sute
 category: "Engineering"
@@ -15,332 +17,502 @@ draft: false
 featured: false
 ---
 
-> "A test that never fails is either useless or you're not trying hard enough."
+> "Testing is the art of being betrayed early, cheaply, and with good logs."
 
-I have been staring at our test suite for the better part of a day now. We have 33 tests. Twenty-six pass. Seven fail. The failing tests are not failing because something is broken, they are failing because our component changed but our tests did not. We refactored the pagination controls to show numbered links instead of prev/next buttons, and somewhere in that refactor, nobody told the tests.
+I had one of those afternoons where I opened a test file "just to check something" and then looked up to discover that the day had quietly left without me.
 
-This is not a critique. This is a window into how testing actually works in a project like ours, and more importantly, what we need to do differently now that we are starting to work with AI agents.
+There is a particular brand of optimism that developers tend to invoke when we do not want to write tests:
 
----
+> "It is fine. I will be careful."
 
-## What We Actually Have
+It is never fine. I am not careful. I am merely optimistic with excellent syntax.
 
-Let me walk you through what exists, because it is not nothing. It is actually a pretty solid foundation, just incomplete.
+That was fine advice for an era when writing code and writing tests were both slow. Both cost the same resource: my time and attention. I could budget them against each other.
 
-We run two types of tests. Unit tests through something called Vitest, and end-to-end tests through something called Playwright. The distinction matters, so let me explain what each does.
+That era is over. Agents now write plausible code faster than I can review it. The bottleneck shifted. The expensive thing is no longer keystrokes. It is knowing what to trust. And the only honest answer to that question, in a codebase where patches arrive at model speed, is a test suite that earns its authority rather than merely existing.
 
-### Vitest: The Fast Stuff
+For a long time I described testing in the usual pious language: quality, correctness, reliability, confidence. All true, all slightly bloodless. The more honest description is simpler.
 
-Vitest is our unit test runner. It takes individual functions and React components and tests them in isolation. When you run `npm run test`, this is what fires first.
+> Testing is how I buy the right to change code without behaving like I am defusing a bomb.
 
-Here is the configuration in `vitest.config.ts`:
+In the agentic era, that statement stops being motivational-poster fluff and becomes operating procedure. The bottleneck is no longer writing. The bottleneck is **verification**. The expensive thing now is not keystrokes. It is human attention.
 
-```typescript
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: 'jsdom',  // This simulates a browser in Node
-    globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{js,ts,jsx,tsx}'],
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-})
-```
-
-The key piece here is `jsdom`. This is a library that pretends to be a web browser inside Node.js. Your tests can create elements, click buttons, type in input boxes, all without actually opening Chrome. It is fast. It is cheap to run. It is the first line of defense.
-
-Our setup file (`src/test/setup.ts`) does something clever. It mocks Next.js navigation:
-
-```typescript
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    prefetch: vi.fn(),
-    back: vi.fn(),
-  }),
-  useSearchParams: () => new URLSearchParams(),
-  usePathname: () => '/',
-  useParams: () => ({}),
-}))
-```
-
-Why is this important? Because our components use `useRouter` from Next.js. If we tried to run tests without mocking this, everything would crash. The test would try to call a function that only exists in a browser, but we are running in Node. The mock says "here is a fake router, do not worry about the real one."
-
-### Playwright: The Real Browser Stuff
-
-Then we have Playwright. This opens an actual Chromium browser, navigates to pages, clicks real buttons, and checks if things work. It is slower, but it catches bugs that unit tests miss.
-
-Our Playwright configuration (`playwright.config.ts`) is lean:
-
-```typescript
-export default defineConfig({
-  testDir: './tests/e2e',
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  use: {
-    baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
-  },
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
-})
-```
-
-The `webServer` block is elegant. When you run E2E tests, it automatically starts your dev server, waits for it to be ready, runs the tests, and cleans up. You do not have to manually start the server.
+That is what this piece is really about: not "my testing setup" as a museum tour, but the set of constraints and recurring losses that pushed me into this setup in the first place. Vitest, Playwright, route tests, service tests, integration checks: none of them arrived because I sat down one day and designed an elegant taxonomy. They arrived because I kept paying for certain classes of ignorance and eventually got tired of financing them personally.
 
 ---
 
-## What We Actually Test
+## First Principles
 
-Let me show you what is covered and what is not.
+The only definition of a test I still believe is this:
 
-### Passing Tests
+> A test is a deterministic evaluator over a chosen boundary.
 
-We have three test files that pass completely:
+That sentence is carrying more weight than it first appears to.
 
-1. `pagination-utils.test.ts` - 16 tests for our pagination math
-2. `SearchBar.test.tsx` - 7 tests for the search component
-3. Two E2E files that run against the actual app
+### Deterministic evaluator
 
-Here is one of the pagination tests, so you can see the pattern:
+A code review is an evaluator too. So is a product demo. So is me staring at a diff with the spiritual energy of a skeptic hunting for a ghost. But those evaluators are expensive, inconsistent, and ultimately bottlenecked by human verification debt.
 
-```typescript
-it('should calculate correct pagination for 50 items, 10 per page', () => {
-  const result = createPaginationInfo(1, 10, 50);
-  
-  expect(result.page).toBe(1);
-  expect(result.limit).toBe(10);
-  expect(result.total).toBe(50);
-  expect(result.totalPages).toBe(5);
-  expect(result.hasMore).toBe(true);
-});
+A test, by contrast, is gloriously uncharitable.
+
+It does not care whether the patch feels elegant.
+It does not care whether I was tired.
+It does not care how confidently the agent narrated its reasoning.
+It does not care whether I am "pretty sure" the refactor is equivalent.
+
+It just compares behavior against expectation and either lets me proceed or embarrasses me immediately.
+
+That is the real superpower: not intelligence, but repeatability.
+
+### Chosen boundary
+
+This is the part that makes testing less about "quality" as an ideal and more about boundaries as a tool.
+
+Every test is a deal. I choose what to include inside the boundary, what to fake outside it, and what question I want answered. Most arguments about unit tests versus integration tests are really arguments about where someone drew that boundary and whether it was worth the cost.
+
+The boundary is literal.
+
+```text
+  ┌─────────────── test boundary ─────────────────┐
+  │                                               │
+  │  service / handler / component under test     │
+  │         (real behavior, real assertions)      │
+  │                      |                        │
+  └──────────────────────|────────────────────────┘
+          │              |           │
+    faked outside        |       faked outside
+   (database, network,   |      (email, auth,
+    external APIs)       |       browser runtime)
+
+  Move the boundary right: more realistic, slower, harder to diagnose
+  Move the boundary left:  faster, cheaper, less representative
 ```
 
-This is a unit test. It takes a function, gives it inputs, and checks the outputs. No browser required. No React rendering required. Pure logic.
+Move it outward and you buy more realism but pay in setup cost, slower feedback, and harder forensics when something fails. Move it inward and you go faster but lose confidence in the seams. The position of the line is an economic decision, not a moral one.
 
-### The Failing Tests
+In the agentic era, that decision does not go away. An agent picking the test layer by default is not making this trade-off; it is skipping it. The boundary still belongs to whoever has a theory about what the software should do.
 
-And here is where it gets interesting. Our `PaginationControls.test.tsx` has 7 failing tests. Let me show you one:
+That is why I still find the [Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) and Kent C. Dodds' [Testing Trophy](https://kentcdodds.com/blog/the-testing-trophy-and-testing-classifications) useful. Not because they settle anything permanently, but because they force the economic question:
 
-```typescript
-it('should render pagination when there are multiple pages', () => {
-  renderWithRouter(
-    <PaginationControls pagination={mockPagination} basePath="/byte" />
-  );
+> Where should most of my confidence come from, and what is the cheapest honest evaluator for this behavior?
 
-  expect(screen.getByText('2 / 5')).toBeInTheDocument();
-});
+These two frameworks answer that question differently, and the difference matters.
+
+```text
+  Testing Pyramid               Testing Trophy
+  (Fowler / Google)             (Kent C. Dodds)
+
+        /\                           _____
+                                    / E2  \
+       /E2\                        /───────\
+      /────\                      /         \
+     / Intg \                    /Integration\
+    /────────\                  /─────────────\
+   /   Unit   \                    \ Unit /
+  /────────────\                    \    /
+                                     |  |
+                                     |  |
+                              ─────────────────
+                              |Static Analysis|
+                              ─────────────────
+  More unit tests at base.     Integration is widest.
+  E2E kept small.              Unit layer smaller by design.
+                               Static analysis anchors base.
 ```
 
-This test expects to find the text "2 / 5" on the page. But when I looked at the actual component, it renders differently now. Let me show you what it actually outputs:
+The Pyramid says: write many fast unit tests, some integration tests, and very few E2E tests. The Trophy makes a different argument. Most bugs live at the seam between components, not inside any single one. Integration tests earn the widest band because that is where the confidence-per-cost argument resolves most favorably. Unit tests are intentionally smaller. Static analysis sits at the base because it catches cheap mistakes before any test runs at all.
 
-```tsx
-<nav aria-label="Pagination">
-  <Link href="/byte?page=1">1</Link>
-  <span className="blue-border">2</span>
-  <Link href="/byte?page=3">3</Link>
-  <Link href="/byte?page=4">4</Link>
-  <Link href="/byte?page=5">5</Link>
-</nav>
+I try to avoid the 'test everything' trap. Aiming for maximum coverage often produces a ceremonial suite that is too loud to be useful and too brittle to survive a refactor. I’d rather have a smaller, honester suite that I actually trust when the build goes red.
+
+I want evaluators that are:
+
+- cheap enough to run often
+- specific enough to diagnose failure
+- broad enough to matter
+- stable enough to survive refactors
+- honest enough to reduce human verification work
+
+Everything else is implementation detail.
+
+What "cheap" actually means has shifted.
+
+Before agentic tooling, the dominant cost of a test was the time it took to write it. A unit test that saved ten minutes of future debugging was worth the five minutes it took to author. I could reason about the trade-off with my own calendar.
+
+That arithmetic has changed. Writing is now near-free. An agent can scaffold a hundred tests while I read the pull request description. But the rest of the cost structure is unchanged or higher:
+
+- **Running cost**: wall-clock time in CI, or real API spend if the test invokes an LLM at each step
+- **Maintenance**: every test that breaks on a neutral refactor is work I pay for later
+- **False confidence**: a test that passes on wrong behavior is not free. It costs the debugging session I did not know I still owed
+
+```text
+  Pre-agentic:             Agentic era:
+  ┌──────────────────────┐ ┌──────────────────────┐
+  │ Writing cost   ████  │ │ Writing cost   ░     │ near zero
+  │ Running cost   ██    │ │ Running cost   ██    │ same or higher
+  │ Maintenance    ██    │ │ Maintenance    ███   │ grows with volume
+  │ False conf.    █     │ │ False conf.    ████  │ new dominant cost
+  └──────────────────────┘ └──────────────────────┘
 ```
 
-See the mismatch? The test expects:
-- "2 / 5" text somewhere
-- Prev/Next buttons
-
-The component actually renders:
-- Just numbered links
-- No "2 / 5" text
-- No Prev/Next buttons
-
-Someone refactored the component and did not update the tests. This happens. This is why tests are maintenance.
+So the evaluator properties above are not a wish list from a slower era. They are a more precise checklist for the era where writing is cheap and everything after writing is not.
 
 ---
 
-## The Plus Sides
+## What I Am Actually Optimizing For
 
-Let me tell you what works well, because a lot does.
+When I say I care about testing, I do not mean that I enjoy the ceremony of assertions. Even now, when an agent can author them in seconds, the verification loop feels like renewing government documents. I do it because the alternative is a codebase I can no longer explain or trust.
 
-### The Architecture Is Sound
+These are the things I am actually optimizing for.
 
-We picked good tools. Vitest is fast and modern. Playwright is the current standard for E2E. Testing Library pushes us toward accessible testing practices. The setup is not wrong, it is just unfinished.
+### 1. Signal
 
-### The Pattern Is Right
+A failing test should mean something I care about.
 
-We put tests next to the code they test:
+If a test fails because I renamed a class, changed a glyph, reordered markup, or otherwise touched an implementation detail that users never perceive, the test is not protecting behavior. It is charging me rent for the privilege of refactoring.
 
-```
-src/
-├── components/shared/
-│   ├── PaginationControls.tsx
-│   └── __tests__/
-│       └── PaginationControls.test.tsx
-```
+Eventually I start ignoring that kind of failure, and once that happens the suite begins its long career as theater.
 
-This is the right organizational instinct. When you see a component, the tests are right there.
+### 2. Coupling
 
-### The E2E Tests Are Smart
+I want tests coupled to externally meaningful behavior, not internal choreography.
 
-Look at this test from `pagination.spec.ts`:
+Google's Testing on the Toilet said it best years ago: [test behavior, not implementation](https://testing.googleblog.com/2013/08/testing-on-toilet-test-behavior-not.html). I have since translated that into my own less charitable phrasing:
 
-```typescript
-test('should show different items on different pages', async ({ page }) => {
-  await page.goto('/byte');
-  
-  const firstItemPage1 = await page.locator('[class*="grid"] > div').first().textContent();
-  
-  const nextButton = page.locator('text=Next →');
-  if (await nextButton.isVisible()) {
-    await nextButton.click();
-    await page.waitForURL(/page=2/);
-    
-    const firstItemPage2 = await page.locator('[class*="grid"] > div').first().textContent();
-    expect(firstItemPage1).not.toBe(firstItemPage2);
-  }
-});
-```
+> If a refactor that preserves behavior breaks the suite, the suite is part of the bug.
 
-This is not just checking if pagination renders. It checks if pagination actually works by verifying that page 1 and page 2 show different content. This is the kind of test that catches real bugs.
+### 3. Forensics
 
-### Edge Cases Are Considered
+When something fails, I want evidence.
 
-Our `edge-cases.spec.ts` tests things like:
+Not vibes.
+Not "works on my machine."
+Not a gut feeling that Playwright is being moody today.
 
-- Invalid page numbers (`?page=abc`)
-- Negative pages (`?page=-1`)
-- Extremely large page numbers (`?page=999`)
-- Very long search queries (200 characters)
-- XSS attempts in the URL
+I want:
 
-This shows someone was thinking about what happens when things go wrong.
+- a trace
+- a screenshot
+- the request and response shape
+- the exact assertion that failed
+- enough context that I do not need to re-run the same thing five times hoping clarity descends from heaven
+
+Debugging is not a morality play. It is an evidence problem.
+
+### 4. Human verification reduction
+
+This is the one that became impossible to ignore once I started using AI to write more code.
+
+Sonar's 2026 survey is one of the more useful summaries of the current situation: developers are generating more code with AI, but review and verification effort is becoming the choke point, with many reporting that reviewing AI-generated code takes more effort than reviewing human-written code. Their framing of a "verification gap" is worth reading because it names the real workflow problem directly: [Sonar verification gap](https://www.sonarsource.com/company/press-releases/sonar-data-reveals-critical-verification-gap-in-ai-coding/).
+
+That resonates because it matches exactly what I feel locally.
+
+The expensive thing in software is no longer typing.
+The expensive thing is deciding what to trust.
+
+So my tests are not just quality tools. They are **review compressors**. They shrink the amount of code I need to hold in my head at once. They let me stop auditing every line like a customs officer searching for contraband intent.
 
 ---
 
-## What Is Missing
+## The Costs That Forced My Stack Into Shape
 
-Now for the honest part. Here is what we do not have:
+My stack is not exotic. I have a Next.js TypeScript repo. I use Vitest for most of the fast loop, React Testing Library where component behavior matters, and Playwright where the browser gets final say. But those are the nouns. The more useful story is the sequence of prices I got tired of paying.
 
-### No CI/CD Pipeline
+### I got tired of being wrong about things the computer already knew
 
-We have no GitHub Actions workflow. No automated tests run when you push code. You have to manually remember to run `npm run test` and `npm run test:e2e`. Most of the time, people do not.
+The absolute cheapest place to be wrong is in the editor, before the code even saves.
 
-### No Coverage Reports
+In this repo, **static analysis** handles the structural noise. TypeScript and ESLint form the base of the Testing Trophy because they provide high-signal feedback for almost zero cost. They aren't a replacement for tests; they are simply the fastest way to flush out typos and type mismatches before they can hide in the logic.
 
-The Vitest configuration mentions coverage:
+Hallucinated types and unhandled nulls are not 'business logic' problems. They are structural noise. In an era where patches arrive at model speed, static analysis is the first line of defense. If the system rejects a bad proposal in milliseconds, I have saved myself the debugging session I would have otherwise wasted on a hallucination.
 
-```typescript
-coverage: {
-  provider: 'v8',
-  reporter: ['text', 'json', 'html'],
-},
+I treat static analysis as the floor. If the types don't pass, the behavior is irrelevant.
+
+### I got tired of re-debugging math I had already "basically" understood
+
+The cheapest humiliation in software is pure logic drifting while I am busy feeling clever about a refactor.
+
+Pagination math, normalization, parsing, filtering, little ranking rules, data reshaping - all of it has the same personality. It looks too small to deserve ceremony until it quietly changes the behavior of an entire page. That class of mistake is why Vitest ends up doing so much work for me. Not because "unit tests are good," but because this is the cheapest place to stop lying to myself.
+
+If the behavior can be represented as input in, output out, with no browser, no router, no network, no ceremony, I want it under `npm test` and I want it there immediately. That is the bargain: I pay a small amount of upfront precision so I do not have to re-derive the invariant later from a bug report.
+
+Vitest is useful here for very practical reasons:
+
+- it is fast enough that I do not resent it
+- it sits close enough to the app that I do not feel like I am switching worlds
+- it lets me use coverage as a flashlight when I need one, not as a personality trait ([coverage guide](https://vitest.dev/guide/coverage.html))
+
+If a pure-logic test fails, I treat that as high-signal until proven otherwise. If I cannot explain the invariant in one sentence, I assume I do not yet understand the code well enough to change it safely.
+
+### I got tired of tests punishing me for changing presentation instead of behavior
+
+This one was entirely self-inflicted.
+
+I used to test UI too literally. I would assert on exact markup shapes, exact text fragments, exact component structure, sometimes with the confidence of someone who had not yet met future-me and therefore had no reason to fear him.
+
+That always ages badly.
+
+The bill comes due the first time a component evolves in a user-neutral way and the suite behaves as if I have vandalized the constitution. That is why React Testing Library became part of my default loop. It nudges me, repeatedly and somewhat condescendingly, toward the kind of questions that survive refactors:
+
+- can the user type here?
+- can they click the control that matters?
+- does the route change after the action?
+- does the visible state update in the way a person would actually perceive?
+
+That is what [Testing Library's guiding principles](https://testing-library.com/docs/guiding-principles) are really doing for me. They are not teaching me kindness. They are teaching me coupling discipline.
+
+I still run these under Vitest because I want component behavior to stay in the cheap loop as long as possible. I want to catch "the search interaction broke" before I involve a real browser, a real server process, and a real hour of my life.
+
+### I got tired of discovering architectural mistakes only after the side effects had already happened
+
+Most meaningful bugs in application code are not pure-math bugs and not full-browser bugs. They live in the middle, where a workflow does three or four boring things in a particular order and one of those things quietly stops happening.
+
+That is what pushed me toward service-level tests.
+
+This layer exists because I kept paying for a specific kind of uncertainty:
+
+- did validation happen before persistence?
+- did the side effect fire after the write or before it?
+- did invalid input short-circuit cleanly?
+- did an error produce half-finished state?
+
+None of this is glamorous. All of it is expensive to debug late.
+
+So when I write tests against a service with a fake repository or fake mutation effect, I am not performing some abstract "unit testing best practice." I am buying a controlled environment for the orchestration I actually care about. The mock is not the point. The sequencing is the point. Google's [don't overuse mocks](https://testing.googleblog.com/2013/05/testing-on-toilet-dont-overuse-mocks.html) still holds: I am trying to mock outside the workflow boundary, not inside my own thinking.
+
+This is also one of the first places agentic work becomes tolerable. If a model takes a pass at application logic, this seam gives me a cheap judge for whether the workflow still behaves like the system I intended, rather than the one the model found statistically plausible.
+
+### I got tired of silently changing my own API and only realizing it later
+
+Route and contract tests came out of embarrassment more than theory.
+
+Small projects are especially good at lying to their owners here. Because I am often both producer and consumer, it is easy to think the API is not "real" enough to deserve explicit verification. Then I change a status code, an error shape, or a response payload during a refactor, and future-me gets to enjoy a tiny private integration failure with no witnesses.
+
+That is why route tests have become some of the highest-return tests in the repo. They force me to pin down the wire contract while the change is still fresh in my head:
+
+- what status does this route return now?
+- what does the error body look like?
+- what did I just decide the client is allowed to depend on?
+
+Pact's explanation of [contract testing](https://docs.pact.io/) is useful not because I need every piece of consumer-driven contract machinery in a personal repo, but because it captures the core thing I kept forgetting: the wire shape is part of the product. If I change it intentionally, the test makes me say so. If I change it accidentally, the test gets there before a broken page does.
+
+### I got tired of pretending reality was cheap
+
+Real infrastructure gives me a kind of honesty that fakes never can, and it charges accordingly.
+
+Integration tests against a real backend buy important signal:
+
+- the schema actually matches what I think it matches
+- the persistence path behaves the way the application assumes
+- the whole thing survives contact with a real environment
+
+They also buy:
+
+- secrets
+- setup cost
+- intermittent weirdness
+- the low-level anxiety that I have pointed at the wrong environment and am about to become a cautionary tale
+
+So I keep those tests env-gated and explicit. That is not an omission in my philosophy. It is my philosophy. Reality is expensive. I want to buy it deliberately, not attach it to every local save out of moral vanity.
+
+### I got tired of local reasoning being correct in pieces and wrong in sequence
+
+This is where Playwright enters, and it enters late on purpose.
+
+There is a particular class of bug that survives every elegant lower-level test because nothing is individually broken enough. The URL updates but the visible state does not. The component renders correctly but the actual click path is wrong. The browser timing reveals a race that all my clean little isolated tests politely declined to mention.
+
+That is what I am paying Playwright for.
+
+Not browser automation as a concept. Not the warm feeling of having E2E. I am paying for one thing only: the right to stop theorizing and watch the whole thing behave under a real browser runtime.
+
+And because that price is high, let's make the tool earn it:
+
+- [locators](https://playwright.dev/docs/locators), because if my selectors are brittle I am manufacturing future chores
+- [trace viewer](https://playwright.dev/docs/trace-viewer-intro), because if the browser fails I want a timeline, not a séance
+- [test retries](https://playwright.dev/docs/test-retries), because flakes do not become less real when I act offended by them
+- [test reporters](https://playwright.dev/docs/test-reporters), because expensive tests should at least fail with evidence
+
+I keep E2E small for the same reason I keep lawyers expensive: I only want to invoke them when the matter genuinely deserves the full machinery.
+
+---
+
+## The Mistake That Taught Me More Than the Passing Tests
+
+The most educational class of failures in my repo has not been "the code was broken." It has been "the test was coupled to the wrong thing."
+
+Pagination controls taught me this in a deeply unserious but unforgettable way.
+
+I had tests that effectively assumed a very specific expression of pagination UI. The user-visible idea was sound: navigate between pages, preserve search state, keep behavior consistent. But some of the tests leaned too hard on a particular textual or structural expression of that behavior. Then the component evolved, and suddenly the suite was acting like I had violated a sacred treaty when in reality I had mostly changed the presentation.
+
+That is the sort of failure that looks annoying on the surface but is pedagogically generous.
+
+It teaches three things at once:
+
+1. The suite is telling me where it is overcoupled.
+2. A refactor always renegotiates contracts, whether I acknowledge it or not.
+3. Tool choice matters only insofar as it helps me express the right boundary.
+
+That is why "test behavior, not implementation" stopped sounding like advice and started sounding like rent control.
+
+---
+
+## Agentic Engineering and the Real Bottleneck
+
+The biggest conceptual shift for me has been this:
+
+The limiting reagent in software work is no longer code generation. It is trustworthy evaluation.
+
+That is why benchmark design around coding agents keeps circling back to evaluation harnesses and human validation.
+
+SWE-bench's own [evaluation guide](https://www.swebench.com/SWE-bench/guides/evaluation/) and [harness reference](https://www.swebench.com/SWE-bench/reference/harness/) are useful not just as benchmark docs but as philosophy. The basic loop is brutally instructive:
+
+1. apply the generated patch
+2. run the repository's tests
+3. judge success from the resulting behavior
+
+That is the exact shape I want in miniature inside my own repo.
+
+OpenAI's original [SWE-bench Verified](https://openai.com/index/introducing-swe-bench-verified/) write-up makes the deeper point explicit: even the benchmark itself needed human validation because issue descriptions, tests, and task framing can all be subtly wrong. In other words, evaluation is difficult enough that we sometimes need to verify the verifier.
+
+Anthropic's [Building effective agents](https://www.anthropic.com/research/building-effective-agents) lands on the same principle from another angle: agents perform better when they can interact with tools that provide concrete ground truth rather than relying on narration and vibes. In a codebase, tests are often the cleanest source of ground truth available.
+
+This has changed how I think about my own review process.
+
+I do not want to read every AI-assisted patch like a suspicious schoolmaster grading handwriting. I want the tooling and the suite to do the first round of disbelief for me. The more faithfully my tests reflect the boundaries I actually care about, the more human review can move up a level: less "is this line secretly wrong?" and more "is this the behavior I want in the product?"
+
+The ideal division of labor looks like this:
+
+- the model proposes
+- the tests judge
+- I arbitrate intent, tradeoffs, and product meaning
+
+This approach keeps the human in the loop without forcing the human to be the loop.
+
+### Does cheap generation change the calculus?
+
+An agent can draft a test suite for an entire module in the time it takes to make coffee. If writing is effectively free, the obvious question is: why not generate tests at every layer and let coverage saturate? The economic question dissolves. The cheapest honest evaluator is simply all of them.
+
+But we know this does not work, and the reason is structural.
+
+When the same model writes both code and test in the same context window, it encodes the same logical error into both. The assertion's expected value is derived from the implementation, not from the intent. The test passes not because the behavior is correct but because both artifacts share the same origin assumption. [MSR 2026 research](https://conf.researchr.org/home/msr-2026) found that coding agents are more likely to add mocks validating expected interfaces than real behavior. A 2026 survey on AI test generation found it achieves 92% accuracy on controlled benchmarks but only 41% in production settings — the gap between benchmark and reality is the gap between testing what you wrote and testing what you meant.
+
+```text
+  Human intent
+       │
+       ▼
+  Agent writes code ─────────────────────┐
+       │                                 │ same model,
+       ▼                                 │ same context
+  Agent writes test ◄────────────────────┘
+       │
+       ▼
+  Test passes ✓
+  (validates what the code does,
+   not what the intent requires)
 ```
 
-But we never generate these reports. We do not know what percentage of our code is tested. We are flying blind.
+This does not mean agents are useless for tests. It means the tool should match the layer. IDE assistants and coding agents are genuinely useful for unit test boilerplate where the logic is narrow and a human can verify the assertion quickly. Integration test design benefits from reasoning-heavy models with full codebase context, because the question involves how components wire together. E2E flows work better with dedicated platforms that navigate real browser state than with a general model prompted in a chat window. The mistake is applying the cheapest-to-invoke tool to the highest-complexity question.
 
-### Coverage Is Narrow
+And even setting aside quality, running costs do not disappear when writing is free. A traditional Playwright test costs CI compute time, a few seconds and marginal costs per run. An agentic E2E test that calls a frontier model at each step costs $0.15 to $0.35 per execution in API fees, before CI time, before retries, before the second model call needed to judge whether the first one passed. Agentic workflows use five to twenty times more tokens than traditional scripts because they plan, self-correct, and maintain context across steps. A team running fifty such tests on every push is looking at a bill of thousands per month in inference spend for testing alone. That is not an enterprise figure. That is a normal product team doing normal CI.
 
-We test pagination and search. That is it. We do not test:
-
-- How bloqs render
-- How blips work
-- Theme switching
-- Form submissions
-- Authentication flows
-- API routes
-- Error boundaries
-
-The actual content of our site, the things users come to see, have zero test coverage.
-
-### No Cross-Browser Testing
-
-Our Playwright config only runs Chromium:
-
-```typescript
-projects: [
-  {
-    name: 'chromium',
-    use: { ...devices['Desktop Chrome'] },
-  },
-],
+```text
+  Cost per test run
+  (time + API spend)
+        │
+   high │                              ● AI-driven E2E
+        │                         ●     (LLM call per step,
+        │                    ●          5-20x token overhead)
+        │             ●
+    low │  ●  ●  ●
+        └──────────────────────────────────── layer
+           unit  intg  route  e2e   AI-E2E
 ```
 
-We have no idea if our site works in Firefox or Safari.
+What the agentic era genuinely changes is the cost of the first draft. Writing is near-free. Running, maintaining, and trusting are not. The Pyramid and Trophy were never about how hard it is to write tests. They were about where to buy confidence per unit of ongoing cost. That question is sharper now, not obsolete.
 
 ---
 
-## Why This Matters Now More Than Ever
+## My Practical Operating Model
 
-Here is where I need to connect this to the bigger picture. We are starting to work with AI agents. I am starting to use Claude and other language models to help write code. And this changes everything about testing.
+The philosophy only matters if it cashes out into an actual working loop.
 
-When a human writes code, they have a mental model of what should happen. When they write tests, they are formalizing that mental model. The tests are a specification of intent.
+This is the loop I keep returning to.
 
-When an agent writes code, it does not have that mental model. It generates code that satisfies patterns it has seen. Sometimes those patterns are correct. Sometimes they are subtly wrong. And here is the thing: the agent does not know the difference.
+When I touch pure logic, I run `npm test` first because that is the cheapest place for reality to interrupt me.
 
-Without good tests, agents can introduce bugs that no one catches. The agent thinks it succeeded because the code looks right. But it is not right. And there is no test to say otherwise.
+When I touch component behavior, I still start there, because I want interaction and semantics to fail in the fast loop before I buy browser runtime.
 
-This is why the testing infrastructure is not optional. It is the foundation that makes agentic engineering possible. Without it, we cannot trust agents to help us build.
+When I change route shapes or client-visible payloads, I want contract and route tests to go red early so the review surface becomes "what did I just decide the interface means?" instead of "please inspect this entire handler and infer my intent from the rubble."
 
----
+When I touch a high-value flow, I run `npm run test:e2e` because that is where composition stops being theoretical.
 
-## The Path Forward
+Before I push, the minimum is still `npm run lint` and `npm test`. If the change is user-visible, structurally risky, or exactly the sort of thing I know future-me will otherwise need to manually re-verify, I pay for `npm run test:all`.
 
-I want to propose three phases of improvement. Not everything at once, but a direction.
+Two tools do most of the work in that loop. Vitest runs in Node.js against a simulated DOM with no browser, no network, and no ceremony. It is fast enough that I run it without thinking about the cost. Playwright runs real Chromium. It cannot simulate; it has to actually load the application, click controls, and wait for the network. That is its value and its price. I use Vitest when I want speed and Playwright when I want truth.
 
-### Phase One: Fix What We Have
+```text
+  touch code
+      │
+      ▼
+  pure logic? ──yes──► Vitest  (npm test)
+      │                fast loop, no browser
+      no
+      │
+      ▼
+  component behavior? ──yes──► Vitest + React Testing Library
+      │                         interaction in the fast loop
+      no
+      │
+      ▼
+  route / contract change? ──yes──► route test
+      │                              pin the wire shape
+      no
+      │
+      ▼
+  high-value user flow? ──yes──► Playwright  (npm run test:e2e)
+      │                           real browser, final say
+      no
+      │
+      ▼
+  before push: npm run lint + npm test
+  if structurally risky: npm run test:all
+```
 
-The first step is to fix the failing tests. Either update the PaginationControls tests to match the current implementation, or revert the component to match the tests. Pick one and be consistent.
-
-Then add a simple GitHub Actions workflow to run tests on every push. It does not need to be fancy. Just run the tests and fail the build if they break.
-
-### Phase Two: Expand Coverage
-
-Start adding tests for the parts that matter most:
-
-1. Test the bloq rendering logic
-2. Test the blip repository
-3. Test API route responses
-4. Add loading state tests
-
-Also, start generating coverage reports. We do not need 100% coverage. We need to know where the gaps are.
-
-### Phase Three: Agentic Testing Infrastructure
-
-This is the ambitious part. This is where we build testing infrastructure that supports agents working in parallel.
-
-Imagine this: you have multiple agents, each responsible for testing a different aspect of the system. One agent runs functional tests. Another runs performance tests. A third runs accessibility audits. They run in parallel, report back, and together they give you a comprehensive view of whether your code is ready.
-
-To get here, we need:
-
-1. **Test orchestration** - A way to run multiple test suites in parallel and aggregate results
-2. **Test generation** - Agents that can look at new code and write tests for it automatically
-3. **Self-healing tests** - Tests that can detect when a UI change broke a selector and fix themselves
-4. **Better logging** - Detailed traces of what agents did so humans can review
-
-This is not science fiction. Tools like Claude and GPT can already write tests. The challenge is orchestration and trust. We need systems that let agents write tests, but verify those tests before we accept them.
+That is not discipline for its own sake. It is me spending verification money where it buys the largest reduction in future human doubt.
 
 ---
 
-## What I Take Away
+## The Short Version
 
-- Our testing foundation is solid but incomplete. We have the right tools, just not enough coverage.
+If I strip away all the tool names, categories, and tasteful theory links, my testing philosophy is embarrassingly simple:
 
-- The failing tests are not a disaster. They are a symptom of a healthy but unfinished project. Refactoring happens, tests get left behind, we fix them and move on.
+- cheap evaluators should carry most of the load
+- expensive evaluators should buy reality, not ego
+- tests should reduce the amount of code I must personally distrust
+- the agentic era makes verification, not generation, the scarce resource
 
-- For agentic engineering to work, we need tests that agents can use as a source of truth. Without tests, agents are flying without instrumentation.
+The agentic era did not make the economic question cheaper. It made getting the answer wrong more expensive.
 
-- The path forward is not to test everything at once. It is to fix the immediate problems, expand gradually, and think about orchestration as a long-term goal.
+That is why I care about testing.
 
-- Testing is not overhead. It is the contract between you today and you six months from now. It is how you tell your future self what you meant.
+Not because it makes me virtuous.
+Not because it makes the repo look grown up.
+Not because a dashboard somewhere can render a coverage donut in brand colors.
 
-The infrastructure we have got us this far. The infrastructure we need will get us further. But we have to build it deliberately, one layer at a time.
+I care because testing is how I turn code, especially AI-assisted code, into something I can change without negotiating with fear every single time.
+
+---
+
+## Further Reading
+
+- [Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html)
+- [Testing Trophy and testing classifications](https://kentcdodds.com/blog/the-testing-trophy-and-testing-classifications)
+- Testing Library: [Guiding principles](https://testing-library.com/docs/guiding-principles)
+- Google Testing on the Toilet: [Test behavior, not implementation](https://testing.googleblog.com/2013/08/testing-on-toilet-test-behavior-not.html)
+- Google Testing on the Toilet: [Don't overuse mocks](https://testing.googleblog.com/2013/05/testing-on-toilet-dont-overuse-mocks.html)
+- Vitest: [Coverage guide](https://vitest.dev/guide/coverage.html)
+- Playwright: [Locators](https://playwright.dev/docs/locators), [Trace viewer](https://playwright.dev/docs/trace-viewer-intro), [Retries](https://playwright.dev/docs/test-retries), [Reporters](https://playwright.dev/docs/test-reporters)
+- Sonar: [Verification gap in AI coding](https://www.sonarsource.com/company/press-releases/sonar-data-reveals-critical-verification-gap-in-ai-coding/)
+- SWE-bench: [Evaluation guide](https://www.swebench.com/SWE-bench/guides/evaluation/) and [Harness reference](https://www.swebench.com/SWE-bench/reference/harness/)
+- OpenAI: [Introducing SWE-bench Verified](https://openai.com/index/introducing-swe-bench-verified//)
+- Anthropic: [Building effective agents](https://www.anthropic.com/research/building-effective-agents)
+- MSR 2026: [Are Coding Agents Generating Over-Mocked Tests?](https://conf.researchr.org/home/msr-2026) and [Testing with AI Agents](https://conf.researchr.org/home/msr-2026)
