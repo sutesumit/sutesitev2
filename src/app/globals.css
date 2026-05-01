@@ -122,6 +122,14 @@
     @apply border-[1px] border-dotted rounded-md border-slate-500 dark:border-slate-500
   }
 
+  .featured-border {
+    @apply border-[1px] border-dotted rounded-md border-amber-500 dark:border-amber-400
+  }
+
+  .featured-item {
+    @apply text-amber-700 dark:text-amber-400 font-medium
+  }
+
   .checkbox {
     @apply border-[1px] border-red-500
   }

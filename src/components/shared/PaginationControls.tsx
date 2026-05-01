@@ -7,6 +7,7 @@ interface PaginationControlsProps {
   pagination: PaginationInfo;
   basePath: string;
   searchQuery?: string;
+  extraParams?: Record<string, string | undefined>;
 }
 
 function getPageNumbers(current: number, total: number): (number | '...')[] {
@@ -36,6 +37,7 @@ export default function PaginationControls({
   pagination,
   basePath,
   searchQuery,
+  extraParams,
 }: PaginationControlsProps) {
   const { page, totalPages } = pagination;
 
@@ -48,6 +50,13 @@ export default function PaginationControls({
     params.set('page', newPage.toString());
     if (searchQuery) {
       params.set('q', searchQuery);
+    }
+    if (extraParams) {
+      Object.entries(extraParams).forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        }
+      });
     }
     return `${basePath}?${params.toString()}`;
   };

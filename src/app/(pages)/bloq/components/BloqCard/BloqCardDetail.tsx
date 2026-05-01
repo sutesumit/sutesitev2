@@ -16,6 +16,7 @@ interface BloqCardDetailProps {
 
 export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
   const { isCollapsed, mouseHandlers } = useCardCollapse();
+  const isFeatured = post.featured;
 
   return (
     <m.div
@@ -27,11 +28,12 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
       role="article"
       aria-label={post.title}
       className={cn(
-        "relative p-2 overflow-hidden blue-border col-span-1 flex flex-col cursor-pointer",
+        "relative p-2 overflow-hidden col-span-1 flex flex-col cursor-pointer",
+        isFeatured ? "featured-border" : "blue-border",
         className
       )}
     >
-      <BloqBackground />
+      <BloqBackground isFeatured={isFeatured} />
 
       <m.div
         animate={{
@@ -45,7 +47,12 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
         {/* Back button & collapsed title */}
         <div className="flex flex-row w-full items-center justify-between">
           <Link href={`/bloq/`} className="flex shrink-0">
-            <div className="inline-flex items-center blue-border rounded px-2 lowercase opacity-75 text-xs hover:bg-blue-100 hover:text-black dark:hover:bg-blue-900 dark:hover:text-white transition-colors duration-500">
+            <div className={cn(
+              "inline-flex items-center rounded px-2 lowercase opacity-75 text-xs transition-colors duration-500",
+              isFeatured 
+                ? "featured-border hover:bg-amber-100 hover:text-black dark:hover:bg-amber-900 dark:hover:text-white" 
+                : "blue-border hover:bg-blue-100 hover:text-black dark:hover:bg-blue-900 dark:hover:text-white"
+            )}>
               {isCollapsed ? "" : "All Bloqs"}{" "}
               <Undo2 className="opacity-75 p-1" />
             </div>
@@ -59,7 +66,10 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
                 transition={{ duration: 0.2 }}
                 className="flex-grow flex items-center justify-end gap-3 ml-2 min-w-0"
               >
-                <span className="truncate min-w-0 font-medium text-blue-900 dark:text-blue-400 text-right">
+                <span className={cn(
+                  "truncate min-w-0 font-medium text-right",
+                  isFeatured ? "text-amber-700 dark:text-amber-400" : "text-blue-900 dark:text-blue-400"
+                )}>
                   {post.title}
                 </span>
                 <ClapsCounter
@@ -100,13 +110,13 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
                 <BloqDate post={post} />
                 <BloqReadingTime readingTime={post.readingTime} />
               </div>
-              <BloqTitle post={post} isDetail={true} />
+              <BloqTitle post={post} isDetail={true} isFeatured={isFeatured} />
               <BloqSummary post={post} isDetail={true} />
 
               {/* Tags section */}
               {post.tags && post.tags.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <TagList tags={post.tags} asLinks={true} />
+                  <TagList tags={post.tags} asLinks={true} isFeatured={isFeatured} />
                 </div>
               )}
             </m.div>

@@ -8,9 +8,12 @@ interface FilterPanelProps {
   tags: { tag: string; count: number }[];
   selectedCategory: string | null;
   selectedTags: string[];
+  isFeaturedOnly?: boolean;
+  featuredCount?: number;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onCategoryChange: (category: string | null) => void;
+  onFeaturedToggle?: () => void;
   onTagToggle: (tag: string) => void;
   onClearAll: () => void;
   className?: string;
@@ -21,9 +24,12 @@ export default function FilterPanel({
   tags,
   selectedCategory,
   selectedTags,
+  isFeaturedOnly = false,
+  featuredCount = 0,
   searchQuery,
   onSearchChange,
   onCategoryChange,
+  onFeaturedToggle,
   onTagToggle,
   onClearAll,
   className
@@ -31,7 +37,7 @@ export default function FilterPanel({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   
-  const hasActiveFilters = selectedCategory || selectedTags.length > 0 || searchQuery;
+  const hasActiveFilters = selectedCategory || selectedTags.length > 0 || searchQuery || isFeaturedOnly;
   const showFilters = isExpanded || isFocused || hasActiveFilters;
 
   const filterVariants = {
@@ -153,6 +159,17 @@ export default function FilterPanel({
                     )}
                   >
                     All
+                  </button>
+                  <button
+                    onClick={onFeaturedToggle}
+                    className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200",
+                      isFeaturedOnly
+                        ? "bg-amber-500 text-white shadow-md scale-105"
+                        : "bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50"
+                    )}
+                  >
+                    Featured <span className="ml-1 opacity-60 text-xs">({featuredCount})</span>
                   </button>
                   {categories.map(({ category, count }) => (
                     <button

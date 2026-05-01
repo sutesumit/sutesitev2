@@ -1,6 +1,6 @@
 # Bloq Skill: Current System, Living Practice
 
-> **Last reviewed:** 2026-04-22 | **Metric:** 32 total bloq files in `src/content/bloqs`, 25 currently visible, 7 archived or trashed | **Version:** 2.0.0
+> **Last reviewed:** 2026-05-01 | **Metric:** 32 total bloq files in `src/content/bloqs`, 25 currently visible, 7 archived or trashed | **Version:** 2.1.0
 
 This file has three jobs:
 
@@ -90,7 +90,7 @@ status: "published"
 | `category` | Supported | Required in practice | Keep to the category guidance below |
 | `image` | Supported | Optional | Parser supports it, current posts rarely use it |
 | `draft` | Supported | Required in practice | Controls visibility in production |
-| `featured` | Supported | Required in practice | Promoted in feed and listings |
+| `featured` | Supported | Required in practice | Promoted in feed via "Amber Shift" visual treatment (Amber border/glow); discoverable via "Featured" filter |
 | `status` | Supported | Optional | `published`, `draft`, `archived`, `trashed`; only `archived` and `trashed` affect parser visibility directly |
 
 ### Publishing State Semantics
@@ -111,6 +111,7 @@ These categories are current and safe to use:
 
 | Category | Use when | Status |
 |----------|----------|--------|
+| `Featured` | **Pseudo-category** | Used in Filter Panel to discover high-value content |
 | `Engineering` | Feature work, debugging, architecture, systems thinking | Current |
 | `Reflections` | Personal learning, meta-commentary, events, process | Current |
 | `Development` | Tooling, workflow, setup, developer experience | Current |
@@ -421,6 +422,7 @@ Only log entries that changed the practice, not every article publication.
 
 | Date | Version | Trigger | What Changed | Proposed By |
 |------|---------|---------|--------------|-------------|
+| 2026-05-01 | 2.1.0 | Featured elevation | Added "Amber Shift" visual treatment (Amber border/glow) and "Featured" filter discovery point | Agent |
 | 2026-03-12 | 1.13.0 | SEO slug refactoring | Added guidance around slug normalization and slug-to-directory alignment | Agent |
 | 2026-03-12 | 1.14.0 | Supabase data migration | Recorded slug migration implications for historical data | Agent |
 | 2026-03-14 | 1.15.0 | Robust planning reflections | Strengthened planning and anti-vague-spec guidance | Human |

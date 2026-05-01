@@ -37,6 +37,12 @@ export function getAllCategories(): { category: string; count: number }[] {
     .sort((a, b) => a.category.localeCompare(b.category));
 }
 
+export function getFeaturedCount(): number {
+  return getBloqPosts().filter(post => 
+    post.featured && post.status !== 'archived' && post.status !== 'trashed'
+  ).length;
+}
+
 export function getAllAuthors(): string[] {
   const posts = getBloqPosts();
   const authorSet = new Set<string>();

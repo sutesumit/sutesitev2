@@ -140,6 +140,7 @@ export interface BloqFilters {
   searchQuery?: string;
   category?: string;
   tags?: string[];
+  featuredOnly?: boolean;
 }
 
 export interface PaginatedBloqResult {
@@ -158,6 +159,7 @@ export function getBloqPostsPaginated(
   const searchQuery = filters?.searchQuery ? normalizeSearchQuery(filters.searchQuery) : undefined;
   const category = filters?.category;
   const tags = filters?.tags;
+  const featuredOnly = filters?.featuredOnly;
   
   // Apply filters
   let filtered = allPosts;
@@ -165,6 +167,11 @@ export function getBloqPostsPaginated(
   // Search filter (using Fuse.js for fuzzy search)
   if (searchQuery) {
     filtered = searchBlogPosts(filtered, searchQuery);
+  }
+  
+  // Featured Only filter (Independent Toggle)
+  if (featuredOnly) {
+    filtered = filtered.filter(post => post.featured);
   }
   
   // Category filter

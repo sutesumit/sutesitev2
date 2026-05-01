@@ -15,6 +15,7 @@ export {
 export { 
   getAllTags, 
   getAllCategories, 
+  getFeaturedCount,
   getAllAuthors, 
   getTagStats, 
   getPopularTags 

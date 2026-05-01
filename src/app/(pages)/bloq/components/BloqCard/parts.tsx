@@ -1,6 +1,7 @@
 import { motion as m } from 'framer-motion'
 import { Clock, Calendar } from 'lucide-react'
 import { BloqPost } from '@/lib/bloq'
+import { cn } from '@/lib/utils'
 
 interface BloqPartProps {
   post: BloqPost;
@@ -20,7 +21,7 @@ export const BloqReadingTime = ({ readingTime, className }: BloqReadingTimeProps
       layout 
       initial={{ opacity: 0.5 }}
       animate={{ opacity: 0.5 }}
-      className={`text-xs flex items-center gap-1 shrink-0 ${className || ''}`}
+      className={cn(`text-xs flex items-center gap-1 shrink-0`, className)}
     >
       <Clock className="w-3 h-3" />
       <span>{readingTime} min read</span>
@@ -58,9 +59,10 @@ export const BloqDate = ({ post, shouldHide = false }: BloqDateProps) => {
 interface BloqTitleProps extends BloqPartProps {
   shouldHide?: boolean;
   isDetail?: boolean;
+  isFeatured?: boolean;
 }
 
-export const BloqTitle = ({ post, shouldHide = false, isDetail = false }: BloqTitleProps) => {
+export const BloqTitle = ({ post, shouldHide = false, isDetail = false, isFeatured = false }: BloqTitleProps) => {
   return (
     <m.div 
       layout 
@@ -70,7 +72,11 @@ export const BloqTitle = ({ post, shouldHide = false, isDetail = false }: BloqTi
         height: shouldHide ? 0 : "auto",
         marginBottom: shouldHide ? 0 : 4
       }}
-      className={`font-medium truncate text-blue-900 dark:text-blue-400 pb-1 ${isDetail ? '' : 'project-item'}`}
+      className={cn(
+        `font-medium truncate pb-1`,
+        isFeatured ? 'featured-item' : 'text-blue-900 dark:text-blue-400',
+        isDetail ? '' : 'project-item'
+      )}
     >
       {post.title}
     </m.div>
@@ -92,14 +98,14 @@ export const BloqSummary = ({ post, shouldHide = false, isDetail = false }: Bloq
         width: shouldHide ? 0 : "auto",
         height: shouldHide ? 0 : "auto" 
       }}
-      className={`text-xs ${isDetail ? 'line-clamp-none' : 'line-clamp-2'} overflow-hidden`}
+      className={cn(`text-xs overflow-hidden`, isDetail ? 'line-clamp-none' : 'line-clamp-2')}
     >
       {post.summary}
     </m.div>
   );
 };
 
-export const BloqBackground = () => {
+export const BloqBackground = ({ isFeatured = false }: { isFeatured?: boolean }) => {
   return (
     <m.div
       variants={{
@@ -107,7 +113,10 @@ export const BloqBackground = () => {
         hover: { scale: 6, opacity: 0.4, rotate: 45 },
       }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`backdrop flex rounded-lg bg-blue-400 dark:bg-blue-900 inset-0 -z-10 absolute opacity-25`}
+      className={cn(
+        `backdrop flex rounded-lg inset-0 -z-10 absolute opacity-25`,
+        isFeatured ? 'bg-amber-400 dark:bg-amber-900' : 'bg-blue-400 dark:bg-blue-900'
+      )}
     ></m.div>
   );
 };

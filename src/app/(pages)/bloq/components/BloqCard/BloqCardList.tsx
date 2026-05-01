@@ -14,6 +14,7 @@ interface BloqCardListProps {
 }
 
 export const BloqCardList = ({ post, variant = 'list', className }: BloqCardListProps) => {
+  const isFeatured = post.featured;
   const animationProps = {
     initial: "rest",
     whileHover: "hover",
@@ -26,10 +27,14 @@ export const BloqCardList = ({ post, variant = 'list', className }: BloqCardList
         layout
         role="article"
         aria-label={post.title}
-        className={cn(`relative p-4 overflow-hidden blue-border project-list col-span-1 flex flex-col cursor-pointer`, className)}
+        className={cn(
+          `relative p-4 overflow-hidden project-list col-span-1 flex flex-col cursor-pointer`,
+          isFeatured ? "featured-border" : "blue-border",
+          className
+        )}
         {...animationProps}
       >
-        <BloqBackground />
+        <BloqBackground isFeatured={isFeatured} />
         
         <m.div layout className="flex h-full flex-col">
           <div className="flex-1">
@@ -49,7 +54,7 @@ export const BloqCardList = ({ post, variant = 'list', className }: BloqCardList
                 <ClapsCounter postId={post.url} postType="bloq" interactive={false} className="text-xs !p-0 flex items-center text-gray-500" />
               </div>
             </div>
-            <BloqTitle post={post} />
+            <BloqTitle post={post} isFeatured={isFeatured} />
             <BloqSummary post={post} />
           </div>
         </m.div>

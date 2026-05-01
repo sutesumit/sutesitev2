@@ -5,12 +5,13 @@ interface TagListProps {
   className?: string;
   maxTags?: number;
   asLinks?: boolean;
+  isFeatured?: boolean;
 }
 
 /**
  * TagList - Display a list of tags with optional truncation
  */
-export default function TagList({ tags, className, maxTags, asLinks = true }: TagListProps) {
+export default function TagList({ tags, className, maxTags, asLinks = true, isFeatured = false }: TagListProps) {
   const displayTags = maxTags ? tags.slice(0, maxTags) : tags;
   const remainingCount = maxTags && tags.length > maxTags ? tags.length - maxTags : 0;
 
@@ -19,7 +20,7 @@ export default function TagList({ tags, className, maxTags, asLinks = true }: Ta
   return (
     <div className={`flex flex-wrap gap-1.5 ${className || ''}`}>
       {displayTags.map((tag) => (
-        <TagBadge key={tag} tag={tag} asLink={asLinks} />
+        <TagBadge key={tag} tag={tag} asLink={asLinks} isFeatured={isFeatured} />
       ))}
       {remainingCount > 0 && (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-extralight text-gray-600 dark:text-gray-400">
