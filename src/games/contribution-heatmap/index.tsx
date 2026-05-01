@@ -298,7 +298,7 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
               </div>
             )}
             {bootStep >= 0 && !error && (
-              <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400">\u2588</span>
+              <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400">{"\u2588"}</span>
             )}
           </div>
         )}
@@ -361,7 +361,8 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                   const isToday = dateKey === todayKey;
                   const isRevealed = day !== null && state.revealed.has(day);
                   const isSkull = day !== null && day === state.skullDay;
-                  const innerVisible = !isPlaceholder;
+                  const isActuallyRevealed = isRevealed || (state.isGameOver && isSkull);
+                  const innerVisible = !isPlaceholder && !isActuallyRevealed;
                   const centerGlyph = isPlaceholder
                     ? EMPTY_GLYPH
                     : isMonthLoading
@@ -392,8 +393,12 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                     >
                       <m.div
                         className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                        animate={{ opacity: innerVisible ? 1 : 0 }}
-                        transition={{ duration: 0.24, delay: idx * 0.008, ease: "easeOut" }}
+                        animate={{
+                          opacity: innerVisible ? 1 : 0,
+                          y: innerVisible ? 0 : 20,
+                          rotate: innerVisible ? 0 : (idx % 2 === 0 ? 15 : -15),
+                        }}
+                        transition={{ duration: 0.4, delay: innerVisible ? idx * 0.008 : 0, ease: "backIn" }}
                       >
                         <span className="opacity-50">[</span>
                         <AnimatePresence mode="wait" initial={false}>
