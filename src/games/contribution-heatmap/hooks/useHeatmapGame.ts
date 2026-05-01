@@ -126,5 +126,6 @@ export function useHeatmapGame(externalData: Record<string, number> | null) {
     actions,
     stats,
     isAtLatest,
+    setData,
   };
 }

@@ -1,4 +1,11 @@
-export type { ContributionData, ContributionDay, ContributionWeek, GitHubService } from './GitHubService.interface';
+export type {
+  ContributionData,
+  ContributionDay,
+  ContributionMonthRequest,
+  ContributionMonthResponse,
+  ContributionWeek,
+  GitHubService,
+} from './GitHubService.interface';
 export { GitHubGraphQLService } from './GitHubGraphQLService';
 
 // Default service instance

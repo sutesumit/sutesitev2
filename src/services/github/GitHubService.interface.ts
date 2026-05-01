@@ -11,9 +11,26 @@ export interface ContributionData {
   [date: string]: number;
 }
 
+export interface ContributionMonthRequest {
+  year: number;
+  // Calendar month number (1-12).
+  month: number;
+}
+
+export interface ContributionMonthResponse {
+  year: number;
+  // Calendar month number (1-12).
+  month: number;
+  monthKey: string;
+  data: ContributionData;
+}
+
 export interface GitHubService {
   /**
-   * Get contribution data for given usernames
+   * Get contribution data for a given month and usernames
    */
-  getContributions(usernames: string[]): Promise<ContributionData>;
+  getContributionsForMonth(
+    usernames: string[],
+    request: ContributionMonthRequest
+  ): Promise<ContributionMonthResponse>;
 }

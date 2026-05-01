@@ -2,6 +2,10 @@ export function toKey(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+export function toMonthKey(year: number, month: number) {
+  return `${year}-${String(month + 1).padStart(2, "0")}`;
+}
+
 export function buildMonthGrid(year: number, month: number) {
   const first = new Date(year, month, 1).getDay();
   const total = new Date(year, month + 1, 0).getDate();
