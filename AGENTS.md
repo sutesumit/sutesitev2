@@ -22,10 +22,15 @@ npm run start            # Start production server
 # Linting
 npm run lint             # Run ESLint (extends next/core-web-vitals, next/typescript)
 
-# No test framework configured
+# Testing
+```bash
+npm run test             # Run Vitest unit/component tests
+npm run test:watch       # Run Vitest in watch mode
+npm run test:e2e         # Run Playwright E2E tests
+npm run test:all         # Run both Vitest and Playwright tests
 ```
 
-There is no test suite configured for this project. Do not add tests.
+The project uses **Vitest** for unit/component testing and **Playwright** for end-to-end testing.
 
 ## Code Style Guidelines
 
