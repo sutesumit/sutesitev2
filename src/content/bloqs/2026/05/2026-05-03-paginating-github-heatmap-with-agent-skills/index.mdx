@@ -1,0 +1,802 @@
+---
+title: "Where Trust Comes From: Engineering with Agentic Skills"
+publishedAt: "2026-05-03"
+updatedAt: "2026-05-03"
+summary: "I used my GitHub heatmap refactor as a proving ground for a stricter agentic rhythm—moving from Research-Plan-Implement to a workflow that demands questions, structure, and evidence over vibes."
+slug: "paginating-github-heatmap-with-agent-skills"
+tags:
+  - ai
+  - architecture
+  - debugging
+  - nextjs
+  - react
+  - frontend
+  - backend
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: true
+status: "published"
+---
+
+import { ContributionHeatmap } from '@/games/contribution-heatmap'
+
+## The Quietly Wrong Version
+
+> "It worked beautifully until it met a user who expected the map to match the territory."
+
+<ContributionHeatmap />
+
+###
+
+I aimed to upgrade the GitHub heatmap on [`/work`](/work). That innocent‑looking request — *just add backward navigation, how hard can it be* — soon became a proving ground for disciplined agentic workflow. (The answer, as always with "how hard can it be," was: medium-hard and embarrassing.)
+
+The original component eagerly fetched a large batch of months during boot, rendering the current month while silently discarding any months beyond the pre‑loaded range. When a user navigated to a month that hadn't been fetched, the UI displayed an empty grid, breaking the illusion of an infinite history.
+
+The old data‑flow looked roughly like this:
+
+```text
+boot
+  -> fetch N months upfront
+  -> render month[0]
+  -> nav: month[N+1]?
+       -> ¯\_(ツ)_/¯  (empty grid)
+```
+
+That is not a rare mistake. That is the oldest mistake in UI engineering: build a UI that implies a capability the data layer does not have. The component was overpromising on behalf of the API the same way a sales team promises delivery dates on behalf of a development team they have not yet consulted.
+
+That eager‑fetch pattern is a classic **API‑design smell** — specifically the "convenient lie" variant. The component pretended to have complete history while only holding a slice. The revised implementation reshapes the contract so each month is fetched on demand, returning real data only when needed and showing a subtle loading state instead of a blank space.
+
+The mismatch was structural:
+
+```text
+UI contract:    navigate freely <----->
+Data contract:  here is May, and
+                April if you're lucky
+```
+
+Not because one fetch is morally wrong. I am not here to start a religious war against boot-time requests. It smelled because the UI and the data model were making different promises to the same user at the same time.
+
+The UI said:
+
+```text
+Yes, keep going. History is here.
+```
+
+The implementation said:
+
+```text
+I know a few months.
+ After that: theatre.
+```
+
+So I decided to do the nicer version: fetch monthly data on demand from GitHub, cache it locally — in an in‑memory `Map` keyed by `YYYY-MM` (and optionally persisted in IndexedDB) — and make the loading state subtle enough that it felt intentional instead of apologetic. That also opened the door to better transitions, because once the data flow becomes honest, the animation can stop covering for it.
+
+> **Cache architecture**
+> - **In‑memory `Map<string, MonthData>`** – O(1) lookup; lives only while the tab is open. Zero serialization cost.
+> - **IndexedDB fallback** – persists the same key‑value pairs across reloads; browsers grant 50–250 MB per origin, which is orders of magnitude more than contribution data needs.
+> - **Read-through pattern** – check memory → check IDB → fetch network. Classic layered cache. Nothing novel, just applied correctly.
+> - **Result** – instant revisits, no redundant round-trips, and the UI can be confident about what it already knows.
+
+> [!NOTE]
+> **What to take from this:** The problem was not missing pagination. The problem was a contract violation between the UI's affordances and the data layer's actual capabilities. Fixing the right thing is the whole job.
+
+But the feature was not the interesting part. The interesting part was that I deliberately used it as a proving ground for the agentic skills I had been building.
+
+In [The Workflow I Kept Postponing Was the Point](/bloq/2026-04-23-the-skills-we-should-have-built-first), I arrived at the confession that I had been treating workflow discipline as overhead instead of as the work. This heatmap feature was where I tried to stop being theoretical about that.
+
+---
+
+## The Better Question Was Not "How Do I Paginate This?"
+
+> "The first good thing an agent can do for you is embarrass your initial framing."
+
+At first glance, the task looked like pagination:
+
+```text
+need older months
+  -> add prev/next buttons
+  -> ship
+  -> collect praise
+```
+
+That was too shallow. And honestly, the worst kind of shallow — the kind that *feels* complete because it has a shape.
+
+The real problem, once you actually pulled on the thread, was a cluster of four distinct failures masquerading as one feature request:
+
+- the component fetched a **bounded slice** of history once at boot
+- the UI implied **open-ended navigation** with no visible ceiling
+- an **empty month** and an **unloaded month** looked identical to the user
+- the **contract between frontend and backend** was implied, not stated
+
+That is not "pagination." That is a **truthfulness problem** with some date math stapled to the side.
+
+The instinct to reach for `idea-refine` here is the same instinct a good engineer develops for free after being burned three or four times: **reframe before you estimate**. The symptom and the disease are often one level apart.
+
+```text
+symptom:  user sees blank grid
+disease:  UI lies about what it knows
+fix:      align the contract, not the grid
+```
+
+What `idea-refine` actually forces:
+
+- **question quality** — is the stated problem the real problem?
+- **option quality** — what are the actual alternatives, not just the first one?
+- **trade-off visibility** — what does each option cost, not just what does it do?
+
+What it guards against:
+
+- coding from the symptom (fast, wrong)
+- locking onto the first plausible solution (a classic)
+- pretending the problem statement arrived already well-formed (it never does)
+
+The reframed question became:
+
+```text
+How do I let the heatmap browse older
+months without pretending one boot-time
+fetch covers unlimited history?
+```
+
+That changed everything. Suddenly the option space was legible instead of implied:
+
+```text
+option A: fetch one month on demand
+option B: rolling window + prefetch
+option C: year buckets, lazy within
+```
+
+Each of those is a different product decision, not just a different technical decision. Option A is honest simplicity. Option B is ambitious and risky. Option C is a good middle-ground if the data access patterns support it. They all required different API shapes, different cache strategies, different loading UX.
+
+Engineers can produce novelty unsupervised — that is genuinely one of our more dangerous features. The point of the skill was not to generate options. It was to **improve the geometry of the decision** so the option we picked had a fighting chance of solving the right thing.
+
+> **What to take from this:** When a task feels like plumbing, ask whether it's actually a contract problem. The difference determines whether you ship a fix or ship a better-dressed version of the original bug.
+
+---
+
+## Why I Have Shifted From RPI To QRSPI
+
+> "Research without questions is just expensive wandering with prettier notes."
+
+This is where [Dexter Horthy's recent argument](https://youtu.be/YwZR6tc7qYg?si=2FGcG12WnETh4wcd) landed for me. The older `RPI` rhythm — `Research → Plan → Implement` — was already a significant improvement over vibe coding. It introduced **gates**. It forced the agent to look before it touched anything. It meant the first line of code appeared after at least some deliberate thought, which is not as low a bar as it sounds.
+
+But Dexter's stronger move, in the talk about what they got wrong with RPI, is that the workflow needs more structure *before* research and *between* research and planning. The reason is subtle but important: **research conducted with a vague mandate is not actually research**. It is a long walk toward a conclusion the model had already decided to reach.
+
+The evolved rhythm:
+
+```text
+Q  Questions     <- surface forks first
+R  Research      <- answer them with evidence
+D  Design        <- shape before committing
+S  Structure     <- outline the system
+P  Plan          <- sequence the work
+W  Worktree      <- isolate the change
+I  Implement     <- build in thin slices
+PR Pull request  <- review the result
+```
+
+D and W are the two most frequently skipped and also the two most frequently regretted!? But I like this approach for three reasons that compound.
+
+**First, it front-loads disagreement.** Questions means the agent cannot race into investigation with a vague mandate — it has to surface the decision branches *before* anyone starts building an opinion from the codebase. Disagreement discovered at Q-phase costs one conversation turn. Disagreement discovered at I-phase costs a revert.
+
+**Second, it separates *what is true* from *what we think we should do*.** A giant research prompt is still a monolith. It can quietly conflate facts and early design bias in the same breath. Splitting into focused phases makes omission harder to hide, because each phase has a defined output type that can be inspected.
+
+```text
+Q output: list of open questions
+R output: answers + evidence sources
+S output: system shape diagram
+P output: ordered task list
+I output: working, tested slice
+```
+
+If you cannot produce the output for a phase, the phase is not done. That is it. No magic.
+
+**Third, the Structure phase is not just a naming tweak.** There is a meaningful difference between:
+
+```text
+here is the plan
+```
+
+and:
+
+```text
+here is the shape of the system
+```
+
+The shape reveals whether the plan is sequencing truth or sequencing paperwork. A plan can look reasonable while hiding the fact that step 3 depends on something step 4 is supposed to produce. A structure outline makes that visible before anyone has written a single line.
+
+This heatmap work followed that spirit even when I was not literally labelling each phase in the moment:
+
+```text
+grill-me      -> Questions
+codebase read -> Research
+contract doc  -> Design + Structure
+task list     -> Plan
+vertical impl -> Implement (x5 slices)
+browser check -> Verify
+```
+
+As for the context-window angle: one of my growing convictions with agent workflows is that **fewer monolithic context windows beats one heroic all-knowing pass**. Not because context is useless, but because attending uniformly across a 200k-token context is not how these models actually work. Keeping each phase in its own focused pass is partly just being honest about that.
+
+---
+
+## `grill-me` Was Not Optional Here
+
+> "If the agent cannot interrogate the plan, it will eventually obey the wrong one very efficiently."
+
+[Matt Pocock](https://www.youtube.com/watch?v=3MP8D-mdheA) makes two related points in his AI engineering talks that I now think of as a pair. The first is structural: models have smart zones and dumb zones. Information at the edges of a context window is attended to more reliably than information buried in the middle. The second follows from it: the central failure mode is often not "the model is dumb." It is "the design concept never became shared" — and then silently drifted to the middle of a growing context where recall was already weakening.
+
+That second point hits harder when you hold both together. A design concept that was never properly settled does not just fail to get shared — it tends to get stated vaguely, late in a prompt, and ends up buried exactly where the model is least equipped to anchor to it.
+
+So [`grill-me`](https://www.aihero.dev/my-grill-me-skill-has-gone-viral) mattered here. It forces the shared concept to land early, while the context is still in its smart zone.
+
+What `grill-me` improves:
+
+- shared design concept
+- terminology overlap
+- hidden decision discovery
+- prompt reliability
+
+What it avoids:
+
+- falsely early alignment
+- lazy "sounds good" planning
+- discovering requirements by accident during implementation
+
+The useful questions were not glamorous:
+
+- Are we building an archive explorer or just a game with some history?
+- Should month changes replay the boot screen?
+- Should revisits refetch?
+- Should API months be `0-11` or `1-12`?
+- Do we keep stale month data visible while loading?
+
+Those questions produced the real product contract:
+
+- first visit to a month fetches it
+- revisits use cached data
+- the full boot sequence is initial-load only
+- month navigation uses a lighter loading state
+- backward navigation is unlimited
+- the requested month becomes visible immediately
+- the API returns month metadata so the client can stay honest
+
+That is the thing `grill-me` gives me when it is working well: it turns feelings into commitments.
+
+Matt's other argument, which I think is dead right, is that AI works better when there is a shared language around the problem. If the codebase, the human, and the model all mean different things by "month," "loaded," or "current," you are not collaborating. You are arguing with probability.
+
+---
+
+## Planning Helped, But Structure Helped More
+
+> "A plan is nice. A structure outline is what stops the plan from becoming decorative."
+
+After the questioning phase, I used `planning-and-task-breakdown`.
+
+That gave me the expected value:
+
+- defined tasks
+- sequencing
+- checkpoints
+- explicit dependencies
+
+But the more important move was the structure it forced me to notice:
+
+```text
+GitHub GraphQL
+  -> service layer
+    -> API route
+      -> client month cache
+        -> heatmap UI
+```
+
+That outline looks obvious in retrospect. It did not feel obvious while I was inside it.
+
+This is why I think Dexter's `S` in `QRSPI` is more than a naming tweak. There is a difference between:
+
+```text
+here is the plan
+```
+
+and
+
+```text
+here is the shape of the system
+```
+
+The system shape is what reveals whether the plan is sequencing truth or just sequencing paperwork.
+
+For this feature, the task list became:
+
+1. design the month-based contract
+2. teach the GitHub service to fetch a bounded month
+3. update the API route
+4. add UI cache and loading state
+5. refine the transitions
+6. verify in a browser
+7. document the decision
+
+Nothing exotic. Which is exactly what you want.
+
+---
+
+## Why I Liked GitHub's GraphQL API Here
+
+> "REST is great when your screen and your endpoint already agree. GraphQL is lovely when you need a narrower conversation."
+
+This feature uses [GitHub's GraphQL API](https://docs.github.com/en/graphql) behind a server-side service layer. I admire that architecture in this context because the request shape stays close to what the UI actually needs, without making the browser know anything about GitHub's internal business.
+
+GraphQL lets the client describe the exact fields and shape it wants instead of hoping a fixed REST endpoint happens to line up. For contribution data — nested, date-keyed, spread across multiple profiles — that is a genuine fit, not just a technology preference.
+
+```text
+GitHub GraphQL
+  <- { user, from, to, weeks }
+  -> { contributionCalendar.
+       weeks[].contributionDays }
+  ← server narrows and normalizes
+  -> { year, month, monthKey, data }
+  ← client just renders
+```
+
+### What works well here
+
+- **Explicit field selection** — you ask for exactly what you need, nothing extra
+- **Bounded-range querying** — one month, one query, no post-filtering
+- **Fewer round trips** — profile aggregation happens server-side in one shot
+- **Clean nesting** — contribution data is inherently hierarchical, GraphQL fits naturally
+
+### What I do not romanticize
+
+- **Schema surprise** — GitHub's schema has opinions and the occasional eccentricity
+- **Caching complexity** — URL-based HTTP caching does not apply; you own it
+- **Query creep** — without discipline, "just one more field" becomes a lifestyle
+- **Debugging friction** — a bad query returns 200 with errors nested inside JSON, which is a fun game
+
+For this heatmap the fit was clean. The server asked for a precise contribution range, merged multiple profiles, and returned the simplest thing the UI needed:
+
+```json
+{
+  "year": 2026,
+  "month": 5,
+  "monthKey": "2026-05",
+  "data": { "2026-05-01": 2 }
+}
+```
+
+The browser never had to know about GitHub tokens, GraphQL query syntax, profile aggregation logic, or date-boundary construction. That is a good deal. Frontend innocence is underrated as an architectural virtue.
+
+---
+
+## `api-and-interface-design` Enforced The Right Boundary
+
+> "Internal month indexing is a local eccentricity. Public interfaces should not inherit it."
+
+The next skill that paid off was `api-and-interface-design`. This one was about a trap so common it has a Wikipedia entry: the [**off-by-one error**](https://en.wikipedia.org/wiki/Off-by-one_error) — except this variant was an off-by-one error embedded in a public API contract, which is (may be) not considerably worse than one embedded in a loop.
+
+Inside the component, month state was naturally JavaScript-flavored:
+
+```text
+JS Date months:  Jan=0  May=4  Dec=11
+Human months:    Jan=1  May=5  Dec=12
+```
+
+That is survivable inside a component. Developers are used to it. It is one of those JavaScript design decisions that made sense at the time and has been embarrassing everyone quietly ever since. What is *not* survivable is exposing the internal convention over a public API while *simultaneously* returning a human-readable `monthKey`:
+
+```json
+{
+  "year": 2026,
+  "month": 4,
+  "monthKey": "2026-05"
+}
+```
+
+Correct in the most useless possible way. `month: 4` is May in JavaScript. `monthKey: "2026-05"` is May in English. Together they form a payload that is technically consistent and practically a trap — the kind of thing you debug at 11pm by staring at a number that is *almost* right.
+
+The boundary the skill enforced:
+
+```text
+inside component: month = 0..11  (JS)
+API request:      month = 1..12  (calendar)
+API response:     month = 1..12  (calendar)
+client reads:     normalize once, on entry
+```
+
+What `api-and-interface-design` pushes toward:
+
+- **boundary clarity** — internal eccentricities stay internal
+- **type semantics** — `month: number` should mean the same thing on both sides
+- **future debuggability** — payloads should be readable without a decoder ring
+- **documentation quality** — a clean interface documents itself
+
+What it prevents:
+
+- leaking implementation detail into public data (the `0-11` escape)
+- half-human, half-machine payloads (the worst of both worlds)
+- the tiny ambiguity that grows teeth at 11pm six months from now
+
+That decision is not mathematically interesting. It is just respectful to whoever debugs the payload next. Which will very likely be me, older, tireder, and considerably less charitable about past-me's choices.
+
+> [!WARNING]
+> **What to take from this:** Every place your internal representation leaks into a public interface is a future debugging session you have pre-scheduled for yourself.
+
+---
+
+## `incremental-implementation` Matched How A Human Engineer Actually Builds
+
+> "I trust vertical slices more than horizontal optimism."
+
+The skill's bias is exactly the one I endorse: build in **thin vertical slices**, verify each slice end-to-end, then move to the next. That is not just convenient. It is how engineers build when they want real feedback instead of accumulated confidence.
+
+The opposite — horizontal layering — looks like this:
+
+```text
+horizontal (dangerous):
+  - build entire service layer
+  - build entire API layer
+  - build entire UI layer
+  - wire together
+  - discover everything is wrong
+  - cry
+```
+
+Vertical slicing looks like this:
+
+```text
+vertical (sane):
+  slice 1: contract -> one fetch -> one response
+  slice 2: + client cache
+  slice 3: + loading state
+  slice 4: + transition
+  slice 5: + browser verified
+```
+
+Each slice is a deployable unit of truth. If slice 2 breaks, you know the cache is the suspect. If you had done everything at once, you would have a 400-line diff and a mystery.
+
+[Matt Pocock's AI Engineer talk](https://youtu.be/v4F1gFy-hqg?si=-QQLsRHEDPFBMm7u) makes a closely related case: small deliberate steps, fast feedback loops, do not outrun your headlights. The framing I like is **outrunning your headlights**: you can move at full speed in the dark for a while, but the crash is proportional to how far ahead of your visibility you got.
+
+Instead of laying concrete in isolated horizontal layers and praying the tunnels meet, the feature moved as:
+
+```text
+month contract
+  -> one server fetch path
+    -> one API response shape
+      -> one client cache path
+        -> one visible UI transition
+```
+
+What `incremental-implementation` protects:
+
+- **viability checking** — each slice either works or it doesn't; no ambiguity
+- **rollback safety** — a broken slice has minimal blast radius
+- **debugging surface** — you always know which layer broke
+- **partial confidence** — you can stop at any slice and have something working
+
+What it prevents:
+
+- giant diff clouds that nobody wants to review
+- architecture by accumulation (adding layers until something resembles a design)
+- discovering integration failures only at the final merge
+
+This fits Matt's broader point: AI is strongest when the codebase exposes clear interfaces so tactical work can be delegated without surrendering strategic control. This heatmap change was not profound architecture, but it benefited from exactly that instinct:
+
+```text
+GitHub logic   -> lives in service only
+Route logic    -> lives in route only
+Cache + state  -> lives in component only
+```
+
+The boundaries were not clever. They were just clear enough that the work could cross the stack without turning to soup. Clear beats clever for maintainability every single time, and I am only slightly embarrassed it took me this long to fully believe that.
+
+> [!NOTE]
+> **What to take from this:** Vertical slices give you real end-to-end feedback at every step. Horizontal layers give you the feeling of progress right up until they don't connect.
+
+---
+
+## The First Bug Was A Loop I Had Earned Fairly
+
+> "I do not resent React for these bugs. React is just where my assumptions go to become measurable."
+
+The first real failure after implementation was a render loop:
+
+```text
+Maximum update depth exceeded.
+```
+
+That message is React's polite way of saying: you have created a cycle. Something you are doing inside a render is triggering another render, which triggers the thing you are doing, forever. It is the closest a UI framework gets to sending you a personal note.
+
+The specific mechanism: the month-loading effect depended on an `actions` object — a standard pattern where a custom hook returns a collection of state-updater functions — and also called `actions.setData(...)` inside that same effect. The problem was that this `actions` container was being rebuilt as a fresh object literal on every render. Even if the functions inside it hadn't changed, the object *holding* them had a new **referential identity**, which triggered the effect again.
+
+```text
+effect runs
+  -> setData (mutates state)
+    -> render triggered
+      -> actions object recreated
+        -> effect dependency changed
+          -> effect runs again
+            -> (repeat indefinitely)
+```
+
+This is a **referential identity problem**, not an algorithmic one. The logic was correct. The object equality was not. React's `useEffect` compares dependencies by reference, not by value, which means a freshly-constructed object with identical contents is still a new dependency. That is a perfectly reasonable decision that has surprised approximately every React developer at least once.
+
+That is not a mysterious AI failure. It is a classic **abstraction leak**. It’s the gap where the model’s grasp of high-level logic hits the low-level friction of React’s reference-equality model — a detail that is often invisible in a static diff but catastrophic at runtime.
+
+```text
+  MODEL ZONE               SEAM                HUMAN ZONE
+  (Static Code)      (Execution Truth)       (Runtime Intent)
+  
+  Logic is sound  ──>  Identity Drifts  ──>  Must Stabilize
+  Diff looks clean ──>  Infinite Loop    ──>  Must Intervene
+```
+
+These gaps are where the judgment call lives: the boundary between what a model can handle reliably and what requires an engineer who understands the runtime's actual model of identity and stability.
+
+`debugging-and-error-recovery` was useful here because it enforced a proper diagnosis before a fix:
+
+- **root-cause discipline** — what is the exact cycle? map it before touching anything
+- **dependency tracing** — which dependency changed? was it supposed to?
+- **evidence-first** — no "seems fixed"; confirm the loop is actually gone
+
+What it prevents:
+
+- random `useCallback` therapy (wrapping things until the symptoms go away)
+- cargo-culted `useMemo` (adding memoization until the console quiets down)
+- confusing a suppressed symptom for an explanation
+
+The fix was small:
+
+```text
+before: effect depends on actions object
+after:  effect depends on actions.setData
+        (the stable primitive, not the container)
+```
+
+Expose the stable `setData` setter directly from the game hook. Depend on that stable reference instead of the larger, unstable `actions` object. The loop stops because the dependency no longer changes on every render.
+
+I do not think every bug needs a grand debugging ceremony. But many AI-assisted workflows are too willing to accept "seems fixed" exactly when the bug has become harder to reason about. "Seems fixed" is not a post-mortem. It is a rain check, a short‑term green light.
+
+> **What to take from this:** React's dependency array compares by reference. If your effect dependency is an object rebuilt on every render, your effect runs on every render. The fix is almost always: depend on the stable primitive, not the unstable container.
+
+---
+
+## The UI Was Truthful, But Still A Bit Rude
+
+> "Good state management can still produce a clumsy reveal. Software correctness has never automatically produced charm."
+
+Once the data flow was honest, the loading grid snapped abruptly into the loaded grid. A hard tree swap: 42 cells of spinners, then 42 cells of data. Correct. Jarring.
+
+That was not a correctness issue anymore. It was a **taste issue**. Which I genuinely enjoy, because *once a system stops lying, it is finally allowed to become graceful*. You cannot polish a UI that is covering for a dishonest data layer. The motion will always look like a cover-up, because it is.
+
+The architectural choice was a **shared cell shell**:
+
+```text
+[ same 42-cell grid, always rendered ]
+  loading: cells show placeholder glyphs
+  loaded:  cells show contribution glyphs
+  swap:    contents crossfade in-place
+  result:  board keeps spatial integrity
+```
+
+No tree destruction and reconstruction. No layout shift. The spatial relationship between cells — the thing that gives the heatmap its visual grammar — stays stable. Only the *content* changes, and it crossfades instead of snapping.
+
+`frontend-ui-engineering` was the skill that kept this scoped:
+
+- **visual consistency** — the loading state fits the existing design system, not a generic spinner
+- **state-transition feel** — the transition communicates "updating" rather than "broken"
+- **scope discipline** — do not refactor visual code while fixing data code
+
+What it prevents:
+
+- generic spinners that ignore the established visual language
+- over-engineering the animation to compensate for a still-broken data model
+- fixing data problems with motion tricks (this one is very tempting and always wrong)
+
+The better animation was *enabled* by the architecture change. Because month loading became explicit state, the UI could express that uncertainty honestly:
+
+```text
+better data contract
+  -> explicit loading state
+    -> loading = renderable state
+      -> transition = honest expression
+        -> animation = visible proof
+```
+
+The animation was not frosting. It was the visible proof that the state model had stopped cheating. That distinction matters: motion that *covers* for bad state is tech debt you can see. Motion that *expresses* honest state is design.
+
+> **What to take from this:** You cannot polish a UI that is covering for a bad data model. The architecture change has to come first. Once it does, the right animation reveals itself.
+
+---
+
+## The Browser Still Found The Other Lies
+
+> "The browser is where a tidy diff goes to confess."
+
+After the heatmap was behaving, runtime checks still exposed unrelated console noise on `/work`:
+
+```text
+<path> d="undefined"
+MNaN NaN ...
+opacity from undefined to 1
+```
+
+The browser did not care about my carefully scoped PR. It surfaced issues in components that predated the heatmap work entirely. This is one of the browser's more useful personality traits: it has no respect for your mental model of what is in scope.
+
+Two things worth naming explicitly.
+
+**One: not everything landed in one context window, and that is correct.** A single all-knowing agent pass handling architecture, implementation, runtime debugging, visual polish, and documentation in one continuous context sounds efficient right up until it isn't. The context grows, the attention thins, and you get plausible-sounding output that quietly misses things at the edges.
+
+```text
+one giant context window:
+  architecture    OK
+  implementation  OK
+  debugging       starting to drift
+  visual polish   "looks fine" (not checked)
+  documentation   hallucinated details
+
+multiple focused passes:
+  each phase      near its reliable zone
+  handoffs        explicit, reviewable
+  misses          visible, not buried
+```
+
+**Two: parallelism here was a feature, not a compromise.** Some work was genuinely independent:
+
+- browser/runtime noise unblocked separately
+- heatmap data flow verified separately
+- UI polish refined separately
+
+When subtasks have clear scope and the critical path is understood, parallel context windows are not a loss of coordination. They are good engineering decomposition applied at the agent level.
+
+`browser-testing-with-devtools` mattered, because it enforced a simple but powerful anti-drift discipline:
+
+1. reproduce in a real browser (not imagination)
+2. inspect console and network (evidence, not assumption)
+3. fix only what evidence points to (no side-quest refactors)
+4. re-verify live ("seems fixed" does not count)
+
+The only bad version is when the parallel reality goes undocumented and you later pretend the whole thing was one smooth orchestral sweep instead of three context windows and one raccoon trying to start a projector.
+
+> **What to take from this:** Parallel agent passes are fine when subtasks are genuinely independent. The coordination cost is in the handoffs, not the parallelism itself. Document the handoffs.
+
+---
+
+## Why Josh's "Arguing With A Ghost" Point Matters
+
+> "The line between useful assistance and spectral debate is often just whether you opened the files."
+
+[Josh W. Comeau](https://www.joshwcomeau.com/email/wham-launch-005-elephant-2-p/) recently wrote a line that stuck: people can reach a point where they are no longer coding, they are *arguing with a ghost*.
+
+The ghost is the model's prior outputs. Once a context gets long and loose, the model starts defending earlier decisions it no longer has full visibility into. You are not collaborating anymore. You are negotiating with a fading memory of the project.
+
+The failure mode looks like this:
+
+```text
+loose workflow:
+  vague request
+    -> model interprets freely
+      -> output looks plausible
+        -> follow-up refines
+          -> model defends prior choices
+            -> context grows
+              -> quality drifts
+                -> "just one more prompt"
+                  -> still drifting
+```
+
+Josh's point is not anti-AI. It is much more practical: the biggest AI success stories come from engineers with strong technical judgment who use the tool to amplify what they already understand. The tool does not replace the judgment. It multiplies it — in both directions.
+
+Matt makes the same point differently: **bad code is more expensive than ever** because AI can produce it faster, at scale, across more files, with more confidence. Good fundamentals matter more now, not less. The model's fluency is not a substitute for your understanding of the system.
+
+This heatmap feature is a small proof of that thesis:
+
+```text
+good questioning  -> better problem definition
+good interfaces   -> reduced ambiguity
+good slicing      -> reduced blast radius
+good verification -> reduced fantasy
+```
+
+The model contributed meaningfully to each of those. It was not the operating system running the judgments. It was a capable assistant who needed the right framing to do capable work.
+
+---
+
+## The Mental Model I Am Keeping
+
+> "A skill is not a trick. It is a pressure tool for a specific class of self-deception."
+
+This is the practical model I am walking away with.
+
+### When to reach for a skill
+
+Use a skill when the next failure mode is already recognizable. The skill is not a magic ingredient. It is a forcing function that makes a known class of mistake harder to make undetected.
+
+```text
+bad framing?         -> idea-refine
+hidden decisions?    -> grill-me
+too much at once?    -> planning-and-task-breakdown
+boundary ambiguity?  -> api-and-interface-design
+multi-file change?   -> incremental-implementation
+weird runtime?       -> debugging-and-error-recovery
+UI feels off?        -> frontend-ui-engineering
+need browser truth?  -> browser-testing-with-devtools
+```
+
+### What a skill actually outputs
+
+Not code by default. A good skill output is usually one of:
+
+```text
+- a sharper question
+- a decision list
+- a stated contract
+- a system structure outline
+- a slice order
+- a verification checklist
+- a documented rationale
+```
+
+Think of skills as **structured delays** — they slow down the impulse to generate code just long enough to surface the thing that was about to go wrong. The code comes later, from a better position.
+
+### What skills do not absolve
+
+Skills do not remove the need for judgment at seams. No skill decides:
+
+- which component owns which state
+- where the public API boundary sits
+- whether the browser is actually telling the truth
+- when to stop parallelizing agent passes
+- when the model has reached the edge of its reliable zone and a human should look at the actual code
+
+Sometimes the right move is to improve the prompt. Sometimes it is to close the chat and open the file.
+
+That distinction — knowing which kind of moment you are in — is where engineering reliability actually lives. And, honestly, it is the skill that no QRSPI acronym will ever fully encode.
+
+---
+
+## So What Did The Heatmap Actually Teach Me?
+
+> "The feature was about monthly GitHub activity. The lesson was about where trust comes from."
+
+I ended up with the things I aimed for:
+
+- month-on-demand GitHub activity fetches
+- session-local month cache with IndexedDB fallback
+- smoother crossfade loading transitions
+- cleaner runtime behaviour
+- a documented API contract and ADR
+
+But the better output was that the workflow got sharper.
+
+If I had to compress the experiment into one opinionated claim:
+
+```text
+QRSPI > RPI
+for anything non-trivial.
+```
+
+Not because RPI was bad — it was already a meaningful step up from vibes. The extra structure earns its keep:
+
+```text
+Q: questions before research
+   (prevents vague mandates)
+S: structure before planning
+   (reveals sequencing errors early)
+I: isolated vertical slices
+   (keeps blast radius small)
+V: browser verification at seams
+   (prevents "seems fixed" shipping)
+```
+
+Dexter, Matt, and Josh are each circling the same terrain from different angles:
+
+- do not confuse output with understanding
+- do not outsource the design concept
+- do not outrun feedback
+- do not give the tool credit for the judgment it borrowed from you
+
+I like that position because it is neither anti-AI nor worshipful. It is just adult. The model is a very capable assistant. I am the engineer. Those are different jobs, and it is good when they stay that way.
+
+And, embarrassingly enough, "just adult" was what I had been postponing.
+
+The heatmap was the excuse. The workflow was the point.

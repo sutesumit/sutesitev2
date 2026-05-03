@@ -48,3 +48,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# debug logs
+.next-*.log
+
+# local tool artifacts
+.kilo/
+.kilocode/
+.opencode/
+.gemini/skills/

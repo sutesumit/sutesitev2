@@ -16,6 +16,7 @@ import MarathiClock from '@/components/bloq/MarathiClockWrapper';
 import SeedingPlantASCII from '@/components/bloq/SeedingPlantASCIIWrapper';
 import { SeedingPlantWrapped } from '@/components/bloq/SeedingPlantWrappedWrapper';
 import SeedingPlant from "@/components/specific/SeedingPlant";
+import { ContributionHeatmap } from '@/games/contribution-heatmap';
 import { SITE_URL } from '@/config/metadata';
 import { buildDetailMetadata } from '@/lib/metadata/builders';
 import { buildBloqPostSchema, renderJsonLd } from '@/lib/metadata/schema';
@@ -75,7 +76,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <TrackView type="bloq" identifier={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
       <div className="px-4">
-        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, LatestUpdates, ClapsCounter, ViewCounter: BloqViewCounter, Link, MdOutlineRssFeed, FaSitemap, FaTelegram, CopyLink }} />
+        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, LatestUpdates, ClapsCounter, ViewCounter: BloqViewCounter, Link, MdOutlineRssFeed, FaSitemap, FaTelegram, CopyLink, ContributionHeatmap }} />
       </div>
       <div className="px-4">
         <RelatedPosts posts={relatedPosts} />

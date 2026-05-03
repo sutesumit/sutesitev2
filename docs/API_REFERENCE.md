@@ -716,14 +716,38 @@ POST /api/visit
 #### GitHub Activity
 
 ```
-GET /api/github-activity
+GET /api/github-activity?year=YYYY&month=MM
 ```
 
 **Auth:** None
 
 **Caching:** `revalidate: 3600` (1 hour)
 
-**Response:** GitHub contribution data structure
+**Query Parameters:**
+
+| Name | Type | Required | Notes |
+|------|------|----------|-------|
+| `year` | number | Yes | Four-digit calendar year |
+| `month` | number | Yes | Calendar month `1-12` |
+
+**Response:** `200 OK`
+
+```json
+{
+  "year": 2026,
+  "month": 5,
+  "monthKey": "2026-05",
+  "data": {
+    "2026-05-01": 2,
+    "2026-05-02": 0
+  }
+}
+```
+
+**Notes:**
+- This endpoint returns one bounded contribution month at a time.
+- `month` is calendar-based (`1-12`), not JavaScript `Date` month indexing.
+- `data` keys are ISO calendar dates for the requested month.
 
 **Errors:**
 ```json
@@ -732,6 +756,10 @@ GET /api/github-activity
   "details": "Error message"
 }
 ```
+
+Common error cases:
+- `400` for missing or invalid `year` / `month`
+- `500` for upstream GitHub fetch failures
 
 ---
 

@@ -4,15 +4,14 @@ import { motion as m, AnimatePresence } from 'framer-motion'
 import NavLink from './NavLink'
 import { NAV_TABS } from '@/data/nav'
 
-// Spring physics shared by all three lines - softened for smoother feel
-const springTransition = { type: "spring" as const, stiffness: 260, damping: 25 }
+const springTransition = { type: 'spring' as const, stiffness: 260, damping: 25 }
 
 const menuVariants = {
   closed: {
     opacity: 0,
     y: -10,
     transition: {
-      type: "spring",
+      type: 'spring',
       stiffness: 400,
       damping: 30,
     },
@@ -21,7 +20,7 @@ const menuVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      type: "spring",
+      type: 'spring',
       stiffness: 400,
       damping: 30,
       staggerChildren: 0.04,
@@ -37,42 +36,50 @@ const itemVariants = {
 
 const MenuIcon = ({ isOpen }: { isOpen: boolean }) => {
   return (
-    // Rotation: SVG spins 180° when open
     <m.svg
       className="w-4 h-4"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 22 22"
       strokeLinecap="round"
-      // animate={{ rotate: isOpen ? 180 : 0 }}
+      initial={false}
+      animate={{ rotate: isOpen ? 180 : 0 }}
       transition={springTransition}
     >
-      {/* Line 1 — morphs into top-left→bottom-right diagonal, stagger: 0ms */}
       <m.path
         strokeWidth={2}
-        animate={{ d: isOpen ? "M6 6 L18 18" : "M4 6 L20 6" }}
-        transition={{ ...springTransition, delay: 0 }}
-      />
-      {/* Line 2 — slowly converges into a point at the center and fades out */}
-      <m.path
-        strokeWidth={2}
+        d="M4 6 L20 6"
+        initial={false}
         animate={{
-          d: isOpen ? "M12 12 L12 12" : "M4 12 L20 12",
-          // The line physically shrinks into the center while fading
-          opacity: isOpen ? 0 : 1,
+          rotate: isOpen ? 45 : 0,
+          x: isOpen ? 2 : 0,
+          y: isOpen ? 6 : 0,
         }}
-        transition={{
-          // Slowly morph the path shape
-          d: { type: "spring", stiffness: 200, damping: 28, delay: 0.04 },
-          // Fade out only right as it gets extremely small
-          opacity: { duration: 0.2, delay: isOpen ? 0.1 : 0 },
-        }}
+        style={{ originX: '50%', originY: '50%' }}
+        transition={springTransition}
       />
-      {/* Line 3 — morphs into bottom-left→top-right diagonal, stagger: 80ms */}
       <m.path
         strokeWidth={2}
-        animate={{ d: isOpen ? "M6 18 L18 6" : "M4 18 L20 18" }}
-        transition={{ ...springTransition, delay: 0.08 }}
+        d="M4 12 L20 12"
+        initial={false}
+        animate={{
+          opacity: isOpen ? 0 : 1,
+          scaleX: isOpen ? 0 : 1,
+        }}
+        style={{ originX: '50%', originY: '50%' }}
+        transition={springTransition}
+      />
+      <m.path
+        strokeWidth={2}
+        d="M4 18 L20 18"
+        initial={false}
+        animate={{
+          rotate: isOpen ? -45 : 0,
+          x: isOpen ? 2 : 0,
+          y: isOpen ? -6 : 0,
+        }}
+        style={{ originX: '50%', originY: '50%' }}
+        transition={springTransition}
       />
     </m.svg>
   )
@@ -87,13 +94,12 @@ const MobileMenu = () => {
 
   return (
     <>
-      {/* Scale pulse: brief press-down feedback on tap */}
       <m.button
         className="opacity-50 hover:opacity-100"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle menu"
         whileTap={{ scale: 0.82 }}
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
       >
         <MenuIcon isOpen={isOpen} />
       </m.button>
