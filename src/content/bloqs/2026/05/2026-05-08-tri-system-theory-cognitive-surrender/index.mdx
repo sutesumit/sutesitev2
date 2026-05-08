@@ -1,0 +1,639 @@
+---
+title: "Fast, Slow, and Slightly Outsourced"
+publishedAt: "2026-05-08"
+updatedAt: "2026-05-08"
+summary: "An exploration of Tri-System Theory and the subtle line between 'cognitive offloading' and 'cognitive surrender'; with some personal guardrails I’m building to stop my own engineering brain from atrophying."
+slug: "tri-system-theory-cognitive-surrender"
+tags:
+  - ai
+  - reflections
+  - architecture
+  - development
+  - debugging
+authors:
+  - Sumit Sute
+category: "Reflections"
+draft: false
+featured: true
+status: "published"
+---
+
+## The Feeling I Could Not Quite Name
+
+> "The dangerous moment is not when the model is wrong. It is when I am too tired to notice if I own the mental model."
+
+I have had this feeling more and more often lately, and I suspect you have too if you have been shipping code with an LLM sitting next to your coffee like a fast-talking consultant who is happy to bill you in future bug reports.
+
+I ask an assistant for an implementation detail.
+It replies with something polished.
+I skim.
+I approve.
+I move on.
+
+And then, somewhere between the "nice" and the "ship it," I get that faint inner itch:
+
+> "wait, did I verify that... or did I just applaud the fluency?"
+
+That itch is the whole article.
+
+What finally gave the feeling a better vocabulary was [Addy Osmani's recent note on "cognitive surrender"](https://addyosmani.com/blog/cognitive-surrender/) and the underlying paper by Steven D. Shaw and Gideon Nave, [*Thinking-Fast, Slow, and Artificial*](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6097646). Their framing landed on me with the exact violence of a bug report that is both annoying and correct.
+
+Because this is not just a productivity story.
+
+This is a cognition story.
+
+And, annoyingly enough, it is also a workflow story. Which means it is my favorite genre of embarrassment: the kind where I cannot blame the tools without first stepping over my own footprints.
+
+---
+
+## The Old Model Was Useful, But Brain-Bound
+
+> "Fast and slow was already complicated. Then we invited autocomplete to the strategy meeting."
+
+Most of us are already familiar with the broad dual-process picture of reasoning popularized by [Daniel Kahneman's *Thinking, Fast and Slow*](https://en.wikipedia.org/wiki/Thinking,_Fast_and_Slow) and developed more formally across cognitive science by people like [Jonathan Evans and Keith Stanovich](https://journals.sagepub.com/doi/10.1177/1745691612460685), Richard West, and [Seymour Epstein](https://openlibrary.org/books/OL28586905M/Cognitive-Experiential_Self_Theory).
+
+The rough shape is still very useful:
+
+- System 1 is fast, intuitive, automatic, pattern-hungry.
+- System 2 is slower, reflective, deliberate, effortful, and frankly a bit dramatic about how much glucose it claims to need.
+
+And if you widen the lens from raw cognition to skill acquisition, the [Dreyfus model](https://medschool.cuanschutz.edu/docs/librariesprovider91/clinical-education-documents/ce-experiences-resources/ce-3---internship/dreyfus-model-of-skill-acquisition.pdf) gives this a useful progression: `novice -> advanced beginner -> competent -> proficient -> expert`. The interesting part is that the expert end of that ladder is not mystical clairvoyance or some TED-talk mist labeled "intuition." It is closer to what [Gary Klein's Recognition-Primed Decision model](https://www.gary-klein.com/rpd) describes: experience lets you recognize a situation, generate a plausible move quickly, and then switch into more explicit analysis when the situation is novel, off-nominal, or smells even slightly cursed.
+
+In software terms, I think of it like this:
+
+```text
+stimulus
+  -> "oh I know this one"      (System 1)
+  -> "hang on, do we really?"  (System 2)
+```
+
+That model explains a lot.
+
+It explains why I can smell a bad abstraction before I can explain it.
+It explains why I can also talk myself into a bad abstraction with enough words and a passing build.
+It explains why the best engineers often have both a weirdly fast instinct and a very annoying habit of checking anyway.
+
+But the dual-system model came from a world where cognition was still assumed to be mostly brain-bound. Messy, biased, occasionally glorious, but still located inside one skull at a time.
+
+That assumption is now getting mugged in broad daylight.
+
+Because the thing on my desk is no longer just a calculator, a notebook, or a search box. It is a system that can summarize, synthesize, compare alternatives, scaffold an implementation plan, draft code, critique code, explain code, and occasionally produce a wrong answer with the confidence of a startup founder describing a TAM slide.
+
+That is not just external memory.
+That is not just lookup.
+That is not just a better spellchecker.
+
+It is participating in reasoning.
+
+---
+
+## Why "System 3" Feels Right To Me
+
+> "We don't need to argue about whether it has a soul to admit it has agency. Whether it's 'conscious' or 'a world-model built on weights', it is functionally making decisions for us. And that's the part we need to guard against."
+
+The [Shaw and Nave paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6097646) proposes a neat extension: if fast and slow map the internal architecture of human judgment, then modern AI creates a third layer of cognition that operates outside the brain.
+
+That is the bit I cannot unsee now.
+
+Not because I think the model "understands" in the phenomenological sense. I do not. I am not here to argue for silicon consciousness. I am simply acknowledging that the model has transitioned from a passive tool to a functional contributor in our cognitive architecture.  In day-to-day work, it behaves like a third cognitive participant:
+
+```text
+System 1  -> intuition
+System 2  -> deliberation
+System 3  -> artificial cognition
+```
+
+Or, if I am being less academic and more honest:
+
+```text
+my hunch
+  -> my reasoning
+    -> the weirdly persuasive machine
+```
+
+What I am calling "System 3" is dangerous partly because it can mimic the *surface behavior* of expertise before the human has actually climbed that novice-to-expert ladder, which means it can hand beginners something that sounds like senior judgment without the monitoring habits that make real expertise trustworthy.
+
+The machine is not independent in practice. It is recursive and interactive. It is shaped by my prompt, my context, my laziness, my taste (read opinionated, bias. Though taste is subjective and not really a good word for it. But let's join the bandwagon to sound like I know what I am talking about), the available tools, the way the UI frames its output, and whether I am alert enough to argue back.
+
+That last part matters more than I first admitted.
+
+Because a calculator does not usually talk me out of thinking.
+An LLM absolutely can.
+
+Not by force. By convenience.
+
+And convenience is a very effective drug when the task is ambiguous and I am already mentally halfway on vacation.
+
+---
+
+## Offloading Is Not Surrender
+
+> "Using a tool is normal. Handing over judgment because the answer arrived in complete sentences is where things get expensive."
+
+This distinction is the center of gravity for the whole theory.
+
+There is a real difference between **cognitive offloading** and **cognitive surrender**.
+
+I know, I know. It sounds like one of those distinctions academics invent because normal language did not seem sufficiently annoying. But this one is actually useful.
+
+```text
+| Mode      | Handed off?      | Who owns?     |
+|-----------|------------------|---------------|
+| Cognitive | A bounded task   | Still me      |
+| Offload   |                  |               |
+|-----------|------------------|---------------|
+| Cognitive | The evaluative   | Increasingly  |
+| Surrender | burden itself    | not me        |
+```
+
+If I use GPS, I am offloading navigation arithmetic.
+If I use a calculator, I am offloading computation.
+If I use search, I am offloading retrieval.
+
+But if I paste an architecture diff, read a polished explanation, and approve it mostly because reviewing it properly feels more effortful than trusting it, that is not mere offloading anymore.
+
+That is closer to surrender.
+
+Here is the simplest version I can draw:
+
+```text
+offloading:
+  think -> ask -> compare -> decide
+
+surrender:
+  ask -> receive -> vibe -> merge
+```
+
+The embarrassing part is that the second one often feels like productivity right up until the point where the bug reports reveal the systemic fragility of the code.
+
+And I do not mean only bugs in code.
+
+I mean weaker mental models.
+I mean less ability to predict failure before runtime.
+I mean the slow formation of what I can only describe as **cognitive debt**.
+
+Technical debt means the code is harder to change later.
+Cognitive debt means I am harder to trust later.
+
+That one stings a bit more, if I am honest.
+
+---
+
+## The Short Circuit Happens Before Deliberation Wakes Up
+
+> "The AI answer often arrives before my uncertainty has had time to become thought."
+
+This, for me, is the psychologically interesting part.
+
+Under the old human-only model, a lot of reasoning looks something like this:
+
+```text
+stimulus
+  -> intuition fires
+  -> friction appears
+  -> deliberation activates
+  -> judgment updates
+```
+
+That middle bit matters:
+
+`friction appears`
+
+Friction is what wakes System 2 up.
+Conflict wakes it up.
+Uncertainty wakes it up.
+Confusion wakes it up.
+Contradiction wakes it up.
+Failure wakes it up.
+The ugly little "hmm" is the doorbell.
+
+This is also where the Dreyfus model of skill acquisition matters in a painfully practical way.
+
+Before leaning into the risks, we have to acknowledge the absolute miracle of what AI has unlocked. It has radically democratized abilities that used to be heavily gatekept by expensive degrees, exclusive networks, and years of lonely trial and error. Today, anyone can summon elegant syntax, advanced architectural insights, and flawless grammar on demand. That democratization is undeniably revolutionary. It gives a junior developer the surface-level execution velocity of a tenured senior.
+
+But execution is not expertise. The Dreyfus ladder explains why, and it provides a stark map of where you might currently sit—and what it actually takes to climb:
+
+- **The Novice** relies entirely on explicit, context-free rules because they do not yet know what to notice. If your primary use of AI is asking for exact snippets to copy-paste without understanding them, you are here.
+- **The Advanced Beginner** starts recognizing situational cues but struggles to prioritize them. If you can confidently tweak an existing component but freeze when asked to architect a new system from scratch, you are here.
+- **The Competent Practitioner** consciously formulates plans and grinds through the terrain stepwise. You are here when you feel the heavy, deliberate burden of decision-making and are actively sweating through the trade-offs of different abstractions.
+- **The Proficient to Expert Practitioner** perceives situations holistically. They recognize the structural pattern first, arrive at an intuitive solution almost instantly, and only invoke heavy analytical reasoning when an anomaly triggers a faint, internal alarm.
+
+This cognitive reality—that expertise relies on holistic situational perception rather than abstract rule-following—is exactly why AI "plan modes" and massive generated specifications often feel so exhausting to review. As [Matt Pocock recently observed](https://x.com/mattpocockuk/status/2052437310302462173), replacing plans with low-fidelity prototypes yields vastly better outputs than "walls of spec." The Dreyfus model explains *why* this is true: a prototype provides a concrete, tangible situation that instantly engages an expert's rapid, pattern-matching intuition. A text-heavy spec strips that structural context away, forcing the expert out of their fast, intuitive flow and into heavy analytical reasoning just to parse the document, bypassing the very "internal alarms" that make their judgment valuable.
+
+Climbing this ladder is not about acquiring more syntax; it is about acquiring better friction. You only move from Competence to Expertise by repeatedly making and fixing your own bad decisions until you internalize their shape. Which means the very democratization that makes AI so undeniably revolutionary is also its hidden trap. It suppresses that "something feels off" moment—handing you the polished artifact of expertise before your brain has developed the calibrated alarm system necessary to detect when the machine is confidently hallucinating.
+
+Now watch what AI often does to that sequence:
+
+```text
+       INTERNAL                 EXTERNAL
+       (In Vivo)               (In Silico)
+
+              ┌────────────┐
+              │  STIMULUS  │
+              └─────┬──────┘
+         ┌──────────┴──────────┐
+         │                     │ *Auto-pilot
+   ┌─────▼─────┐  surrender ┌──▼────────┐
+   │ SYSTEM 1  │──────────▶│ SYSTEM 3  │
+   │  (Fast)   │◀── updates│  (AI)     │
+   └─┬──┬──────┘   priors   └─┬──┬──┬───┘
+     │  │ Uncertainty         │  │  │
+     │  │ /conflict           │  │  │
+     │ ┌▼──────────┐          │  │  │
+     │ │ SYSTEM 2  │── offload──▶│  │
+     │ │  (Slow)   │◀── refine ──┤  │
+     │ └─┬──┬──────┘          │  │  │
+     │   │  │                 │  │  │
+     │   │  │         Direct Output │
+     ▼   ▼  ▼                       ▼
+   ┌────────────────────────────────────┐
+   │              RESPONSE              │
+   └────────────────────────────────────┘
+```
+
+That is why I like the term **premature closure** here.
+
+In the surrender path, System 1 delegates before System 2 has properly woken up. In the offloading path, System 2 is still in the chair, still owns the judgment, and just uses System 3 as scaffolding instead of replacement. Same tool. Very different custody arrangement.
+
+The answer arrives before the question has fully ripened inside me.
+The polished draft arrives before I have had to articulate the first rough draft.
+The architecture plan arrives before the pressure has forced me to expose my hidden assumptions.
+
+And because the answer is coherent, compressed, and tonally confident, it creates the feeling that the thinking has already happened.
+
+Somewhere.
+
+By someone.
+
+Possibly me, spiritually.
+
+Which is terrific news for throughput and less terrific news for retaining an actual engineering brain.
+
+---
+
+## Why Modern AI Is So Good At Inviting Surrender
+
+> "The danger is not only that the machine predicts text. It is that it performs deliberation convincingly enough for tired humans to stop performing their own."
+
+This is where the recent history matters.
+
+This was not one leap. It was a stack of disruptions, and each one lowered a different kind of friction.
+
+In [June 2021, GitHub Copilot](https://github.blog/news-insights/product-news/introducing-github-copilot-ai-pair-programmer/) normalized the idea that AI could sit inside the act of writing code itself rather than merely answer questions in a separate window. It was autocomplete with delusions of grandeur, yes, but it also quietly reset developer expectations around what "pair programming" with a machine might feel like.
+
+Then [InstructGPT](https://arxiv.org/abs/2203.02155) and [Chain-of-Thought prompting](https://arxiv.org/abs/2201.11903) made 2022 feel different from the plain completion era. Outputs no longer just looked like likely continuations. They started looking like visible reasoning. The model was not merely finishing my sentence anymore; it was beginning to perform a thought process, which is psychologically a much bigger deal than people admit when they are busy calling everything "just UX."
+
+By 2023 and 2024 the shift moved deeper into the editor. Tools like [Cursor Tab](https://cursor.com/product/tab) and Cursor's later [Tab model updates](https://cursor.com/blog/tab-update) pushed beyond token completion toward next-action prediction, codebase-aware edits, and the strange but increasingly normal experience of the editor seeming to anticipate not only *what* I wanted to type, but *where* I meant to go next.
+
+Then 2025 made the leap from "AI in my editor" to "AI in my workflow." [Claude Code launched on February 24, 2025](https://www.anthropic.com/news/claude-3-7-sonnet?__from__=talkingdev), and its novelty was not that it chatted well, but that it lived in the terminal and could search, edit, run commands, and act closer to the repo rather than hover beside it as a motivational speaker with syntax highlighting. Anthropic's own [Claude Code overview](https://docs.anthropic.com/en/docs/claude-code/overview) is useful here because it shows the real shift: the model is no longer merely adjacent to the work. It is inside the toolchain.
+
+And from late 2025 into 2026, the delegation boundary widened again. [Cursor Background Agents](https://docs.cursor.com/en/background-agents) made "go do this on a branch and report back" feel normal. [opencode](https://thdxr.dev.opencode.ai/docs) showed the countercurrent toward terminal-native, model-agnostic, open alternatives instead of one giant blessed IDE monoculture. Add [Tree of Thoughts](https://arxiv.org/abs/2305.10601), [LangChain](https://www.langchain.com/langchain), and eventually [Model Context Protocol tooling](https://modelcontextprotocol.info/docs/) into the mix, and the result is a tool ecosystem where "suggest here" became "branch, edit, run, review, parallelize."
+
+If I squash that history into one crude line, it looks like this:
+
+```text
+completion
+  -> dialogue
+    -> visible reasoning
+      -> tool use
+        -> workflows
+          -> agents
+```
+
+That stack changes user psychology.
+
+Each generation lowered more friction and widened the delegation boundary, which is why cognitive surrender now feels ergonomic rather than dramatic.
+
+The model no longer feels like a smart autocomplete toy.
+It feels like a colleague with impossible stamina and suspiciously excellent grammar.
+
+And once something feels like a colleague, three things happen very quickly:
+
+1. I grant it more authority.
+2. I get lazier about reconstructing its path.
+3. I start supervising outputs instead of originating judgments.
+
+That shift is not always bad. Some work should be supervised rather than manually typed.
+
+But it is not neutral.
+
+Because "I am now the reviewer" sounds mature until I realize my reviewing muscles are being fed mostly by the machine's own persuasive formatting.
+
+If the review loop is weak, I have not become a reviewer.
+I have become a ceremonial approver. A kind of mildly expensive rubber stamp with coffee preferences.
+
+---
+
+## Workflow Debates Are Secretly Cognitive Debates
+
+> "Every argument about plan modes, autonomous agents, and thin slices is also an argument about where human cognition stays active."
+
+This is the part I keep circling back to in my own recent bloqs, especially [My AI is Smarter Than Me](/bloq/how-to-learn-from-ai-not-just-delegate), [The Workflow I Kept Postponing Was the Point](/bloq/2026-04-23-the-skills-we-should-have-built-first), and [Where Trust Comes From: Engineering with Agentic Skills](/bloq/paginating-github-heatmap-with-agent-skills).
+
+Underneath all the "what is the right workflow?" debates, the real question is often much simpler:
+
+> how much real thinking am I still doing inside this loop?
+
+Even the conference circuit has started to reflect that tension. [AI Engineer Summit 2025](https://www.ai.engineer/summit/2025), held February 19-22, 2025 at The Times Center in New York, explicitly framed itself around "Agents at Work," and its [schedule](https://www.ai.engineer/summit/2025/schedule) leaned hard into orchestration, scale, and industrialized autonomy with talks like `Building Self-Coding Agents` and `Sierra's Agent Development Life Cycle`. By contrast, [AI Engineer Europe 2026](https://www.ai.engineer/europe/schedule), held April 8-10, 2026 in London, suggests a visible correction in emphasis: `Building pi in a World of Slop`, `The Friction Is Your Judgment`, `Agents need more than a chat`, and `Mind the Gap (In your Agent Observability)` all sound less like "let a thousand agent swarms bloom" and more like the field awkwardly rediscovering trust, observability, and the need to stay closer to code.
+
+This is why [Mario Zechner's "Thoughts on slowing the fuck down"](https://mariozechner.at/posts/2026-03-25-thoughts-on-slowing-the-fuck-down/) and his recent [conversation with Armin Ronacher on The Pragmatic Engineer](https://podcasts.apple.com/us/podcast/building-pi-and-what-makes-self-modifying-software-so/id1769051199?i=1000764502093) hit such a nerve. On the surface, their dismissal of "plan modes" can sound like expert intuition bordering on personal preference—the scar tissue of senior engineers who simply love the "old ways." If you value raw velocity, their skepticism feels like it might be ignoring the massive throughput gains AI offers.
+
+But when you dig into *why* it feels wrong, the vibes reveal a very specific, structural engineering critique. 
+
+The problem is not just that plans are slow; it is that they are **cognitively mismatched** for how we actually build systems. [Rohit](https://blog.kernelanxiety.dev/) responded to my initial thoughts with, and I am paraphrasing his articulation of this discomfort, which I have been chewing on, moves the argument from "intuition" to "reasoning":
+
+Reviewing a raw markdown plan is inherently more painful than seeing a prototype or related code chunks. It demands a level of abstract simulation that we simply aren't optimized for. We lose "taste" in the abstraction. Even the best "interview me back" loop misses the messy, emergent insights that only surface when you are actually "interviewing" the implementation.
+
+The feedback loop, however fast, is fundamentally broken in plan mode. You are reviewing a spec without knowing how it will actually *feel* when implemented. By the time you see the result, the "flow state" is long dead. You are left reviewing a monolithic block of code that does a dozen things at once, making it nearly impossible to spot the silent assumptions that the model made on your behalf—assumptions that compound into architecture debt because the process lacked the friction to interrupt them early.
+
+```text
+| Workflow friction     | Cognitive reading     |
+|-----------------------|-----------------------|
+| Reviewing giant plans | Deliberation cost     |
+| is tiring             | gets too high         |
+|-----------------------|-----------------------|
+| Context is never      | Thinking is emergent, |
+| fully captured        | not fully             |
+| upfront               | pre-declarable        |
+|-----------------------|-----------------------|
+| Long loops feel bad   | Intuition cannot      |
+|                       | recalibrate fast      |
+|                       | enough                |
+|-----------------------|-----------------------|
+| Big feature reviews   | Delegation boundary   |
+| are painful           | became too wide       |
+|-----------------------|-----------------------|
+| Hidden assumptions    | Friction failed to    |
+| compound              | interrupt them early  |
+```
+
+That table is secretly about cognition design. Because when the loop gets too abstract, too monolithic, or too delayed, the human's role quietly degrades from participant to approver. And approval without enough lived contact with implementation is one of the cleanest on-ramps to surrender.
+
+---
+
+## Why Incrementalism Feels More Honest Than Giant Plan Theater
+
+> "Manual implementation is a tax on velocity, but it is also a payment for situational awareness. You cannot effectively review a system you haven’t felt."
+
+I am increasingly convinced that the love experienced engineers have for thin vertical slices is not just a taste issue.
+
+It is a cognitive safety mechanism.
+
+This is also where Klein's RPD frame helps: experts rarely freeze reality into giant option matrices; they recognize, mentally simulate, and adjust under live constraints.
+
+```text
+small slice
+  -> build
+  -> observe
+  -> adjust
+  -> continue
+
+big plan
+  -> approve
+  -> wait
+  -> receive
+  -> hope
+```
+
+The small-slice loop preserves contact between:
+
+- intuition
+- implementation
+- feedback
+- correction
+- learning
+
+That is why [Anthropic's "Building effective agents"](https://www.anthropic.com/engineering/building-effective-agents) lands with me too. The useful message there is not anti-agent at all. It is anti-unnecessary-complexity. Simple, composable patterns with clear verification points beat giant clever agent towers surprisingly often, which is honestly rude to all of us who wanted cathedral architecture to be the answer.
+
+This is also why [Armin Ronacher's "Content for Content's Sake"](https://lucumr.pocoo.org/2026/5/4/content-for-contents-sake/) stuck with me even though it is not a cognition paper. The broader discomfort is related: industrialized output production can become self-justifying. Once production itself becomes the metric, quality drifts quietly until everyone is left applauding volume.
+
+You can see the same disease in code.
+
+In the era of the token billionaire, [Goodhart’s Law](/byte/1a) is the only one that never fails. If the agentic workflow rewards "tokens shipped" more than "context internalized," understanding ceases to be the goal and becomes the friction. We shouldn’t be shocked when the system produces confident sludge at industrial scale; we’ve simply built the accelerant and then given it a dashboard.
+
+---
+
+## The Real Trick Is To Think Before Asking
+
+> "Do not outsource the first draft of your judgment. Even if it is ugly. Especially if it is ugly."
+
+The most practical guardrail I have found came, ironically, from the same [Addy Osmani post on cognitive surrender](https://addyosmani.com/blog/cognitive-surrender/): before asking the model, sketch the answer yourself.
+
+Not perfectly.
+Not comprehensively.
+Not like you are trying to beat the model in a fistfight.
+
+Just enough to create a collision surface.
+
+That is such a [small habit](/byte/1f), but it changes the quality of my engagement dramatically.
+
+It also maps more cleanly to expertise research than I first realized. [K. Anders Ericsson's work on expert performance and deliberate practice](https://pmc.ncbi.nlm.nih.gov/articles/PMC6824411/) does not reduce expertise to speed or vibes; it keeps coming back to monitoring, feedback, correction, and the ability to notice when performance is drifting. In engineering education, the cousin of that habit often shows up as [Fermi problems and order-of-magnitude estimation](https://phys.libretexts.org/Bookshelves/Classical_Mechanics/Classical_Mechanics_%28Dourmashkin%29/02%3A_Units_Dimensional_Analysis_Problem_Solving_and_Estimation/2.04%3A_Order_of_Magnitude_Estimates_-_Fermi_Problems): do the back-of-the-envelope check first, not because precision is overrated, but because a smell test is often the thing that prevents a polished answer from smuggling nonsense past your tired brain.
+
+```text
+without pre-thought:
+  AI answer -> passive consumption
+
+with pre-thought:
+  my sketch + AI answer
+    -> comparison
+    -> disagreement
+    -> evaluation
+```
+
+The sketch can be tiny:
+
+- the likely shape of the fix
+- the invariants I think matter
+- the failure mode I suspect
+- the one sentence summary I expect to be true
+
+That is enough.
+
+Because once I have even a rough internal answer, the model's answer has to land *against* something.
+It can no longer just wash over me like warm syntax.
+
+And yes, this is slightly slower.
+No, I do not enjoy hearing that either.
+I too wanted enlightenment without any of the manual labor.
+
+But this is one of those cases where the slowdown is buying me the exact thing I thought the acceleration would give me for free: retained understanding.
+
+---
+
+## Fail Loudly, Or The Brain Checks Out
+
+> "A system that fails politely is often training me to become a worse judge."
+
+Another lesson buried in all of this is that **failure salience** matters.
+
+If the agent produces a polished answer and the system does not make uncertainty visible, I am more likely to defer.
+If the workflow forces item-level verification, visible mismatches, and real runtime evidence, I am more likely to wake up and actually inspect.
+
+That is why I keep trusting workflows that make things fail loudly:
+
+- browser checks
+- integration tests
+- diffs against expected output
+- explicit assumptions lists
+- "what remains uncertain?" sections
+- contracts written in English before code
+
+Here is the boring little engineering loop I trust more now:
+
+```text
+ask
+  -> answer
+    -> verify
+      -> break
+        -> inspect
+          -> decide
+```
+
+The "break" stage is doing quiet moral work there.
+
+Because if everything is always frictionless, the human mind adapts by doing less.
+That is not a moral weakness. It is just how energy-conserving cognition works.
+
+Convenience removes resistance.
+Resistance often triggers reflection.
+Remove enough reflection and the review role becomes decorative.
+
+That is why I think "human-in-the-loop" is sometimes a hilariously dishonest phrase. A human can be in the loop in the same way an elevator’s 'Close Door' button is on the panel. Tactile. Prominent. Not actually wired to the controller.
+
+---
+
+## My Current Rules For Not Becoming Decorative
+
+> "I am not interested in Luddite rejection; I am interested in cognitive sovereignty and ensuring System 3 serves as an extension of judgment, not a proxy for it"
+
+These are the guardrails I am actually trying to practice now, not the ones I would like to pretend I have already mastered like some deeply enlightened monk of the terminal.
+
+### 1. Sketch first
+
+Before I ask the model for a plan, fix, or explanation, I write the rough shape of my own answer first.
+
+Even three lines is enough.
+
+### 2. Delegate bounded tasks
+
+I am much safer when I delegate:
+
+- a refactor slice
+- a specific explanation
+- a contract comparison
+- a bug hypothesis
+
+and much less safe when I delegate:
+
+- "figure out the whole feature"
+- "come up with the architecture"
+- "review this giant thing for me"
+
+Those broader prompts are not forbidden. They just need much stronger human intervention points.
+
+### 3. Prefer reversible loops
+
+Thin vertical slices are not just an implementation preference. They preserve cognition by keeping feedback close.
+
+### 4. Write the contract in English
+
+If I cannot explain the interface, invariant, or decision boundary in plain language, I am not ready to let the machine optimize it.
+
+### 5. Make uncertainty visible
+
+I want the agent to tell me:
+
+- what it inferred
+- what it could not verify
+- where the edge cases are
+- what would falsify the answer
+
+That changes the posture from oracle to collaborator very quickly.
+
+### 6. Keep taste human
+
+Generation is getting cheaper.
+Judgment is not.
+
+This is the point where I need to be careful with the word **taste**, because the internet has started using it the way startups use "craft" right before they make the button impossible to find. Dax Raad calls it out as [no more than opinions in fancy clothes](https://x.com/thdxr/status/2052410265589694884). And, honestly, I think he is right to be suspicious. The problem is not that taste is fake. The problem is that we’ve turned taste into a social cudgel. We treat it like an 'unlocked' skill that puts us above the 'vibers' and 'novices,' when in reality, taste is just experience that has been compressed into intuition. It’s not a badge of superiority; it’s a survival mechanism for navigating the sea of AI-generated options without drowning in mediocrity dressed up in the guise of complexity.
+
+What I actually mean here is something closer to calibrated judgment, and the [Dreyfus model](https://medschool.cuanschutz.edu/docs/librariesprovider91/clinical-education-documents/ce-experiences-resources/ce-3---internship/dreyfus-model-of-skill-acquisition.pdf) gives me a better vocabulary for it. Novices follow context-free rules. Advanced beginners start seeing recurring cues but cannot weight them consistently. Competent practitioners plan explicitly and reason through tradeoffs. Proficient practitioners notice salience faster. Experts can reject bad options quickly because the structure of the problem is already legible to them. If I ever mention "master" at all, I only mean it informally: the rare person who can reshape the frame of the problem itself rather than merely solve within it.
+
+So no, I do not mean "taste" as aesthetic ego, personal brand, or artisanal confidence with a serif font. I mean the harder thing: noticing constraints, second-order costs, audience fit, maintenance burden, and the moment when a very polished local optimization is still strategically wrong.
+
+That is the grown-up answer, unfortunately. I was also hoping the grown-up answer would be "simply summon five agents and ascend."
+
+No such luck.
+
+---
+
+## The Bigger Shift Is Not Productivity. It Is Cognitive Reorganization.
+
+> "We are not merely using smarter tools. We are reorganizing where thought happens."
+
+That is the line I keep coming back to.
+
+The interesting shift is not "AI helps me code."
+The interesting shift is that portions of reasoning are now happening through recursive interaction with a synthetic system that can participate in analysis, synthesis, summarization, evaluation, and planning.
+
+That does not make the model a person.
+It does make the old tool metaphors feel increasingly thin.
+
+I think the tri-system lens helps because it keeps two truths in the room at once:
+
+1. Human intuition and deliberation still matter enormously.
+2. Artificial cognition is now a real participant in everyday judgment loops.
+
+Ignore the second truth and we become naive.
+Ignore the first truth and we become decorative.
+
+Neither option is especially appealing unless your career goal is to become an approval checkbox wearing a hoddie while sipping on iced americano.
+
+---
+
+## What I Am Keeping
+
+> "The goal is not to think alone. The goal is to remain cognitively present while thinking with."
+
+This is the narrative I try to keep alive in the quiet moments between 'Ship' and 'Bug Report'—the one I’d present as my honest best effort before staring at the resulting diff with the expression of a man who has once again mistaken confidence for correctness.
+
+The dual-system story still explains a lot.
+But it no longer explains enough.
+
+The third system is here now:
+
+```text
+brain
+  + machine
+  + workflow
+  = judgment, redistributed
+```
+
+Sometimes that redistribution is wonderful.
+Sometimes it is the only reason I can move quickly at all.
+Sometimes it teaches me.
+
+And sometimes it quietly allows me to skip the exact friction that would have produced understanding.
+
+That is the part I want to watch.
+
+Not because I am anti-AI.
+Not because I think we should all go back to pure artisanal keyboard suffering under candlelight.
+Not because I believe the answer is martyrdom by manual effort.
+
+But because the thing worth preserving is not typing.
+It is evaluative agency.
+
+If I can keep that alive, then System 3 is a force multiplier.
+If I lose it, then System 3 slowly becomes a replacement layer wearing the friendly mask of assistance.
+
+And the really sneaky part is that the replacement often feels like relief.
+
+Which is precisely why it deserves better names, better guardrails, and better jokes than I had for it a month ago.
+
+I do not want to stop thinking with these systems.
+I just want to be able to tell when I have stopped thinking *inside* the collaboration.
+
+The point is not to preserve hand-typing as a moral virtue; it is to preserve the expert monitoring loop that catches mismatch, does the back-of-the-envelope check, and knows when not to trust a suspiciously smooth answer.
+
+That, as far as I can tell, is the actual job now.
