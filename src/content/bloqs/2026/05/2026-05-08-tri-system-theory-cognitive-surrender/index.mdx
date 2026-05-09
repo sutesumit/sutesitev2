@@ -354,11 +354,9 @@ By 2023 and 2024, the architectural scaffolding for autonomy started to appear. 
 
 Then 2025 made the leap from "AI in my editor" to "AI in my workflow." [Claude Code launched on February 24, 2025](https://www.anthropic.com/news/claude-3-7-sonnet?__from__=talkingdev), and its novelty was not that it chatted well, but that it lived in the terminal and could search, edit, run commands, and act closer to the repo rather than hover beside it as a motivational speaker with syntax highlighting. Anthropic's own [Claude Code overview](https://docs.anthropic.com/en/docs/claude-code/overview) is useful here because it shows the real shift: the model is no longer merely adjacent to the work. It is inside the toolchain.
 
-And from late 2025 into 2026, the delegation boundary widened again. [Cursor Background Agents](https://docs.cursor.com/en/background-agents) made "go do this on a branch and report back" feel normal. But the official frontier imaginations from the major labs were pushing for something far more systemic. OpenAI began explicitly charting the course toward "Level 3" autonomous agents capable of unsupervised, long-running execution. Anthropic focused on highly steerable, verifiable orchestration to make these complex workflows safe. Cursor pushed past mere background tasks toward predictive, continuous codebase evolution.
+And from late 2025 into 2026, the delegation boundary widened again. [Cursor Background Agents](https://docs.cursor.com/en/background-agents) made "go do this on a branch and report back" feel normal. But the official frontier imaginations from the major labs were pushing for something far more systemic. OpenAI began explicitly charting the course toward "Level 3" autonomous agents capable of unsupervised, long-running execution. Anthropic focused on highly steerable, verifiable orchestration to make these complex workflows safe. Cursor pushed past mere background tasks toward predictive, continuous codebase evolution. [Model Context Protocol](https://modelcontextprotocol.info/docs/) tooling standardized how these agents connected to data, and the result was an ecosystem where "suggest here" became "branch, edit, run, coordinate, review, parallelize."
 
 But the truly industrial visions emerged outside the official labs. Projects like Steve Yegge’s Gastown, hosted on the [KiloCode](https://kilo.ai/gastown) platform, envisioned multi-agent swarms functioning as automated software factories. In this model, agents do not just answer questions; they coordinate. Gastown acts as an orchestrator for swarms of 20 to 30 specialized agents, introducing "beads"—atomic units of work stored as JSON in Git that act as external, shared memory for long-running patrol loops. It is the vision of a sprawling, high-throughput industrial complex of agents continuously running, negotiating, and modifying code in the background.
-
-With early [Model Context Protocol tooling](https://modelcontextprotocol.info/docs/) standardizing how these agents connected to data, the result was an ecosystem where "suggest here" became "branch, edit, run, coordinate, review, parallelize."
 
 But almost immediately, there was a visceral pushback—an appeal to stay in the code.
 
@@ -592,19 +590,19 @@ That is why I think "human-in-the-loop" is sometimes a hilariously dishonest phr
 
 ---
 
-## My Current Rules For Not Becoming Decorative
+## Anchors for Cognitive Sovereignty
 
 > "I am not interested in Luddite rejection; I am interested in cognitive sovereignty and ensuring System 3 serves as an extension of judgment, not a proxy for it"
 
-These are the guardrails I am actually trying to practice now, not the ones I would like to pretend I have already mastered like some deeply enlightened monk of the terminal.
+The most honest admission I can make is that System 3 has temporarily made novices of us all. I am not ready to trust my 'expert intuition' in a loop that can hallucinate with such fluency. Until my pattern recognition catches up to the machine's behavior, I am relying on these anchors to keep me from sliding into the passenger seat.
 
-### 1. Sketch first
+### 1. Collision Surfaces
 
 Before I ask the model for a plan, fix, or explanation, I write the rough shape of my own answer first.
 
 Even three lines is enough.
 
-### 2. Delegate bounded tasks
+### 2. Bounded Delegation
 
 I am much safer when I delegate:
 
@@ -621,15 +619,15 @@ and much less safe when I delegate:
 
 Those broader prompts are not forbidden. They just need much stronger human intervention points.
 
-### 3. Prefer reversible loops
+### 3. Reversible Feedback
 
 Thin vertical slices are not just an implementation preference. They preserve cognition by keeping feedback close.
 
-### 4. Write the contract in English
+### 4. Linguistic Anchors
 
 If I cannot explain the interface, invariant, or decision boundary in plain language, I am not ready to let the machine optimize it.
 
-### 5. Make uncertainty visible
+### 5. Forced Salience
 
 I want the agent to tell me:
 
@@ -640,7 +638,7 @@ I want the agent to tell me:
 
 That changes the posture from oracle to collaborator very quickly.
 
-### 6. Keep taste human
+### 6. Human Stewardship
 
 Generation is getting cheaper.
 Judgment is not.
