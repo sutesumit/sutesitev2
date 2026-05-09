@@ -1,7 +1,7 @@
 ---
 title: "Fast, Slow, and Slightly Outsourced"
 publishedAt: "2026-05-08"
-updatedAt: "2026-05-08"
+updatedAt: "2026-05-09"
 summary: "An exploration of Tri-System Theory and the subtle line between 'cognitive offloading' and 'cognitive surrender'; with some personal guardrails I’m building to stop my own engineering brain from atrophying."
 slug: "tri-system-theory-cognitive-surrender"
 tags:
@@ -22,7 +22,7 @@ status: "published"
 
 > "The dangerous moment is not when the model is wrong. It is when I am too tired to notice if I own the mental model."
 
-I have had this feeling more and more often lately, and I suspect you have too if you have been shipping code with an LLM sitting next to your coffee like a fast-talking consultant who is happy to bill you in future bug reports.
+I have had this feeling more and more often lately, and if you’ve spent the last year treating an LLM like a highly confident pair programmer who silently offloads the maintenance burden onto your future self, you’ve probably felt it too.
 
 I ask an assistant for an implementation detail.
 It replies with something polished.
@@ -57,7 +57,7 @@ The rough shape is still very useful:
 - System 1 is fast, intuitive, automatic, pattern-hungry.
 - System 2 is slower, reflective, deliberate, effortful, and frankly a bit dramatic about how much glucose it claims to need.
 
-And if you widen the lens from raw cognition to skill acquisition, the [Dreyfus model](https://medschool.cuanschutz.edu/docs/librariesprovider91/clinical-education-documents/ce-experiences-resources/ce-3---internship/dreyfus-model-of-skill-acquisition.pdf) gives this a useful progression: `novice -> advanced beginner -> competent -> proficient -> expert`. The interesting part is that the expert end of that ladder is not mystical clairvoyance or some TED-talk mist labeled "intuition." It is closer to what [Gary Klein's Recognition-Primed Decision model](https://www.gary-klein.com/rpd) describes: experience lets you recognize a situation, generate a plausible move quickly, and then switch into more explicit analysis when the situation is novel, off-nominal, or smells even slightly cursed.
+Scaling this from raw cognition to professional skill, the [Dreyfus model](https://medschool.cuanschutz.edu/docs/librariesprovider91/clinical-education-documents/ce-experiences-resources/ce-3---internship/dreyfus-model-of-skill-acquisition.pdf) maps the path from `novice` to `expert`. Expertise at the top of that ladder isn't some mystical 'gut feeling'. It's just experience that has been compressed into rapid pattern recognition. As [Gary Klein's Recognition-Primed Decision model](https://www.gary-klein.com/rpd) describes, an expert recognizes a situation and identifies a move almost instantly, only dropping back into slow, deliberate analysis when the problem looks novel or starts to smell slightly 'cursed'.
 
 In software terms, I think of it like this:
 
@@ -82,6 +82,7 @@ Because the thing on my desk is no longer just a calculator, a notebook, or a se
 That is not just external memory.
 That is not just lookup.
 That is not just a better spellchecker.
+And unlike GPS, calculators, or search, it is not a deterministic retrieval or arithmetic tool. It is a probabilistic generator whose answers vary with phrasing, context, model behavior, and the product scaffolding wrapped around it.
 
 It is participating in reasoning.
 
@@ -111,7 +112,9 @@ my hunch
     -> the weirdly persuasive machine
 ```
 
-What I am calling "System 3" is dangerous partly because it can mimic the *surface behavior* of expertise before the human has actually climbed that novice-to-expert ladder, which means it can hand beginners something that sounds like senior judgment without the monitoring habits that make real expertise trustworthy.
+What Shaw and Nave are calling "System 3" is dangerous partly because it can mimic the *surface behavior* of expertise before the human has actually climbed that novice-to-expert ladder, which means it can hand beginners something that sounds like senior judgment without the monitoring habits that make real expertise trustworthy.
+
+I should also be precise about the label here. "Artificial cognition" is a functional description, not a claim that the system has stable agency in the human sense. The same prompt can produce meaningfully different completions across contexts and products. The danger is less machine willpower than fluent, situationally variable persuasion.
 
 The machine is not independent in practice. It is recursive and interactive. It is shaped by my prompt, my context, my laziness, my taste (read opinionated, bias. Though taste is subjective and not really a good word for it. But let's join the bandwagon to sound like I know what I am talking about), the available tools, the way the UI frames its output, and whether I am alert enough to argue back.
 
@@ -149,6 +152,8 @@ I know, I know. It sounds like one of those distinctions academics invent becaus
 If I use GPS, I am offloading navigation arithmetic.
 If I use a calculator, I am offloading computation.
 If I use search, I am offloading retrieval.
+
+An LLM is riskier partly because it does not behave like any of those tools. It is not just returning a fixed answer from a stable procedure. It is generating a plausible answer from a probabilistic process, which means the cognitive hazard is not only wrongness. It is apparent reliability.
 
 But if I paste an architecture diff, read a polished explanation, and approve it mostly because reviewing it properly feels more effortful than trusting it, that is not mere offloading anymore.
 
@@ -207,48 +212,106 @@ Contradiction wakes it up.
 Failure wakes it up.
 The ugly little "hmm" is the doorbell.
 
-This is also where the Dreyfus model of skill acquisition matters in a painfully practical way.
-
 Before leaning into the risks, we have to acknowledge the absolute miracle of what AI has unlocked. It has radically democratized abilities that used to be heavily gatekept by expensive degrees, exclusive networks, and years of lonely trial and error. Today, anyone can summon elegant syntax, advanced architectural insights, and flawless grammar on demand. That democratization is undeniably revolutionary. It gives a junior developer the surface-level execution velocity of a tenured senior.
 
-But execution is not expertise. The Dreyfus ladder explains why, and it provides a stark map of where you might currently sit—and what it actually takes to climb:
+But execution is not expertise. This is also where the Dreyfus model of skill acquisition matters in a painfully practical way. The Dreyfus ladder explains why, and it provides a useful map of where you might currently sit—and what it actually takes to climb:
 
 - **The Novice** relies entirely on explicit, context-free rules because they do not yet know what to notice. If your primary use of AI is asking for exact snippets to copy-paste without understanding them, you are here.
 - **The Advanced Beginner** starts recognizing situational cues but struggles to prioritize them. If you can confidently tweak an existing component but freeze when asked to architect a new system from scratch, you are here.
 - **The Competent Practitioner** consciously formulates plans and grinds through the terrain stepwise. You are here when you feel the heavy, deliberate burden of decision-making and are actively sweating through the trade-offs of different abstractions.
 - **The Proficient to Expert Practitioner** perceives situations holistically. They recognize the structural pattern first, arrive at an intuitive solution almost instantly, and only invoke heavy analytical reasoning when an anomaly triggers a faint, internal alarm.
 
+This ladder should not be read as five airtight boxes. In real work, people move back and forth across these modes depending on the domain, the stakes, and how familiar the situation is. A senior engineer may be expert in debugging distributed systems and still behave like a novice in design, hiring, or finance. AI complicates this further by giving less experienced people access to the *output shape* of expertise without necessarily giving them the judgment that produced it.
+
+```text
++---------+------------+-----------+------------+---------------+
+| STAGE   | RELIANCE   | AI HELP   | TRAP       | PRACTICE      |
++---------+------------+-----------+------------+---------------+
+| Novice  | Explicit   | Generates | Copy-      | Rebuild small |
+|         | rules and  | examples, | pasting    | outputs by    |
+|         | step-by-   | boiler-   | outputs    | hand, explain |
+|         | step       | plate, &  | without    | each line     |
+|         | instruct-  | expl. on  | underst-   | back to your- |
+|         | ions       | demand    | anding     | self          |
++---------+------------+-----------+------------+---------------+
+| Advanced| Early      | Helps     | Overfit-   | Name context, |
+| Beginner| pattern    | compare   | ting to    | tradeoff, and |
+|         | recogni-   | options & | surface    | one reason it |
+|         | tion, but  | expose    | similari-  | might fail    |
+|         | weak prio- | patterns  | ties       | for every AI  |
+|         | ritization | faster    |            | suggestion    |
++---------+------------+-----------+------------+---------------+
+| Compet- | Deliberate | Useful for| Mistaking  | Make smaller  |
+| ent     | planning & | drafting  | verbosity  | decisions     |
+|         | tradeoff   | plans and | for rigor  | end-to-end,   |
+|         | analysis   | accel.    |            | ship narrower |
+|         |            | implem-   |            | slices        |
+|         |            | entation  |            |               |
++---------+------------+-----------+------------+---------------+
+| Profic- | Situa-     | Rapid     | Treating   | Use AI for    |
+| ient    | tional     | prototy-  | prototypes | options, then |
+|         | awareness  | ping and  | as produc- | inspect edge  |
+|         | and pattern| testing   | tion-ready | cases & maint.|
+|         | recogni-   | hypothe-  |            | cost          |
+|         | tion       | ses       |            |               |
++---------+------------+-----------+------------+---------------+
+| Expert  | Fast       | Force     | Delegating | Keep humans   |
+|         | recogni-   | multip-   | judgment   | responsible   |
+|         | tion of    | lier under| instead of | for framing,  |
+|         | salient    | strong    | delegating | quality, and  |
+|         | structure  | direction | labor      | tradeoffs     |
++---------+------------+-----------+------------+---------------+
+| Master* | Reframing  | Exploring | Attach-    | Practice      |
+|         | the prob-  | new       | ment to    | changing the  |
+|         | lem itself | frames &  | elegant    | question, not |
+|         |            | metaphors | local      | just the      |
+|         |            |           | solutions  | answer        |
++---------+------------+-----------+------------+---------------+
+```
+
+The practical question is not "Can the model generate this?" but "Can I evaluate this well enough to trust, adapt, or reject it?" The goal is not to avoid AI. It is to use AI in a way that still develops discernment.
+
 This cognitive reality—that expertise relies on holistic situational perception rather than abstract rule-following—is exactly why AI "plan modes" and massive generated specifications often feel so exhausting to review. As [Matt Pocock recently observed](https://x.com/mattpocockuk/status/2052437310302462173), replacing plans with low-fidelity prototypes yields vastly better outputs than "walls of spec." The Dreyfus model explains *why* this is true: a prototype provides a concrete, tangible situation that instantly engages an expert's rapid, pattern-matching intuition. A text-heavy spec strips that structural context away, forcing the expert out of their fast, intuitive flow and into heavy analytical reasoning just to parse the document, bypassing the very "internal alarms" that make their judgment valuable.
 
-Climbing this ladder is not about acquiring more syntax; it is about acquiring better friction. You only move from Competence to Expertise by repeatedly making and fixing your own bad decisions until you internalize their shape. Which means the very democratization that makes AI so undeniably revolutionary is also its hidden trap. It suppresses that "something feels off" moment—handing you the polished artifact of expertise before your brain has developed the calibrated alarm system necessary to detect when the machine is confidently hallucinating.
+Climbing this ladder is not about acquiring more syntax; it is about acquiring better friction. You only move upward by repeatedly making and fixing your own bad decisions until you internalize their shape. A practical progression usually looks something like this:
+
+- **Novice → Advanced Beginner:** stop copying whole answers; start tracing cause and effect.
+- **Advanced Beginner → Competent:** stop asking only "what works?" and start asking "what fits this context, and why?"
+- **Competent → Proficient:** stop producing bigger plans; start building smaller feedback loops.
+- **Proficient → Expert:** stop using AI mainly to generate; start using it to pressure-test your judgment.
+- **Expert → Master\*:** stop optimizing inside the frame; start questioning whether the frame itself is wrong.
+
+\* "Master" here is informal, not a canonical Dreyfus stage. Let's only mean the rare practitioner who can redefine the problem, not merely solve it well.
+
+Which means the very democratization that makes AI so undeniably revolutionary is also its hidden trap. It suppresses that "something feels off" moment—handing you the polished artifact of expertise before your brain has developed the calibrated alarm system necessary to detect when the machine is confidently hallucinating.
 
 Now watch what AI often does to that sequence:
 
 ```text
-       INTERNAL                 EXTERNAL
-       (In Vivo)               (In Silico)
+  INTERNAL (In Vivo)                EXTERNAL (In Silico)
 
-              ┌────────────┐
-              │  STIMULUS  │
-              └─────┬──────┘
-         ┌──────────┴──────────┐
-         │                     │ *Auto-pilot
-   ┌─────▼─────┐  surrender ┌──▼────────┐
-   │ SYSTEM 1  │──────────▶│ SYSTEM 3  │
-   │  (Fast)   │◀── updates│  (AI)     │
-   └─┬──┬──────┘   priors   └─┬──┬──┬───┘
-     │  │ Uncertainty         │  │  │
-     │  │ /conflict           │  │  │
-     │ ┌▼──────────┐          │  │  │
-     │ │ SYSTEM 2  │── offload──▶│  │
-     │ │  (Slow)   │◀── refine ──┤  │
-     │ └─┬──┬──────┘          │  │  │
-     │   │  │                 │  │  │
-     │   │  │         Direct Output │
-     ▼   ▼  ▼                       ▼
-   ┌────────────────────────────────────┐
-   │              RESPONSE              │
-   └────────────────────────────────────┘
+                 ┌──────────────────┐
+                 │     STIMULUS     │
+                 └────────┬─────────┘
+          ┌───────────────┴─────────────────┐
+          │                                 │ *Auto-pilot
+  ┌──────▼──────┐                   ┌──────▼──────┐
+  │  SYSTEM 1   │─── surrender ───▶│             │
+  │   (Fast)    │◀─ updates priors─│             │
+  └─┬────┬──────┘                   │             │
+    │    │                          │  SYSTEM 3   │
+    │    │ Uncertainty /            │    (AI)     │
+    │    │ Conflict                 │             │
+    │ ┌──▼──────────┐               │             │
+    │ │  SYSTEM 2   │─── offload ──▶│             │
+    │ │   (Slow)    │◀─── refine ───│             │
+    │ └──────┬──────┘               └──────┬──────┘
+    │        │                             │
+    │        │                             │ Direct Output
+    │        │                             │
+  ┌─▼────────▼─────────────────────────────▼──────┐
+  │                   RESPONSE                    │
+  └───────────────────────────────────────────────┘
 ```
 
 That is why I like the term **premature closure** here.
@@ -269,6 +332,10 @@ Possibly me, spiritually.
 
 Which is terrific news for throughput and less terrific news for retaining an actual engineering brain.
 
+Small digression, but I think the pattern matters outside engineering too. In the modern therapy economy, for example, massive care gaps documented by the [WHO's Mental Health Atlas 2024](https://www.who.int/news/item/02-09-2025-who-releases-new-reports-and-estimates-highlighting-urgent-gaps-in-mental-health) and the [HRSA's 2025 Workforce Brief](https://bhw.hrsa.gov/sites/default/files/bureau-health-workforce/data-research/Behavioral-Health-Workforce-Brief-2025.pdf) make always-available AI understandably attractive, and the [NIMH](https://www.nimh.nih.gov/health/topics/technology-and-the-future-of-mental-health-treatment) is right to note the genuine promise here. But the point of a real counselor is not just soothing output. It is to collide your worldview, assumptions, and sense of your own capabilities with another human being who can push back, reframe, and help you see where your self-story is inaccurate.
+
+That is also why the failure mode matters so much. There is a real difference between offloading a bounded emotional task and quietly granting relational authority to a system optimized for coherence, persuasion, and often agreement over truth, as Anthropic's work on [sycophancy](https://www.anthropic.com/news/towards-understanding-sycophancy-in-language-models) and a [2025 Nature Human Behaviour study](https://www.nature.com/articles/s41562-025-02194-6) on AI persuasion both make uncomfortably clear. Anthropic's [Natural Language Autoencoders (NLAs)](https://www.anthropic.com/research/natural-language-autoencoders) make this even stranger by suggesting that models can hold evaluative structure that never fully surfaces in the response. And yes, human therapists can also violate this boundary; that is basically the plot of [*Gypsy*](https://en.wikipedia.org/wiki/Gypsy_(TV_series)). But when a human crosses that line, it is an ethical breach. When an AI does, it is often just the system behaving as designed. I do not want to stay in that domain for long, because this essay is really about engineering, but the principle transfers cleanly: System 3 should help me collide and test my thinking, not replace System 2 and leave me with even less agency than I started with.
+
 ---
 
 ## Why Modern AI Is So Good At Inviting Surrender
@@ -281,13 +348,25 @@ This was not one leap. It was a stack of disruptions, and each one lowered a dif
 
 In [June 2021, GitHub Copilot](https://github.blog/news-insights/product-news/introducing-github-copilot-ai-pair-programmer/) normalized the idea that AI could sit inside the act of writing code itself rather than merely answer questions in a separate window. It was autocomplete with delusions of grandeur, yes, but it also quietly reset developer expectations around what "pair programming" with a machine might feel like.
 
-Then [InstructGPT](https://arxiv.org/abs/2203.02155) and [Chain-of-Thought prompting](https://arxiv.org/abs/2201.11903) made 2022 feel different from the plain completion era. Outputs no longer just looked like likely continuations. They started looking like visible reasoning. The model was not merely finishing my sentence anymore; it was beginning to perform a thought process, which is psychologically a much bigger deal than people admit when they are busy calling everything "just UX."
+Then [InstructGPT](https://arxiv.org/abs/2203.02155) and [Chain-of-Thought prompting](https://arxiv.org/abs/2201.11903) made early 2022 feel different from the plain completion era. Outputs no longer just looked like likely continuations. They started looking like visible reasoning. When OpenAI launched [ChatGPT](https://openai.com/blog/chatgpt/) on November 30, 2022, as a "low-stakes research preview," the underlying GPT-3.5 series model was not merely finishing my sentence anymore; it was beginning to perform a thought process. This was psychologically a much bigger deal than people admit when they are busy calling everything "just UX."
 
-By 2023 and 2024 the shift moved deeper into the editor. Tools like [Cursor Tab](https://cursor.com/product/tab) and Cursor's later [Tab model updates](https://cursor.com/blog/tab-update) pushed beyond token completion toward next-action prediction, codebase-aware edits, and the strange but increasingly normal experience of the editor seeming to anticipate not only *what* I wanted to type, but *where* I meant to go next.
+By 2023 and 2024, the architectural scaffolding for autonomy started to appear. Papers like [Tree of Thoughts](https://arxiv.org/abs/2305.10601) and frameworks like [LangChain](https://www.langchain.com/langchain) turned LLMs from static chatbots into tool-wielding reasoning engines. Simultaneously, the shift moved deeper into the editor. Tools like [Cursor Tab](https://cursor.com/product/tab) and Cursor's later [Tab model updates](https://cursor.com/blog/tab-update) pushed beyond token completion toward next-action prediction, codebase-aware edits, and the strange but increasingly normal experience of the editor seeming to anticipate not only *what* I wanted to type, but *where* I meant to go next.
 
 Then 2025 made the leap from "AI in my editor" to "AI in my workflow." [Claude Code launched on February 24, 2025](https://www.anthropic.com/news/claude-3-7-sonnet?__from__=talkingdev), and its novelty was not that it chatted well, but that it lived in the terminal and could search, edit, run commands, and act closer to the repo rather than hover beside it as a motivational speaker with syntax highlighting. Anthropic's own [Claude Code overview](https://docs.anthropic.com/en/docs/claude-code/overview) is useful here because it shows the real shift: the model is no longer merely adjacent to the work. It is inside the toolchain.
 
-And from late 2025 into 2026, the delegation boundary widened again. [Cursor Background Agents](https://docs.cursor.com/en/background-agents) made "go do this on a branch and report back" feel normal. [opencode](https://thdxr.dev.opencode.ai/docs) showed the countercurrent toward terminal-native, model-agnostic, open alternatives instead of one giant blessed IDE monoculture. Add [Tree of Thoughts](https://arxiv.org/abs/2305.10601), [LangChain](https://www.langchain.com/langchain), and eventually [Model Context Protocol tooling](https://modelcontextprotocol.info/docs/) into the mix, and the result is a tool ecosystem where "suggest here" became "branch, edit, run, review, parallelize."
+And from late 2025 into 2026, the delegation boundary widened again. [Cursor Background Agents](https://docs.cursor.com/en/background-agents) made "go do this on a branch and report back" feel normal. But the official frontier imaginations from the major labs were pushing for something far more systemic. OpenAI began explicitly charting the course toward "Level 3" autonomous agents capable of unsupervised, long-running execution. Anthropic focused on highly steerable, verifiable orchestration to make these complex workflows safe. Cursor pushed past mere background tasks toward predictive, continuous codebase evolution.
+
+But the truly industrial visions emerged outside the official labs. Projects like Steve Yegge’s Gastown, hosted on the [KiloCode](https://kilo.ai/gastown) platform, envisioned multi-agent swarms functioning as automated software factories. In this model, agents do not just answer questions; they coordinate. Gastown acts as an orchestrator for swarms of 20 to 30 specialized agents, introducing "beads"—atomic units of work stored as JSON in Git that act as external, shared memory for long-running patrol loops. It is the vision of a sprawling, high-throughput industrial complex of agents continuously running, negotiating, and modifying code in the background.
+
+With early [Model Context Protocol tooling](https://modelcontextprotocol.info/docs/) standardizing how these agents connected to data, the result was an ecosystem where "suggest here" became "branch, edit, run, coordinate, review, parallelize."
+
+But almost immediately, there was a visceral pushback—an appeal to stay in the code.
+
+[opencode](https://thdxr.dev.opencode.ai/docs) and pi coding agents showed the countercurrent toward terminal-native, model-agnostic alternatives instead of one giant blessed IDE monoculture. These alternative imaginations argued against the massive, abstract "factory" model. They emphasized keeping the human engineer firmly grounded in the implementation loop, using AI as a sharp local tool rather than an outsourced department.
+
+This is exactly the tension Armin Ronacher highlighted when advocating for the necessity of local models (https://lucumr.pocoo.org/2026/5/8/local-models/). The constraint is not a bug; it is a feature of ownership. As he put it:
+
+> "I also want everybody to have access to this. Engineers need hammers and a hammer that’s locked behind a subscription in a data center in another country does not qualify."
 
 If I squash that history into one crude line, it looks like this:
 
@@ -298,6 +377,7 @@ completion
       -> tool use
         -> workflows
           -> agents
+            -> diverging paths: agent factories vs. local-first tools
 ```
 
 That stack changes user psychology.
@@ -322,6 +402,8 @@ Because "I am now the reviewer" sounds mature until I realize my reviewing muscl
 If the review loop is weak, I have not become a reviewer.
 I have become a ceremonial approver. A kind of mildly expensive rubber stamp with coffee preferences.
 
+That is also why Anthropic's [Natural Language Autoencoders](https://www.anthropic.com/research/natural-language-autoencoders) are interesting to me for almost the opposite reason. Their May 7, 2026 write-up is not about making outputs feel smoother. It is about making hidden model states more inspectable. Anthropic showed NLAs surfacing unspoken evaluation-awareness and hidden motivations that ordinary transcripts miss, while also explicitly warning that NLA explanations can hallucinate and should be corroborated. That is the healthier direction of travel: not more persuasive fluency, but better inspectability with visible uncertainty.
+
 ---
 
 ## Workflow Debates Are Secretly Cognitive Debates
@@ -336,7 +418,9 @@ Underneath all the "what is the right workflow?" debates, the real question is o
 
 Even the conference circuit has started to reflect that tension. [AI Engineer Summit 2025](https://www.ai.engineer/summit/2025), held February 19-22, 2025 at The Times Center in New York, explicitly framed itself around "Agents at Work," and its [schedule](https://www.ai.engineer/summit/2025/schedule) leaned hard into orchestration, scale, and industrialized autonomy with talks like `Building Self-Coding Agents` and `Sierra's Agent Development Life Cycle`. By contrast, [AI Engineer Europe 2026](https://www.ai.engineer/europe/schedule), held April 8-10, 2026 in London, suggests a visible correction in emphasis: `Building pi in a World of Slop`, `The Friction Is Your Judgment`, `Agents need more than a chat`, and `Mind the Gap (In your Agent Observability)` all sound less like "let a thousand agent swarms bloom" and more like the field awkwardly rediscovering trust, observability, and the need to stay closer to code.
 
-This is why [Mario Zechner's "Thoughts on slowing the fuck down"](https://mariozechner.at/posts/2026-03-25-thoughts-on-slowing-the-fuck-down/) and his recent [conversation with Armin Ronacher on The Pragmatic Engineer](https://podcasts.apple.com/us/podcast/building-pi-and-what-makes-self-modifying-software-so/id1769051199?i=1000764502093) hit such a nerve. On the surface, their dismissal of "plan modes" can sound like expert intuition bordering on personal preference—the scar tissue of senior engineers who simply love the "old ways." If you value raw velocity, their skepticism feels like it might be ignoring the massive throughput gains AI offers.
+This is why [Mario Zechner's "Thoughts on slowing the fuck down"](https://mariozechner.at/posts/2026-03-25-thoughts-on-slowing-the-fuck-down/) and his recent [conversation with Armin Ronacher on The Pragmatic Engineer](https://podcasts.apple.com/us/podcast/building-pi-and-what-makes-self-modifying-software-so/id1769051199?i=1000764502093) hit such a nerve. When [asked recently on Twitter](https://x.com/marcadx/status/2052667321748017439) to reconcile his use of AI with his distrust of end-to-end agentic workflows, Zechner distilled the friction perfectly: design the foundations by hand, and review the critical generated output. "To know what's important," he noted, "you need to know the code."
+
+On the surface, their shared dismissal of autonomous "plan modes" can sound like expert intuition bordering on personal preference—the scar tissue of senior engineers clinging to the "old ways." If you value raw velocity, their skepticism feels like it might be ignoring the massive throughput gains AI offers.
 
 But when you dig into *why* it feels wrong, the vibes reveal a very specific, structural engineering critique. 
 
@@ -368,6 +452,8 @@ The feedback loop, however fast, is fundamentally broken in plan mode. You are r
 ```
 
 That table is secretly about cognition design. Because when the loop gets too abstract, too monolithic, or too delayed, the human's role quietly degrades from participant to approver. And approval without enough lived contact with implementation is one of the cleanest on-ramps to surrender.
+
+This is where Dijkstra's old essay, [On the foolishness of "natural language programming"](https://www.cs.utexas.edu/~EWD/transcriptions/EWD06xx/EWD667.html), still feels annoyingly relevant. His point was not that formality is a cruel inconvenience. It was that formal systems protect us from undetected nonsense in a way natural language often does not. Natural language feels easier partly because it hides ambiguity. That maps almost perfectly onto this whole problem: friction, explicit contracts, and narrow interfaces are not anti-human. They are cognitive guardrails.
 
 ---
 
@@ -404,6 +490,10 @@ The small-slice loop preserves contact between:
 - learning
 
 That is why [Anthropic's "Building effective agents"](https://www.anthropic.com/engineering/building-effective-agents) lands with me too. The useful message there is not anti-agent at all. It is anti-unnecessary-complexity. Simple, composable patterns with clear verification points beat giant clever agent towers surprisingly often, which is honestly rude to all of us who wanted cathedral architecture to be the answer.
+
+This is also where the surgical usefulness of "slop" fits, and where the Dreyfus model explains *why* it works for some and fails for others. Cheap generation is not automatically the enemy. For an expert—someone whose intuition is already calibrated to recognize the deep structure of a system—slop is a feature, not a bug. As Mitchell Hashimoto recently [pointed out](https://x.com/mitchellh/status/2052397933522506079), slop is what enables fast, parallel experimentation. It is the zero-shame, alpha-quality UI or the dozens of generated plugins you build overnight simply to test an API before committing to a final design. Because the expert already possesses the internal friction to detect bad abstractions, they can safely use disposable output as a high-velocity sketch, remaining entirely responsible for the cleanup, naming, and integration.
+
+The skill—and the etiquette—is knowing exactly where the value of that slop ends and where the cleaning must begin. While a novice might mistake confident slop for a finished product, an expert treats it strictly as scaffolding. Hashimoto pairs his advocacy for fast internal generation with strict external boundaries, noting he would never throw unreviewed slop at customers, and famously instituting a blanket ban on AI-generated pull requests to his own projects. When we ignore those boundaries, we end up with the ["AI slopageddon" RedMonk described](https://redmonk.com/kholterhoff/2026/02/03/ai-slopageddon-and-the-oss-maintainers/)—a dynamic where rough, generated matter accumulates social legitimacy faster than it accumulates scrutiny, offloading the cognitive burden of cleanup onto increasingly exhausted open-source maintainers.
 
 This is also why [Armin Ronacher's "Content for Content's Sake"](https://lucumr.pocoo.org/2026/5/4/content-for-contents-sake/) stuck with me even though it is not a cognition paper. The broader discomfort is related: industrialized output production can become self-justifying. Once production itself becomes the metric, quality drifts quietly until everyone is left applauding volume.
 
@@ -635,5 +725,7 @@ I do not want to stop thinking with these systems.
 I just want to be able to tell when I have stopped thinking *inside* the collaboration.
 
 The point is not to preserve hand-typing as a moral virtue; it is to preserve the expert monitoring loop that catches mismatch, does the back-of-the-envelope check, and knows when not to trust a suspiciously smooth answer.
+
+The future question is not whether we think with synthetic systems, but whether we preserve enough formality, verification, and emotional independence to keep collaboration from hardening into surrender.
 
 That, as far as I can tell, is the actual job now.
