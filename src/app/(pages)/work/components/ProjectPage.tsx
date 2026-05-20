@@ -10,6 +10,7 @@ import { projects, ProjectProps } from "@/data/projectlist";
 import { cn } from "@/lib/utils";
 import ClapsCounter from "@/components/shared/ClapsCounter";
 import ViewCounter from "@/components/shared/ViewCounter";
+import { Maximize2, Minimize2, X } from "lucide-react";
 
 const MOBILE_BREAKPOINT = 380;
 const TABLET_VIEWPORT = { width: 900, height: 675 };
@@ -20,6 +21,29 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [iframeScale, setIframeScale] = useState(1);
   const [iframeViewport, setIframeViewport] = useState(TABLET_VIEWPORT);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (isExpanded) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isExpanded]);
+
+  useEffect(() => {
+    if (!isExpanded) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isExpanded]);
 
   useEffect(() => {
     const updateScale = () => {
@@ -44,6 +68,12 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
 
   return (
     <article className="container relative isolate p-10 h-auto items-center font-roboto-mono lowercase">
+      {isExpanded && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 cursor-zoom-out"
+          onClick={() => setIsExpanded(false)}
+        />
+      )}
       <m.div
         role="article"
         aria-label={project.title}
@@ -68,8 +98,15 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
             {project.livelink && (
               <div
                 ref={containerRef}
-                className="relative w-full rounded overflow-hidden border border-blue-200 dark:border-blue-800 bg-gray-100 dark:bg-gray-900 shadow-md mb-4"
-                style={{ aspectRatio: `${iframeViewport.width} / ${iframeViewport.height}` }}
+                className={cn(
+                  "border border-blue-200 dark:border-blue-800 bg-gray-100 dark:bg-gray-900 shadow-md mb-4 transition-all duration-300 ease-in-out",
+                  isExpanded ? (
+                    "fixed inset-4 md:inset-10 m-auto w-[90vw] h-[85vh] max-w-6xl max-h-[85vh] z-50 rounded-lg shadow-2xl flex items-center justify-center overflow-hidden"
+                  ) : (
+                    "relative w-full rounded overflow-hidden"
+                  )
+                )}
+                style={isExpanded ? undefined : { aspectRatio: `${iframeViewport.width} / ${iframeViewport.height}` }}
               >
                 {iframeLoading && project.screenshot && (
                   <Image
@@ -88,7 +125,7 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
                 )}
                 <iframe
                   src={project.livelink}
-                  className="absolute top-0 left-0 origin-top-left"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 origin-center"
                   style={{
                     width: `${iframeViewport.width}px`,
                     height: `${iframeViewport.height}px`,
@@ -98,6 +135,34 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
                   onLoad={() => setIframeLoading(false)}
                   sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                 />
+
+                {/* Expand / Collapse Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="absolute bottom-4 right-4 z-30 p-2 rounded-lg bg-white/85 dark:bg-slate-900/85 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-900 shadow-md backdrop-blur-sm transition-all duration-300"
+                  title={isExpanded ? "Collapse preview" : "Expand preview"}
+                  aria-label={isExpanded ? "Collapse preview" : "Expand preview"}
+                >
+                  {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+
+                {/* Top-right Close Button (visible only when expanded) */}
+                {isExpanded && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsExpanded(false);
+                    }}
+                    className="absolute top-4 right-4 z-30 p-2 rounded-lg bg-white/85 dark:bg-slate-900/85 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-900 shadow-md backdrop-blur-sm transition-all duration-300"
+                    title="Close preview"
+                    aria-label="Close preview"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             )}
             <div className="project-description opacity-90 leading-relaxed">
