@@ -10,7 +10,7 @@ import { projects, ProjectProps } from "@/data/projectlist";
 import { cn } from "@/lib/utils";
 import ClapsCounter from "@/components/shared/ClapsCounter";
 import ViewCounter from "@/components/shared/ViewCounter";
-import { Maximize2, Minimize2, X } from "lucide-react";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 const MOBILE_BREAKPOINT = 380;
 const TABLET_VIEWPORT = { width: 900, height: 675 };
@@ -22,6 +22,7 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
   const [iframeScale, setIframeScale] = useState(1);
   const [iframeViewport, setIframeViewport] = useState(TABLET_VIEWPORT);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     if (isExpanded) {
@@ -46,6 +47,7 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
   }, [isExpanded]);
 
   useEffect(() => {
+    setIsMounted(true);
     const updateScale = () => {
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
@@ -66,24 +68,28 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIframeLoading(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <article className="container relative isolate p-10 h-auto items-center font-roboto-mono lowercase">
-      {isExpanded && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 cursor-zoom-out"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
       <m.div
         role="article"
         aria-label={project.title}
-        className="relative isolate p-4 blue-border flex flex-col mb-2 overflow-hidden"
+        className={cn(
+          "relative p-4 blue-border flex flex-col mb-2 overflow-hidden",
+          isExpanded ? "z-50" : "isolate"
+        )}
         initial="rest"
         whileHover="hover"
         animate="rest"
       >
         <CardBackground />
-        <ul className="project-container project-list relative z-10 px-2">
+        <ul className={cn("project-container project-list relative px-2", isExpanded ? "z-50" : "z-10")}>
           <div className="flex flex-wrap gap-2 items-center justify-between">
             <li className="project-item flex items-center justify-between text-blue-900 dark:text-blue-400 font-medium">
               <Link href={`/work/${project.slug}`}>{project.title}</Link>
@@ -96,45 +102,59 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
 
           <div className="about-section mt-4 space-y-1">
             {project.livelink && (
-              <div
-                ref={containerRef}
-                className={cn(
-                  "border border-blue-200 dark:border-blue-800 bg-gray-100 dark:bg-gray-900 shadow-md mb-4 transition-all duration-300 ease-in-out",
-                  isExpanded ? (
-                    "fixed inset-4 md:inset-10 m-auto w-[90vw] h-[85vh] max-w-6xl max-h-[85vh] z-50 rounded-lg shadow-2xl flex items-center justify-center overflow-hidden"
-                  ) : (
-                    "relative w-full rounded overflow-hidden"
-                  )
+              <>
+                {isExpanded && (
+                  <div
+                    className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 cursor-default"
+                    onClick={() => setIsExpanded(false)}
+                  />
                 )}
-                style={isExpanded ? undefined : { aspectRatio: `${iframeViewport.width} / ${iframeViewport.height}` }}
-              >
+                <div
+                  ref={containerRef}
+                  className={cn(
+                    "border border-blue-200 dark:border-blue-800 bg-gray-100 dark:bg-gray-900 shadow-md mb-4 transition-all duration-300 ease-in-out",
+                    isExpanded ? (
+                      "fixed inset-4 md:inset-10 m-auto w-[90vw] h-[85vh] max-w-6xl max-h-[85vh] z-50 rounded-lg shadow-2xl flex items-center justify-center overflow-hidden"
+                    ) : (
+                      "relative w-full rounded overflow-hidden"
+                    )
+                  )}
+                  style={isExpanded ? undefined : { aspectRatio: `${iframeViewport.width} / ${iframeViewport.height}` }}
+                >
                 {iframeLoading && project.screenshot && (
                   <Image
                     src={project.screenshot}
                     alt={`${project.title} preview`}
                     fill
-                    placeholder="blur"
-                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-                    className="absolute inset-0 object-cover"
+                    className="absolute inset-0 object-cover pointer-events-none"
                   />
                 )}
                 {iframeLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-black/20 z-10">
+                  <div className="absolute inset-0 flex items-center justify-center z-20">
                     <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
-                <iframe
-                  src={project.livelink}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 origin-center"
-                  style={{
-                    width: `${iframeViewport.width}px`,
-                    height: `${iframeViewport.height}px`,
-                    transform: `scale(${iframeScale})`,
-                  }}
-                  title={`Preview of ${project.title}`}
-                  onLoad={() => setIframeLoading(false)}
-                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                />
+                {isMounted && (
+                  <iframe
+                    src={project.livelink}
+                    className={cn(
+                      "border-none",
+                      isExpanded ? "w-full h-full" : "absolute top-1/2 left-1/2 origin-center"
+                    )}
+                    style={
+                      isExpanded
+                        ? { width: "100%", height: "100%", transform: "none" }
+                        : {
+                            width: `${iframeViewport.width}px`,
+                            height: `${iframeViewport.height}px`,
+                            transform: `translate(-50%, -50%) scale(${iframeScale})`,
+                          }
+                    }
+                    title={`Preview of ${project.title}`}
+                    onLoad={() => setIframeLoading(false)}
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation-by-user-activation"
+                  />
+                )}
 
                 {/* Expand / Collapse Button */}
                 <button
@@ -149,22 +169,10 @@ const ProjectPage = ({ project }: { project: ProjectProps }) => {
                   {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
 
-                {/* Top-right Close Button (visible only when expanded) */}
-                {isExpanded && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsExpanded(false);
-                    }}
-                    className="absolute top-4 right-4 z-30 p-2 rounded-lg bg-white/85 dark:bg-slate-900/85 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-900 shadow-md backdrop-blur-sm transition-all duration-300"
-                    title="Close preview"
-                    aria-label="Close preview"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+
               </div>
-            )}
+            </>
+          )}
             <div className="project-description opacity-90 leading-relaxed">
               {project.description}
             </div>
