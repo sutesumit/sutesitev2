@@ -5,9 +5,9 @@ import {
   ContributionWeek,
   ContributionMonthRequest,
   ContributionMonthResponse,
-} from './GitHubService.interface';
+} from "./GitHubService.interface";
 
-const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
+const GITHUB_GRAPHQL_API = "https://api.github.com/graphql";
 
 interface GitHubUser {
   contributionsCollection: {
@@ -21,8 +21,14 @@ interface GitHubUser {
  * Generates a dynamic GraphQL query based on the number of profiles
  */
 function generateQuery(profiles: string[]): string {
-  const variables = ['$from: DateTime!', '$to: DateTime!', ...profiles.map((_, i) => `$login${i}: String!`)].join(', ');
-  const userQueries = profiles.map((_, i) => `
+  const variables = [
+    "$from: DateTime!",
+    "$to: DateTime!",
+    ...profiles.map((_, i) => `$login${i}: String!`),
+  ].join(", ");
+  const userQueries = profiles
+    .map(
+      (_, i) => `
     user${i}: user(login: $login${i}) {
       contributionsCollection(from: $from, to: $to) {
         contributionCalendar {
@@ -35,7 +41,9 @@ function generateQuery(profiles: string[]): string {
         }
       }
     }
-  `).join('\n');
+  `,
+    )
+    .join("\n");
 
   return `
     query(${variables}) {
@@ -44,15 +52,21 @@ function generateQuery(profiles: string[]): string {
   `;
 }
 
-function getMonthBounds(request: ContributionMonthRequest): { from: string; to: string; monthKey: string } {
+function getMonthBounds(request: ContributionMonthRequest): {
+  from: string;
+  to: string;
+  monthKey: string;
+} {
   const monthIndex = request.month - 1;
   const from = new Date(Date.UTC(request.year, monthIndex, 1, 0, 0, 0, 0));
-  const to = new Date(Date.UTC(request.year, monthIndex + 1, 0, 23, 59, 59, 999));
+  const to = new Date(
+    Date.UTC(request.year, monthIndex + 1, 0, 23, 59, 59, 999),
+  );
 
   return {
     from: from.toISOString(),
     to: to.toISOString(),
-    monthKey: `${request.year}-${String(request.month).padStart(2, '0')}`,
+    monthKey: `${request.year}-${String(request.month).padStart(2, "0")}`,
   };
 }
 
@@ -68,33 +82,36 @@ export class GitHubGraphQLService implements GitHubService {
 
   async getContributionsForMonth(
     usernames: string[],
-    request: ContributionMonthRequest
+    request: ContributionMonthRequest,
   ): Promise<ContributionMonthResponse> {
     if (!this.token) {
-      throw new Error('GITHUB_TOKEN is not configured');
+      throw new Error("GITHUB_TOKEN is not configured");
     }
 
     if (usernames.length === 0) {
       return {
         year: request.year,
         month: request.month,
-        monthKey: `${request.year}-${String(request.month).padStart(2, '0')}`,
+        monthKey: `${request.year}-${String(request.month).padStart(2, "0")}`,
         data: {},
       };
     }
 
     const query = generateQuery(usernames);
-    const variables = usernames.reduce((acc, login, i) => {
-      acc[`login${i}`] = login;
-      return acc;
-    }, {} as Record<string, string>);
+    const variables = usernames.reduce(
+      (acc, login, i) => {
+        acc[`login${i}`] = login;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
     const { from, to, monthKey } = getMonthBounds(request);
 
     const response = await fetch(GITHUB_GRAPHQL_API, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Authorization: `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         query,
@@ -108,7 +125,9 @@ export class GitHubGraphQLService implements GitHubService {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`GitHub API error: ${response.statusText} - ${JSON.stringify(errorData)}`);
+      throw new Error(
+        `GitHub API error: ${response.statusText} - ${JSON.stringify(errorData)}`,
+      );
     }
 
     const { data, errors } = await response.json();
@@ -125,11 +144,14 @@ export class GitHubGraphQLService implements GitHubService {
       const user = castedData[key];
       if (!user?.contributionsCollection) return;
 
-      user.contributionsCollection.contributionCalendar.weeks.forEach((week: ContributionWeek) => {
-        week.contributionDays.forEach((day: ContributionDay) => {
-          mergedData[day.date] = (mergedData[day.date] || 0) + day.contributionCount;
-        });
-      });
+      user.contributionsCollection.contributionCalendar.weeks.forEach(
+        (week: ContributionWeek) => {
+          week.contributionDays.forEach((day: ContributionDay) => {
+            mergedData[day.date] =
+              (mergedData[day.date] || 0) + day.contributionCount;
+          });
+        },
+      );
     });
 
     return {

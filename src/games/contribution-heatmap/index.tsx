@@ -13,8 +13,32 @@ import { buildMonthGrid, densityLevel, toKey, toMonthKey } from "./utils";
 
 const ACHIEVEMENT_THRESHOLD = 27;
 const SYMBOLS = ["\u00A0", "\u2727", "\u2732", "\u2737", "\u2743", "\u2741"];
-const SPINNER = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const SPINNER = [
+  "\u280B",
+  "\u2819",
+  "\u2839",
+  "\u2838",
+  "\u283C",
+  "\u2834",
+  "\u2826",
+  "\u2827",
+  "\u2807",
+  "\u280F",
+];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 const LOADING_GLYPH = "\u00B7";
 const EMPTY_GLYPH = "\u00A0";
 
@@ -25,7 +49,10 @@ const BOOT_STEPS = [
   { label: "done", duration: 160 },
 ];
 
-async function fetchMonthActivity(year: number, month: number): Promise<ContributionMonthResponse> {
+async function fetchMonthActivity(
+  year: number,
+  month: number,
+): Promise<ContributionMonthResponse> {
   const params = new URLSearchParams({
     year: String(year),
     month: String(month + 1),
@@ -38,36 +65,51 @@ async function fetchMonthActivity(year: number, month: number): Promise<Contribu
     throw new Error(
       typeof payload?.details === "string"
         ? payload.details
-        : payload?.error || "Failed to fetch GitHub activity"
+        : payload?.error || "Failed to fetch GitHub activity",
     );
   }
 
   return payload as ContributionMonthResponse;
 }
 
-export const ContributionHeatmap = ({ data: externalData = null }: { data?: Record<string, number> | null }) => {
+export const ContributionHeatmap = ({
+  data: externalData = null,
+}: {
+  data?: Record<string, number> | null;
+}) => {
   const [error, setError] = useState<string | null>(null);
   const [bootStep, setBootStep] = useState(-1);
   const [doneSteps, setDoneSteps] = useState<number[]>([]);
   const [spinIdx, setSpinIdx] = useState(0);
   const [booted, setBooted] = useState(false);
   const [isMonthLoading, setIsMonthLoading] = useState(false);
-  const [monthsByKey, setMonthsByKey] = useState<Record<string, Record<string, number>>>({});
+  const [monthsByKey, setMonthsByKey] = useState<
+    Record<string, Record<string, number>>
+  >({});
   const [retryNonce, setRetryNonce] = useState(0);
-  const [tooltip, setTooltip] = useState<{ dateKey: string; count: number; x: number; y: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    dateKey: string;
+    count: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const [transitionSnapshot, setTransitionSnapshot] = useState<{
     key: string;
     slots: ("gem" | "skull" | null)[];
   } | null>(null);
 
-  const { state, actions, stats, isAtLatest, setData } = useHeatmapGame(externalData);
+  const { state, actions, stats, isAtLatest, setData } =
+    useHeatmapGame(externalData);
   const now = new Date();
   const todayKey = now.toISOString().slice(0, 10);
   const currentMonthKey = toMonthKey(state.year, state.month);
   const cachedMonthData = monthsByKey[currentMonthKey] ?? null;
 
   useEffect(() => {
-    const id = setInterval(() => setSpinIdx((i) => (i + 1) % SPINNER.length), 80);
+    const id = setInterval(
+      () => setSpinIdx((i) => (i + 1) % SPINNER.length),
+      80,
+    );
     return () => clearInterval(id);
   }, []);
 
@@ -87,7 +129,8 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
         setData(githubMonth.data);
         setDoneSteps((prev) => [...prev, 1]);
       } catch (bootError: unknown) {
-        const message = bootError instanceof Error ? bootError.message : "Unknown error";
+        const message =
+          bootError instanceof Error ? bootError.message : "Unknown error";
         setError(message);
         return;
       }
@@ -154,7 +197,8 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
           return;
         }
 
-        const message = monthError instanceof Error ? monthError.message : "Unknown error";
+        const message =
+          monthError instanceof Error ? monthError.message : "Unknown error";
         setError(message);
       } finally {
         if (!isCancelled) {
@@ -176,7 +220,9 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
     title: "Crystal Master!",
     emoji: "\uD83D\uDC8E",
   };
-  const hint = !achievement.unlocked ? `Collect ${ACHIEVEMENT_THRESHOLD + 1}+ for Crystal Master \uD83D\uDC8E` : undefined;
+  const hint = !achievement.unlocked
+    ? `Collect ${ACHIEVEMENT_THRESHOLD + 1}+ for Crystal Master \uD83D\uDC8E`
+    : undefined;
   const boardCells = weeks.flat();
 
   useEffect(() => {
@@ -185,7 +231,9 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
     }
 
     const timeoutId = window.setTimeout(() => {
-      setTransitionSnapshot((current) => (current?.key === transitionSnapshot.key ? null : current));
+      setTransitionSnapshot((current) =>
+        current?.key === transitionSnapshot.key ? null : current,
+      );
     }, 420);
 
     return () => window.clearTimeout(timeoutId);
@@ -195,7 +243,10 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
     setTooltip(null);
     setIsMonthLoading(true);
 
-    if (state.revealed.size === 0 && !(state.isGameOver && state.skullDay !== null)) {
+    if (
+      state.revealed.size === 0 &&
+      !(state.isGameOver && state.skullDay !== null)
+    ) {
       setTransitionSnapshot(null);
       return;
     }
@@ -275,9 +326,21 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                 <div key={i} className="flex gap-2 items-center">
                   <span className="opacity-50">$</span>
                   <span className="w-4 text-blue-600 dark:text-blue-400">
-                    {running && !error ? SPINNER[spinIdx] : finished ? "\u2713" : error && running ? "\u2717" : " "}
+                    {running && !error
+                      ? SPINNER[spinIdx]
+                      : finished
+                        ? "\u2713"
+                        : error && running
+                          ? "\u2717"
+                          : " "}
                   </span>
-                  <span className={finished ? "text-slate-800 dark:text-slate-200" : "text-slate-600 dark:text-slate-500"}>
+                  <span
+                    className={
+                      finished
+                        ? "text-slate-800 dark:text-slate-200"
+                        : "text-slate-600 dark:text-slate-500"
+                    }
+                  >
                     {label}
                   </span>
                 </div>
@@ -286,8 +349,8 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
             {error && (
               <div className="mt-4 p-3 border border-red-500/30 bg-red-500/5 text-red-500/80">
                 <div className="flex items-start gap-2">
-                  <span className="font-bold">[ERROR]:</span>
-                  <span>{error}</span>
+                  <span className="font-bold shrink-0">[ERROR]:</span>
+                  <span className="break-all">{error}</span>
                 </div>
                 <button
                   onClick={() => window.location.reload()}
@@ -298,7 +361,9 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
               </div>
             )}
             {bootStep >= 0 && !error && (
-              <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400">{"\u2588"}</span>
+              <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400">
+                {"\u2588"}
+              </span>
             )}
           </div>
         )}
@@ -350,25 +415,33 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
             <div className="relative">
               <m.div
                 className="grid grid-cols-7 grid-rows-6 gap-0.5 md:gap-1 my-1 mx-auto"
-                animate={state.isGameOver && !isMonthLoading ? { y: 300, opacity: 0, rotate: 5 } : { y: 0, opacity: 1, rotate: 0 }}
+                animate={
+                  state.isGameOver && !isMonthLoading
+                    ? { y: 300, opacity: 0, rotate: 5 }
+                    : { y: 0, opacity: 1, rotate: 0 }
+                }
                 transition={{ duration: 1.2, ease: "backIn" }}
               >
                 {boardCells.map((day, idx) => {
                   const isPlaceholder = day === null;
-                  const dateKey = isPlaceholder ? null : toKey(state.year, state.month, day);
-                  const count = dateKey ? state.data[dateKey] ?? 0 : 0;
+                  const dateKey = isPlaceholder
+                    ? null
+                    : toKey(state.year, state.month, day);
+                  const count = dateKey ? (state.data[dateKey] ?? 0) : 0;
                   const lv = densityLevel(count);
                   const isToday = dateKey === todayKey;
                   const isRevealed = day !== null && state.revealed.has(day);
                   const isSkull = day !== null && day === state.skullDay;
-                  const isActuallyRevealed = isRevealed || (state.isGameOver && isSkull);
+                  const isActuallyRevealed =
+                    isRevealed || (state.isGameOver && isSkull);
                   const innerVisible = !isPlaceholder && !isActuallyRevealed;
                   const centerGlyph = isPlaceholder
                     ? EMPTY_GLYPH
                     : isMonthLoading
                       ? LOADING_GLYPH
-                      : SYMBOLS[lv] ?? EMPTY_GLYPH;
-                  const transitionGlyph = transitionSnapshot?.slots[idx] ?? null;
+                      : (SYMBOLS[lv] ?? EMPTY_GLYPH);
+                  const transitionGlyph =
+                    transitionSnapshot?.slots[idx] ?? null;
 
                   return (
                     <div
@@ -380,14 +453,23 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                             ? "cursor-crosshair hover:bg-slate-100/80 dark:hover:bg-slate-900/80"
                             : ""
                       } ${isToday ? "ring-1 ring-blue-500/50" : ""}`}
-                      onClick={isMonthLoading || isPlaceholder ? undefined : () => actions.handleDayClick(day)}
+                      onClick={
+                        isMonthLoading || isPlaceholder
+                          ? undefined
+                          : () => actions.handleDayClick(day)
+                      }
                       onMouseEnter={(e) =>
                         !isMonthLoading &&
                         !isPlaceholder &&
                         !state.isGameOver &&
                         !isRevealed &&
                         dateKey &&
-                        setTooltip({ dateKey, count, x: e.clientX, y: e.clientY })
+                        setTooltip({
+                          dateKey,
+                          count,
+                          x: e.clientX,
+                          y: e.clientY,
+                        })
                       }
                       onMouseLeave={() => setTooltip(null)}
                     >
@@ -396,9 +478,13 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                         animate={{
                           opacity: innerVisible ? 1 : 0,
                           y: innerVisible ? 0 : 20,
-                          rotate: innerVisible ? 0 : (idx % 2 === 0 ? 15 : -15),
+                          rotate: innerVisible ? 0 : idx % 2 === 0 ? 15 : -15,
                         }}
-                        transition={{ duration: 0.4, delay: innerVisible ? idx * 0.008 : 0, ease: "backIn" }}
+                        transition={{
+                          duration: 0.4,
+                          delay: innerVisible ? idx * 0.008 : 0,
+                          ease: "backIn",
+                        }}
                       >
                         <span className="opacity-50">[</span>
                         <AnimatePresence mode="wait" initial={false}>
@@ -408,7 +494,10 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                             animate={{
                               opacity: 1,
                               y: 0,
-                              scale: isMonthLoading && !isPlaceholder ? [1, 1.08, 1] : 1,
+                              scale:
+                                isMonthLoading && !isPlaceholder
+                                  ? [1, 1.08, 1]
+                                  : 1,
                             }}
                             exit={{ opacity: 0, y: -2 }}
                             transition={{
@@ -417,7 +506,10 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                               ease: "easeOut",
                               scale: {
                                 duration: 0.9,
-                                repeat: isMonthLoading && !isPlaceholder ? Infinity : 0,
+                                repeat:
+                                  isMonthLoading && !isPlaceholder
+                                    ? Infinity
+                                    : 0,
                                 ease: "easeInOut",
                               },
                             }}
@@ -427,7 +519,9 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                                 : "text-blue-900 dark:text-blue-300"
                             }`}
                           >
-                            {isMonthLoading && !isPlaceholder ? LOADING_GLYPH : centerGlyph}
+                            {isMonthLoading && !isPlaceholder
+                              ? LOADING_GLYPH
+                              : centerGlyph}
                           </m.span>
                         </AnimatePresence>
                         <span className="opacity-50">]</span>
@@ -438,15 +532,29 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                           initial={{ scale: 0, opacity: 0, rotate: -360 }}
                           animate={{ scale: 1, opacity: 1, rotate: 720 }}
                           transition={{
-                            rotate: { duration: 1, type: "spring", stiffness: 100, damping: 20 },
-                            scale: { duration: 1, type: "spring", stiffness: 100, damping: 20 },
+                            rotate: {
+                              duration: 1,
+                              type: "spring",
+                              stiffness: 100,
+                              damping: 20,
+                            },
+                            scale: {
+                              duration: 1,
+                              type: "spring",
+                              stiffness: 100,
+                              damping: 20,
+                            },
                             opacity: { duration: 1 },
                           }}
                           className="absolute inset-0 flex items-center justify-center text-blue-700 dark:text-blue-400 text-lg pointer-events-none group"
                         >
                           <m.span
                             animate={{ rotate: 360 }}
-                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                            transition={{
+                              duration: 10,
+                              repeat: Infinity,
+                              ease: "linear",
+                            }}
                             className="inline-block group-hover:[animation-play-state:paused]"
                           >
                             {"\uD83D\uDC8E"}
@@ -470,7 +578,12 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                             key={`transition-gem-${transitionSnapshot.key}-${idx}`}
                             initial={{ scale: 1, opacity: 1, rotate: 0 }}
                             animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                            exit={{ y: -24, scale: 0.3, opacity: 0, rotate: 180 }}
+                            exit={{
+                              y: -24,
+                              scale: 0.3,
+                              opacity: 0,
+                              rotate: 180,
+                            }}
                             transition={{ duration: 0.36, ease: "easeInOut" }}
                             className="absolute inset-0 flex items-center justify-center text-blue-700 dark:text-blue-400 text-lg pointer-events-none"
                           >
@@ -482,7 +595,12 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                             key={`transition-skull-${transitionSnapshot.key}-${idx}`}
                             initial={{ scale: 1, opacity: 1 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            exit={{ y: 24, scale: 0.5, opacity: 0, rotate: -90 }}
+                            exit={{
+                              y: 24,
+                              scale: 0.5,
+                              opacity: 0,
+                              rotate: -90,
+                            }}
                             transition={{ duration: 0.3, ease: "easeInOut" }}
                             className="absolute inset-0 flex items-center justify-center text-lg pointer-events-none"
                           >
@@ -523,18 +641,29 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                 </div>
               ) : isMonthLoading ? (
                 <span>
-                  syncing <span className="text-slate-800 dark:text-slate-200 font-bold">{currentMonthKey}</span>
-                  <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400 ml-1">_</span>
+                  syncing{" "}
+                  <span className="text-slate-800 dark:text-slate-200 font-bold">
+                    {currentMonthKey}
+                  </span>
+                  <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400 ml-1">
+                    _
+                  </span>
                 </span>
               ) : (
                 <>
-                  <span className="text-slate-800 dark:text-slate-200 font-bold">{GITHUB_PROFILES.length}</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-bold">
+                    {GITHUB_PROFILES.length}
+                  </span>
                   <span> profiles </span>
                   <span className="opacity-50">&middot; </span>
-                  <span className="text-slate-800 dark:text-slate-200 font-bold">{stats.monthTotal.toLocaleString()}</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-bold">
+                    {stats.monthTotal.toLocaleString()}
+                  </span>
                   <span> commits </span>
                   <span className="opacity-50">&middot; </span>
-                  <span className="text-slate-800 dark:text-slate-200 font-bold">{stats.activeDays}</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-bold">
+                    {stats.activeDays}
+                  </span>
                   <span> days</span>
                   {stats.peakDay !== null && (
                     <span className="inline-block">
@@ -543,7 +672,9 @@ export const ContributionHeatmap = ({ data: externalData = null }: { data?: Reco
                       <span className="text-slate-800 dark:text-slate-200 font-bold">
                         day {stats.peakDay} ({stats.peakCount})
                       </span>
-                      <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400 ml-1">_</span>
+                      <span className="animate-[pulse_1s_step-end_infinite] text-blue-600 dark:text-blue-400 ml-1">
+                        _
+                      </span>
                     </span>
                   )}
                 </>
