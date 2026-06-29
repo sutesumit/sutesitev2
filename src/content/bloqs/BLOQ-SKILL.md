@@ -141,6 +141,7 @@ Tags are not decorative. The related-post system scores overlap by shared tags. 
 | `seo` | Metadata, feeds, sitemap, discoverability |
 | `supabase` | Supabase-specific infra or data work |
 | `devops` | Deployments, CI, pipelines, operational failures |
+| `postgresql` | Postgres internals, RLS, triggers, planner behavior, pg-specific knowledge |
 
 #### Tag rules
 

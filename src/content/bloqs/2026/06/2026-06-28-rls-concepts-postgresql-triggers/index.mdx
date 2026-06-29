@@ -1,0 +1,723 @@
+---
+title: "The Anatomy of PostgreSQL RLS"
+publishedAt: "2026-06-28"
+summary: "Four PostgreSQL concepts — RLS execution boundaries, function security modes, planner inlining, and permission-dependent SQL — traced through the lens of a single 42501 error."
+slug: "rls-concepts-postgresql-triggers"
+tags:
+  - debugging
+  - architecture
+  - supabase
+  - backend
+  - postgresql
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: true
+featured: false
+---
+
+> "Enabling RLS on the last unprotected table was supposed to be a checkbox. It turned out to be a syllabus."
+
+A user clicks a button, the loader spins, and then the application silently fails. Behind the scenes, PostgreSQL throws a generic `42501` error code indicating a Row-Level Security (RLS) violation.
+
+Rather than a typical debugging post-mortem, this is my deep dive into four Postgres features that collided to produce a single error code. Thinking of the bug as a diagnostic tracer — I map the boundary lines of RLS trigger contexts, function security modes, planner inlining, and SQL permissions. Understanding where these lines intersect is what makes your database secure, rather than just feeling secure.
+
+```text
+[ Web UI ] ──> [ Spinner ] ──> [ Silent Failure ]
+                                      │
+                                      ▼
+                        ╭───────────────────────────╮
+                        │      POSTGRES CORE        │
+                        │                           │
+  [Diagnostic Tracer] ─>│ 1. Trigger fires          │
+                        │ 2. Security mode checked  │
+                        │ 3. Planner inlines query  │
+                        │ 4. RLS policies evaluated │
+                        ╰─────────────┬─────────────╯
+                                      │
+                              [ ERROR 42501 ]
+```
+
+I deployed a migration that enabled RLS on the last unprotected table in my schema. Zero policies. Truthfully, I hadn't even considered how triggers fit into the picture. I thought enabling RLS was just a simple toggle—you flip the switch, and the database magically handles the rest. My naive assumption was that my background operations would just continue working undisturbed.
+
+That assumption was embarrassingly wrong, and the easy fix — the one that took ten minutes — was a security shortcut. Finding the correct solution meant tracing how four distinct Postgres mechanisms overlap, exposing quirks that aren't spelled out in any single section of the manual.
+
+---
+
+## What RLS Actually Is
+
+> "RLS is the database rewriting your query behind your back to make sure you only see your own corner of the ledger."
+
+Before I broke things, it helped me to realize what RLS actually does — because I thought I knew, and the gap between "thought" and "actually" was the whole problem. 
+
+By default, PostgreSQL access control is table-level. You grant or revoke access to the whole table. If you want per-row filtering without RLS, you have to build it in your application code or wrap tables in views. RLS shifts this to the database.
+
+To make this concrete, here is what a standard Supabase RLS policy looks like when defined on a table (like the `likes` table from my schema):
+
+```sql
+CREATE POLICY "Users can view own likes" ON likes
+FOR SELECT
+USING (auth.uid() = user_id);
+```
+
+When I turned RLS on, I was relying on it to attach that `USING` expression to every query. It isn't a post-execution check that rejects rows after they're fetched, nor is it a trigger. It's a low-level query rewrite: PostgreSQL intercepts your statement during the planning phase and securely appends your policy predicate directly into the query.
+
+```text
+ 1. Original Query:
+    SELECT * FROM likes;
+              │
+              ▼
+    ╭───────────────────────────────────────────────╮
+    │               RLS Interception                │
+    │ (Planner appends the policy USING expression) │
+    ╰───────────────────────┬───────────────────────╯
+              │
+              ▼
+ 2. Rewritten Query (Internal):
+    SELECT * FROM likes 
+    WHERE auth.uid() = user_id;  <-- Added by RLS!
+              │
+              ▼
+       [ Query Executor ]
+              │
+              ▼
+      [ Filtered Results ]
+```
+
+### Why Zero Policies Means Deny Everything
+
+Here's the first thing I missed. When I enabled RLS with zero policies, I assumed it would just do nothing. Instead, it locked everything down. From the [PostgreSQL documentation on CREATE POLICY](https://www.postgresql.org/docs/current/sql-createpolicy.html):
+
+> If row-level security is enabled for a table, but no applicable policies exist, a default-deny policy is assumed, so that no rows will be visible or updatable.
+
+The logic is unforgiving, but sound. A permissive default would turn the act of enabling RLS into a massive security vulnerability. By defaulting to deny-all, PostgreSQL ensures that activating RLS only tightens the screws. Supabase echoes this hardline stance: "No data will be accessible via the API when using a publishable key, until you create policies." 
+
+Enabling RLS with zero policies is a valid intermediate state while auditing access patterns, but for me, it just meant my database denied everything. Reads returned empty sets, writes failed instantly, and even internal conflict checks were blocked.
+
+### How RLS Evaluates Policies (and Who is Evaluating Them?)
+
+When policies *do* exist, I had to stop and actually map out how PostgreSQL evaluates them. Two evaluation paths govern every RLS-protected table. One decides whether you can read an existing row; the other decides whether you can write a new one. Both paths caught me off guard:
+
+```text
+           SQL Statement
+                 │
+      ╭──────────┴──────────╮
+      ▼                     ▼
+[ Reading Rows ]      [ Writing Rows ]
+(SELECT, UPDATE,      (INSERT, UPDATE)
+ DELETE)                    │
+      │                     ▼
+      ▼              ╭──────────────╮
+ ╭─────────╮         │  WITH CHECK  │
+ │  USING  │         │  Expression  │
+ │ Clause  │         ╰──────┬───────╯
+ ╰────┬────╯                │
+      │                  (False)
+   (False)                  │
+      │                     ▼
+      ▼              [ ERROR 42501 ]
+[ Row Silently ]     [ Transaction ]
+[ Excluded     ]     [ Aborted     ]
+```
+
+**USING** expressions filter existing rows. If it evaluates to `false` or `NULL`, the row is just silently dropped from the result set. Later, I realized a missing `USING` clause is exactly what broke my `ON CONFLICT` checks.
+
+**WITH CHECK** expressions validate new data. If it fails, the statement hard-fails, rolls back the transaction, and throws the `42501` error. This is what blew up my `INSERT` statements.
+
+But the part that really threw me was the execution context. How does the database even know who the user is to evaluate `auth.uid() = user_id`?
+
+Think of it as two distinct layers. PostgreSQL is the vault — it stores data and enforces RLS policies, but it has no concept of JWTs or HTTP. PostgREST is the guard at the door — it checks the JWT's signature, extracts who you are, and then tells the vault: "Let this person in, and here's their ID." The guard never touches your data; the vault never sees your token.
+
+**How does the guard check a JWT?** PostgREST doesn't call an auth service or query a session table. It's a self-contained binary (written in Haskell) — not a Postgres extension. It's configured by a single environment variable: `PGRST_JWT_SECRET`. The Auth service signs tokens using the exact same string. That's the wiring: generate a secret once, inject it into both services at deploy time, and trust follows. PostgreSQL itself never sees the secret — PostgREST verifies the JWT before any SQL reaches the database.
+
+When a request arrives, PostgREST verifies the signature mathematically — it re-computes `HMAC(header + payload, secret)` and compares it to the signature in the token. It never contacts the Auth service. The verification is entirely stateless.
+
+Where the secret lives depends on how you're running the stack:
+
+```text
+        SUPABASE MANAGED                          SELF-HOSTED
+┌──────────────────────────────┐    ┌──────────────────────────────┐
+│  Platform auto-generates     │    │  You generate a random       │
+│  the secret at project       │    │  string and paste it into    │
+│  creation.                   │    │  both services.              │
+│                              │    │                              │
+│  ┌────────────────────────┐  │    │  ┌─────────────────────────┐ │
+│  │  Shared JWT Secret     │  │    │  │ PGRST_JWT_SECRET="xxx"  │ │
+│  │  (platform config)     │  │    │  │       └──> PostgREST    │ │
+│  └──────┬─────────┬───────┘  │    │  │                         │ │
+│         │         │          │    │  │ GOTRUE_JWT_SECRET="xxx" │ │
+│         ▼         ▼          │    │  │       └──> Auth Service│ │
+│    GoTrue    PostgREST       │    │  └─────────────────────────┘ │
+│    (Auth)    (API)           │    │                              │
+│                              │    │  (Postgres never touches it) │
+│  (Postgres never touches it) │    └──────────────────────────────┘
+└──────────────────────────────┘
+```
+
+The secret is loaded at startup and kept in PostgREST's memory. Network requests carry only the JWT — anyone can read the payload, but no one can forge a valid signature without the secret.
+
+If the signature matches, PostgREST knows two things with certainty: (1) the payload hasn't been tampered with, because any change would have produced a different hash; and (2) the token was issued by someone who holds the secret. That's it. It doesn't know if the session was revoked or if the auth service is still running — it simply trusts the claims in the payload (like the user's ID) because the math checks out.
+
+> **So anyone with the token can read it?** Yes. The payload is base64url-encoded — not encrypted. That's why JWTs must travel over HTTPS. But **modifying** or **forging** one is a different story, because both require the secret.
+
+To see why, picture HMAC as a sealed box. The secret is the sealing wax stamp. Anyone can look at the box — but without the stamp, you cannot reseal it:
+
+```text
+                     SIGNING (Auth Service)
+    ┌──────────────────────────────────────────────────┐
+    │                                                  │
+    │  header.payload ──────┐                          │
+    │                       │                          │
+    │  secret ──────────────┤──> [ HMAC-SHA256 ] ───> signature
+    │                       │                          │
+    │                       │  (One-way: you can't     │
+    │                       │   recover inputs from    │
+    │                       │   the output alone)      │
+    └──────────────────────────────────────────────────┘
+
+                   VERIFICATION (PostgREST)
+    ┌──────────────────────────────────────────────────┐
+    │                                                  │
+    │  token ──────────> [ SPLIT ] ─┬─ header.payload  │
+    │                    │          │                  │
+    │                    │          └─ signature ──────┤
+    │                    │                             │
+    │  secret ───────────┤                             │
+    │                    │       ┌─ header.payload ────┤
+    │                    └──────>│                     │
+    │                            └─ secret ────────────┤
+    │                                                  │
+    │                            [ HMAC-SHA256 ] ──────┤
+    │                                                  │
+    │                     ┌─── result matches? ────────┤
+    │                     │                            │
+    │                     ├─ YES ✅ → Claims trusted   │
+    │                     │                            │
+    │                     └─ NO  ❌ → 401 Unauthorized  │
+    └──────────────────────────────────────────────────┘
+```
+
+Now look at what a bad actor can and cannot do:
+
+```text
+    WHAT AN ATTACKER CAN DO:
+    ┌─────────────────────────────────────────────────────┐
+    │  stolen JWT ──> [ base64 decode ] ──> payload       │
+    │                                      (readable,     │
+    │                                       not encrypted)│
+    │                                                     │
+    │  Result: Can SEE the user ID and claims             │
+    │          Mitigation: HTTPS (TLS)                    │
+    └─────────────────────────────────────────────────────┘
+
+    WHAT AN ATTACKER CANNOT DO:
+    ┌─────────────────────────────────────────────────────┐
+    │  changed payload ──┐                                │
+    │  NO secret         │                                │
+    │                    ├──> [ HMAC-SHA256 ] ──> ???     │
+    │  original sig ─────┘              │                 │
+    │                                   │                 │
+    │                         hash ≠ original sig         │
+    │                                   │                 │
+    │                         PostgREST: ❌ 401            │
+    │                                                     │
+    │  Result: Cannot MODIFY or FORGE without the secret  │
+    └─────────────────────────────────────────────────────┘
+```
+
+In other words: anyone can **read** the payload. No one can **change** it. Only the secret-holder can **create** a valid one.
+
+Here is the handoff from the web to the database:
+
+```text
+[ Supabase Auth ] ──(Signs JWT)──> [ Web Client ]
+                                         │
+                                         │ 1. HTTP Request + JWT
+                                         ▼
+                                   ╭────────────╮
+                                   │ PostgREST  │
+   (Configured with Auth Secret) ─>│ 2. Verify  │
+                                   │  Signature │
+                                   ╰─────┬──────╯
+                                         │ 3. Open DB Transaction
+                                         ▼
+   ╭───────────────────────────────────────────────────────────╮
+   │                       PostgreSQL                          │
+   │                                                           │
+   │ 4. SET LOCAL role 'authenticated';                        │
+   │ 5. SET LOCAL request.jwt.claims = '{ "sub": "123" }';     │
+   │                                                           │
+   │ ╭───────────────────────────────────────────────────────╮ │
+   │ │               RLS Policy Evaluation                   │ │
+   │ │                                                       │ │
+   │ │  USING (auth.uid() = user_id)                         │ │
+   │ │             │                                         │ │
+   │ │             └─> Reads local session state (Step 5)    │ │
+   │ ╰───────────────────────────────────────────────────────╯ │
+   ╰───────────────────────────────────────────────────────────╯
+```
+
+PostgREST opens a transaction and executes `SET LOCAL role 'authenticated'`. That handles the broad, table-level permissions. To get row-level granularity, it takes the validated JWT claims and injects them directly into the Postgres session as a configuration variable (`request.jwt.claims`).
+
+The `auth.uid()` function in my policy wasn't doing anything magical—it's just a macro that reads that session variable and compares the resulting UUID against the `user_id` column in the row.
+
+Most crucially for my bug, these policies run with the privileges of that active session user. Not me, the table owner. Not the function creator. The session user holding the JWT context. This is the exact detail that makes `SECURITY INVOKER` matter.
+
+---
+
+## The Architecture That Broke
+
+I'd wired my triggers to run in the same transaction as user operations — one fuse, one circuit. A failure in an obscure counter table wasn't just a counter problem. It was a lights-out event for the entire interaction flow.
+
+Here's the system that was in place before I enabled RLS on the counter table.
+
+```text
+Browser: fetch("POST /api/likes")
+  └─ Next.js route handler
+       └─ AuthManager.getAuthenticatedUser() ✅
+            └─ getServerSupabase(user.accessToken)
+                 └─ supabase.from("likes").insert({ pagePath, user_id })
+                      │  (JWT attached as Authorization: Bearer header)
+                      ▼
+                 ╭────────────╮
+                 │ PostgREST  │
+                 │ Verify JWT │  ◄── PGRST_JWT_SECRET
+                 │ Extract    │      (never sent to PG)
+                 │ claims     │
+                 ╰─────┬──────╯
+                       │ SET LOCAL role = 'authenticated'
+                       │ SET LOCAL request.jwt.claims = '{ "sub": "...", ... }'
+                       ▼
+                 PostgreSQL receives query as authenticated user
+                      ├─ RLS on likes: "auth.role()='authenticated'" ✅
+                      │    row inserted
+                      └─ 🔥 TRIGGER: handle_like_insert()
+                           ├─ ensure_user_counter_row(NEW.user_id)
+                           │    └─ INSERT INTO user_interaction_counters
+                           │         ON CONFLICT (user_id) DO NOTHING
+                           │         └─ RLS on counter: zero policies → 42501 ❌
+                           └─ Transaction aborted
+                                └─ likes INSERT rolled back
+                                     └─ Client: "Network error occurred"
+```
+
+The trigger flow, isolated from the HTTP stack (session state already set up by PostgREST at this point):
+
+```text
+User clicks ❤️ (like):
+  INSERT INTO likes (page_path, user_id) VALUES (...)
+    ├─ RLS on likes approves ✅
+    └─ TRIGGER: handle_like_insert()
+         ├─ ensure_user_counter_row(NEW.user_id)
+         │    └─ INSERT INTO user_interaction_counters
+         │         ON CONFLICT (user_id) DO NOTHING
+         │         └─ RLS: zero policies → 42501 ❌
+         └─ [never reached: UPDATE counter]
+
+User clicks 💔 (unlike):
+  DELETE FROM likes WHERE id = ?
+    ├─ RLS on likes approves ✅
+    └─ TRIGGER: handle_like_delete()
+         └─ UPDATE user_interaction_counters
+              SET like_count = GREATEST(like_count - 1, 0)
+              WHERE user_id = OLD.user_id
+              └─ RLS: zero policies → silent no-op (0 rows)
+```
+
+Most tables in the schema already had RLS before the migration with working policies, and they continued working after it. The `user_interaction_counters` table was the last holdout — the only table in the schema without RLS enabled. It sat unprotected because "only triggers write to it." Nobody queried it directly. All reads went through `SECURITY DEFINER` RPCs that bypassed RLS. The writes went through trigger functions running with the default `SECURITY INVOKER`. Since RLS was disabled on the table, the security mode didn't matter.
+
+I enabled RLS on the counters table without adding any policies. In the rush of deploying the migration, I simply forgot to create them. Triggers never crossed my mind.
+
+### Where the Error Actually Came From
+
+This is important to be precise about. The error did not come from the `likes` table. The `likes` table's RLS policy worked correctly — it approved the INSERT. The trigger fired inside the same transaction, tried to write to the counter table, hit the zero-policy wall, and the entire transaction rolled back. The `likes` INSERT was fine. The counter INSERT was not. The error propagated: a table that worked correctly rolled back because a dependent operation in the same transaction failed.
+
+This is not an intermittent bug. The failure was entirely deterministic. `INSERT ... ON CONFLICT` with an existing counter row failed. With no existing row, it succeeded — because conflict detection requires reading the table, and reading requires a SELECT policy that didn't exist. The behavior depended on whether a row already existed. Not on timing. Not on load. On data.
+
+### What Users Actually Saw
+
+The client-side error handler caught the 500 response and displayed "Network error occurred." Users saw what the app showed them — not the real error, which was buried in server logs nobody was monitoring.
+
+### Why an Opaque 403?
+
+PostgreSQL raised SQLSTATE `42501` (`insufficient_privilege`). PostgREST intercepted it and returned HTTP 403 Forbidden (or 401 Unauthorized for anonymous requests). PostgREST maintains [an internal mapping](https://docs.postgrest.org/en/stable/references/errors.html) of SQLSTATE codes to HTTP status codes, and it correctly maps `42501` to the appropriate authorization failure response.
+
+HTTP 403 means "the server understood the request but refuses to authorize it." It signals that the request was valid, the server processed it, and the answer is no — you don't have permission. That's exactly what a permission-denied RLS violation is. PostgREST returned the right code.
+
+The real error — permission denied, with the exact table name and the violated policy — was sitting in the JSON response body the whole time: `{"code":"42501","message":"new row violates row-level security policy for table user_interaction_counters"}`. But the client-side error handler swallowed it, displaying a generic "Network error occurred" to the user. The HTTP code was correct. The response body was descriptive. The client code was the weak link.
+
+### The Error That Tells You Nothing
+
+RLS with zero policies behaves differently depending on the operation:
+
+```text
+| Operation | RLS with zero policies | Behavior     | User sees                |
+|-----------|------------------------|--------------|--------------------------|
+| INSERT    | WITH CHECK fails       | Error `42501`| Transaction rolls back   |
+| UPDATE    | USING matches 0 rows   | Silent no-op | 0 rows affected, success |
+| DELETE    | USING matches 0 rows   | Silent no-op | 0 rows affected, success |
+| SELECT    | No policies apply      | Empty result | Query succeeds, no rows  |
+```
+
+`42501` is SQLSTATE code for `insufficient_privilege`. It lives in class 42 — "Syntax Error or Access Rule Violation" — a category that lumps RLS violations together with genuine syntax errors. There is no SQLSTATE class for "permission denied at the row level." PostgreSQL has no concept of a 403 Forbidden for rows. It either silently filters (SELECT, UPDATE, DELETE) or throws an error that sounds like you typed something wrong (INSERT).
+
+This asymmetry is by design. Silent filtering for existing rows prevents information leakage — a user can't probe whether a row exists by watching error codes. Errors on INSERT force the application to handle the case explicitly — you can't silently lose data you tried to create. The principle: protect existing data silently, protect new data loudly.
+
+But the error message doesn't tell you which permission was missing. It doesn't tell you what step of the execution failed. It doesn't distinguish between "WITH CHECK returned NULL," "no SELECT policy for conflict detection," and "you forgot to create any policies at all." Same error code. Same message. The rest is on you.
+
+---
+
+## Who Runs Your Trigger?
+
+I forgot to create policies — that was the root cause. But digging into the failure surfaced something I'd never thought about: who actually runs a trigger function? The intuitive answer — "the table owner, because the trigger lives on my table" — turns out to be wrong. The association between a trigger and a table doesn't change who executes the trigger function. That's controlled by the function's security mode.
+
+### SECURITY INVOKER vs SECURITY DEFINER
+
+I'd never thought much about who "runs" a trigger function. The table owns the trigger, I own the table — so the trigger runs as me, right? Wrong. PostgreSQL doesn't care who owns the trigger. It cares about the function's security mode.
+
+I learned that the default is `SECURITY INVOKER`. It means the function runs with the privileges of the caller. In this case, the authenticated user whose JWT PostgREST validated. 
+
+Alternatively, `SECURITY DEFINER` means the function runs with the privileges of the function owner. Since I own the table and bypass RLS, the function would step outside the user's sandbox and operate with my authority.
+
+```sql
+-- Runs as calling user. RLS applies. My triggers defaulted to this.
+CREATE FUNCTION handle_like_insert()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$ ... $$;
+
+-- Runs as function owner. RLS bypassed.
+CREATE FUNCTION handle_like_insert()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$ ... $$;
+```
+
+Because my triggers were using `SECURITY INVOKER`, they inherited the active user's restricted privileges. The moment I locked down the counters table with zero policies, the trigger functions were shut out, returning `42501`.
+
+INVOKER and DEFINER both have their place. The difference comes down to where PostgreSQL looks to answer "who runs this?"
+
+- **SECURITY INVOKER** uses the calling role — the `current_user` at execution time. PostgREST sets this from the JWT, so the function runs as whichever authenticated user made the request.
+
+- **SECURITY DEFINER** uses the function owner — a value baked into `pg_proc.proowner` at `CREATE FUNCTION` time. PostgreSQL reads the owner from the system catalog and elevates to that role for the duration of the call. No JWT. No session variable lookup. It's a static field in the catalog.
+
+This distinction makes the two functions natural fits for opposite jobs:
+
+```text
++----------------------+------------------+-------------------------------------+------------------------------+-----------------------------------------------+
+| Function             | Security mode    | Intention                           | Who runs it?                 | Why this mode?                                |
++----------------------+------------------+-------------------------------------+------------------------------+-----------------------------------------------+
+| get_top_user()       | SECURITY DEFINER | Aggregate across all users          | The function owner (me)      | It needs to read every user's counter row —   |
+|                      |                  |                                     |                              | something RLS would block. Running as owner   |
+|                      |                  |                                     |                              | bypasses RLS entirely.                        |
++----------------------+------------------+-------------------------------------+------------------------------+-----------------------------------------------+
+| handle_like_insert() | SECURITY INVOKER | Write to the calling user's own row | The authenticated user (via  | It should only touch the caller's row.        |
+|                      |                  |                                     | JWT)                         | Running as the caller means RLS can enforce   |
+|                      |                  |                                     |                              | `auth.uid() = user_id` inside the trigger.    |
++----------------------+------------------+-------------------------------------+------------------------------+-----------------------------------------------+
+```
+
+The logical flow:
+
+```text
+get_top_user()                         handle_like_insert()
+─────────────────                      ─────────────────────
+User requests leaderboard              User clicks ❤️
+  └─ PostgREST sets role from JWT        └─ PostgREST sets role from JWT
+       └─ Call get_top_user()                 └─ INSERT INTO likes
+            └─ PostgreSQL reads                    └─ Trigger fires
+                 pg_proc.proowner                      └─ Runs as
+                    → owner role                          current_user (JWT)
+                    → bypasses RLS                        → RLS applies
+                    → reads all rows                      → only caller's row
+```
+
+`get_top_user` needs to step outside the user sandbox. `handle_like_insert` needs to stay inside it. The security mode is how PostgreSQL enforces that boundary.
+
+But there's a tradeoff: `get_top_user` bypasses RLS, so the function body is now the only thing standing between a caller and every counter row. It must return *only* the top user and count — because with RLS bypassed, a bug in that function has no second line of defense. `handle_like_insert`, running as INVOKER, still has RLS watching its back.
+
+### Why SET search_path Is Not Optional
+
+`SECURITY DEFINER` changes who the function runs as — the privilege context switches to the function owner. But it does not touch `search_path`. The session's `search_path` stays exactly as the caller set it. Since PostgREST creates the session on behalf of the authenticated user, that user's `search_path` controls how PostgreSQL resolves every unqualified name inside the function.
+
+In a pure PostgREST setup, an authenticated user can't run CREATE SCHEMA or CREATE FUNCTION through the REST API — a remote attacker can't plant a shadow function through the browser. The realistic vector is a malicious migration merged to the repo, which runs with full privileges during deploy. No one reviews 200-line migration diffs for name collisions.
+
+The example below uses handle_like_insert() as if it were SECURITY DEFINER — which it was during Approach 1, before I reverted it. The same principle applies to get_top_user(), which is SECURITY DEFINER in the final architecture and calls whatever helper functions it references by unqualified name.
+
+A migration that includes this payload arms the trap:
+
+```sql
+-- Setup: run once before the attack
+CREATE SCHEMA "authenticated";  -- matches the role name PostgREST sets
+
+CREATE FUNCTION "authenticated".ensure_user_counter_row(uuid)
+RETURNS void
+LANGUAGE sql
+AS $$
+  UPDATE profiles SET role = 'admin' WHERE id = $1;
+  SELECT public.ensure_user_counter_row($1);  -- hide the attack
+$$;
+```
+
+Now when `handle_like_insert()` calls `ensure_user_counter_row(...)` — an unqualified name — PostgreSQL resolves it against the caller's search path. The `"$user"` entry resolves to `authenticated`, which appears before `public`. PostgreSQL finds the shadow function and executes it with the function owner's privileges. The `UPDATE profiles` runs as table owner. The attacker's function calls the real one afterward, so counters still increment and nobody notices.
+
+The asymmetry is what makes this dangerous: the setup needs a malicious migration (or equivalent database access), but the trigger afterward only needs a normal HTTP request. Once the shadow function exists, every like from any user escalates privileges with no error and no log entry.
+
+This is also why the PostgreSQL docs list SET search_path as a hard requirement for SECURITY DEFINER functions. It's one line. There's no reason to skip it, and the cost of being wrong — even if the threat feels distant — is privilege escalation through a mechanism most developers never think about.
+
+`SET search_path = public` blocks the `"$user"` schema vector, but it's still insufficient — `PUBLIC` (everyone) has `CREATE` on the `public` schema by default, so a function planted directly in `public` would still shadow. The recommended pattern locks the path to a dedicated schema the application role cannot write to:
+
+```sql
+SET search_path = admin, pg_temp;
+```
+
+`pg_temp` is included explicitly at the end for ordering, not because it would otherwise not be searched. PostgreSQL always searches the temporary-table schema; if you omit it from `search_path`, it gets inserted *first* — ahead of your schemas. Naming it at the end (`admin, pg_temp`) ensures your admin objects resolve before any temp objects an attacker might create through a session-level vector.
+
+It's an easy thing to miss when you're just trying to get a query to run, but when you use `SECURITY DEFINER`, you accept the responsibility of locking down the search path.
+
+### Why Testing in the SQL Editor Didn't Catch It
+
+The Supabase SQL editor runs as `postgres` — superuser. As superuser, RLS is always bypassed, regardless of whether a function is `SECURITY INVOKER` or `SECURITY DEFINER`. When I tested the migration in the editor, every query succeeded. The plan looked correct. The functions ran. No errors.
+
+But the application doesn't use the SQL editor. It uses `getServerSupabase(user.accessToken)`, which creates a Supabase client with the real user's JWT. PostgREST validates the JWT, extracts claims, sets session-level variables, and the query executes as that user. Different execution context. Different result.
+
+The SQL editor can be deceptive during testing: because it runs queries with superuser privileges, it silently bypasses RLS checks, making broken policies appear functional until they hit production.
+
+---
+
+## The Four Approaches
+
+Finding the right solution was a process of peeling back the layers. Each approach revealed a different PostgreSQL concept expressing itself through the same `42501` error code.
+
+```text
+| #  | Approach             | What Changed     | Result   | Fate     |
+|----|----------------------|------------------|----------|----------|
+| 1  | SEC DEFINER triggers | security mode    | Works    | Reverted |
+| 2  | RLS + auth.uid pol.  | INS/UPD policies | 42501    | Failed   |
+| 3  | PL/pgSQL wrapper fn  | wrap auth.uid()  | Partial  | Partial  |
+| 4  | SELECT policy        | SELECT policy    | Works    | Final    |
+```
+
+### Approach 1: SECURITY DEFINER (Reverted)
+
+The fastest path to restoring functionality. Add `SECURITY DEFINER SET search_path = public` to every trigger function that writes to the counter table. Every function now runs as table owner. RLS doesn't apply.
+
+It took ten minutes. I reverted it anyway. The reasons are in the Defense-in-Depth section below. The short version: RLS is the safety net, and removing it because it's inconvenient is removing the safety net.
+
+---
+
+## When auth.uid() Returns NULL
+
+The second approach was to configure RLS correctly rather than bypass it. Audit all trigger functions to confirm they only touch `auth.uid()`'s own counter row. The audit passed. Two policies:
+
+```sql
+CREATE POLICY "Users can insert own counter"
+ON user_interaction_counters FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own counter"
+ON user_interaction_counters FOR UPDATE
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+```
+
+First like works. Unlike works. Re-like fails. Still `42501`.
+
+The logic looked correct. `auth.uid()` returns the right UUID when called in a regular query. But the policy rejected the INSERT anyway. The problem was not in the logic. It was in how PostgreSQL evaluates the expression `auth.uid() = user_id` inside a policy expression.
+
+The answer is in two independent pieces. Neither is a bug. Both interacting produce the failure.
+
+### auth.uid() Is LANGUAGE sql STABLE
+
+I started digging into `auth.uid()` and realized it's a Supabase function declared as `LANGUAGE sql STABLE`. 
+
+I found that it tries two paths to find the authenticated user's UUID using a `coalesce`:
+1. Check `request.jwt.claim.sub` (a session setting PostgREST populates). But inside triggers, PostgREST doesn't reliably set this, so it returns NULL.
+2. Fall back to parsing the full JWT from `request.jwt.claims`. This is always available.
+
+When I called `auth.uid()` normally, the `coalesce` fell back to the second path, and my UUID resolved perfectly.
+
+So why did it fail in the policy? I had tripped over a performance optimization. Because `auth.uid()` is declared as `STABLE` and `LANGUAGE sql`, the PostgreSQL query planner is allowed to inline the function body directly into the calling query. 
+
+### When the Planner Inlines STABLE Functions
+
+When the planner inlines `auth.uid()` into my RLS policy, it evaluates the STABLE function at plan time under the calling query's snapshot. Per [PostgreSQL's volatility documentation](https://www.postgresql.org/docs/current/xfunc-volatility.html), STABLE functions use a snapshot established as of the start of the calling query. The `current_setting('request.jwt.claim.sub', true)` call resolves against session state visible at plan time — not within the trigger's subtransaction at execution time. The result? My UUID silently evaporated into NULL.
+
+And in PostgreSQL, comparing `NULL = user_id` produces `NULL`, not `false`. Since `NULL` doesn't satisfy a `WITH CHECK` constraint, my policy failed.
+
+This isn't a bug in Supabase or Postgres; it's a conflict between two valid behaviors. The query planner is allowed to inline `STABLE` SQL functions to optimize execution, but `current_setting()` relies on session state as it exists at call time. When the planner folds the function body into the query, the GUC resolution happens under the outer query's snapshot rather than the trigger subtransaction. When these two behaviors overlap, your UUID silently evaporates into NULL.
+
+### Why PL/pgSQL Fixes It
+
+PostgreSQL cannot inline `LANGUAGE plpgsql` functions. The planner doesn't have access to the procedural body the way it has access to a SQL expression. A PL/pgSQL function is always called at execution time, not folded during planning. The `coalesce` evaluates correctly against the runtime session state: Path A returns NULL, Path B fires, UUID resolves.
+
+The wrapper function `rls_user_matches_auth_uid(user_id)` forces this path:
+
+```sql
+CREATE FUNCTION rls_user_matches_auth_uid(input_user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SET search_path = public, auth
+AS $$
+BEGIN
+  RETURN auth.uid() = input_user_id;
+END;
+$$;
+```
+
+It's a thin PL/pgSQL shell around the same `auth.uid() = input_user_id` comparison. The indirection through PL/pgSQL prevents inlining. The executor handles the `coalesce` correctly. The UUID resolves.
+
+### Where request.jwt.claims Comes From
+
+I wanted to know why `request.jwt.claim.sub` was NULL inside my triggers in the first place. It turns out that PostgREST extracts the claims from the JWT and sets these variables once per request. 
+
+But PostgREST only reliably sets the individual `request.jwt.claim.sub` for direct queries. Inside a trigger execution context, it's notoriously absent. This isn't a PostgreSQL standard behavior; it's just a PostgREST implementation detail. It means the first path in `auth.uid()` is destined to fail inside triggers, forcing reliance on the fallback `request.jwt.claims` JSON object.
+
+Understanding that `auth.uid()`'s fallback was a workaround for this specific PostgREST quirk made me realize why the PL/pgSQL wrapper was the correct architectural fix. It wasn't a hack — it was explicitly instructing the planner to stop inlining a function that desperately needed the executor context to run its workaround.
+
+### Was the Wrapper Necessary?
+
+The `rls_user_matches_auth_uid` wrapper solves two problems:
+
+1. **Prevents planner inlining of `LANGUAGE sql STABLE` `auth.uid()`**: PL/pgSQL functions cannot be inlined. The `coalesce` fallback chain works correctly when called through the executor.
+
+2. **Provides a single point of maintenance**: If the `auth.uid()` API changes — if Supabase changes the GUC key or the coalesce logic — the fix goes in one function, not N policy expressions across multiple tables.
+
+The Supabase RLS documentation actually recommends wrapping `auth.uid()` in a subquery `(select auth.uid())` for performance: it creates an `initPlan` that caches the result per statement. This is related to but distinct from the PL/pgSQL wrapper approach. The subquery wrapping is about caching. The PL/pgSQL wrapping is about preventing inlining. Both matter. Neither replaces the other.
+
+The wrapper is not a workaround for a bug — it's an explicit instruction to the planner about how to treat the function body.
+
+---
+
+## The Permission the Statement Didn't Know It Needed
+
+The PL/pgSQL wrapper fixed `auth.uid()` resolution. The policies now called `rls_user_matches_auth_uid(user_id)` instead of `auth.uid() = user_id` directly. The policy expressions returned the correct boolean values. Like works. Unlike works. Re-like still fails — `42501` — and this time the error had nothing to do with `auth.uid()` at all.
+
+### What INSERT ... ON CONFLICT DO NOTHING Actually Does
+
+The counter table has a unique constraint on `user_id`. The trigger calls `ensure_user_counter_row(NEW.user_id)`, which executes:
+
+```sql
+INSERT INTO user_interaction_counters (user_id, like_count, comment_count)
+VALUES (NEW.user_id, 1, 0)
+ON CONFLICT (user_id) DO NOTHING;
+```
+
+If this is the user's first interaction, no row exists — the INSERT creates one. All subsequent interactions find the existing row. The `ON CONFLICT` says "don't error if it already exists." Seamless, until RLS enters the picture.
+
+`ON CONFLICT` is not a purely write-side operation. PostgreSQL needs to check whether a conflicting row exists. That check requires reading the table. Reading requires SELECT permission. Under RLS, it requires a SELECT policy.
+
+The counter table had INSERT and UPDATE policies. No SELECT policy. The decision was deliberate: counter reads go through `SECURITY DEFINER` RPCs (`get_top_user`, `get_interaction_analytics`) that bypass RLS entirely. Users don't read the counter table directly. Why would they need a SELECT policy?
+
+The database itself requires read privileges to perform the index lookup for conflict detection, even if the user never queries the table directly.
+
+### Why First Like Succeeds and Re-Like Fails
+
+The difference is subtle but completely deterministic.
+
+**First like**: no counter row exists. No conflict to detect. PostgreSQL doesn't need to read the table. INSERT policy alone is sufficient. Row created. Success.
+
+**Re-like**: counter row exists. PostgreSQL must SELECT to check the conflict against the unique constraint on `user_id`. Needs SELECT permission. No SELECT policy. `42501`.
+
+The same statement succeeds or fails based only on whether a row already exists. The INSERT policy is the same in both cases. The `auth.uid()` evaluation is the same in both cases. The WITH CHECK passes in both cases. The difference is entirely in the second step — conflict detection — which only runs when there's something to check.
+
+### WITH CHECK Evaluates Before Conflict Detection
+
+I learned that PostgreSQL has a fixed execution order for `INSERT ... ON CONFLICT DO NOTHING`:
+
+1. Evaluate WITH CHECK policy (INSERT WITH CHECK)
+2. Check for conflict (requires SELECT permission)
+3. If conflict → DO NOTHING; else → INSERT
+
+This ordering mattered for my bug. Even when a row already exists and the INSERT will ultimately be a no-op, the WITH CHECK must pass first. If `auth.uid()` returns NULL (the inlining problem from the previous section), the WITH CHECK fails at step 1 — you never reach step 2.
+
+If the WITH CHECK passes but no SELECT policy exists, you fail at step 2. Same error code. Same message. Different root cause.
+
+```text
+| Step           | App2 inline     | App3 no SELECT | App4 (Final)   |
+|----------------|-----------------|----------------|----------------|
+| WITH CHECK     | FAIL auth=NULL  | OK             | OK             |
+| Conflict det   | - never reached | FAIL no SELECT | OK conflict    |
+| Result         | FAIL 42501      | FAIL 42501     | OK DO NOTHING  |
+```
+
+Two different failures. Same error code. The only way to distinguish them is to trace the execution yourself, step by step.
+
+### Three Policies, Not Two
+
+The minimum viable policy set for this table is three. The SELECT policy enables conflict detection inside `INSERT ... ON CONFLICT DO NOTHING`. It is not for user-facing reads — that path doesn't exist. The SELECT policy exists because PostgreSQL requires it for the statement to complete. Not for the user. Not for the app. For the query planner.
+
+```sql
+CREATE POLICY "Users can select own counter"
+ON user_interaction_counters FOR SELECT
+USING (rls_user_matches_auth_uid(user_id));
+
+CREATE POLICY "Users can insert own counter"
+ON user_interaction_counters FOR INSERT
+WITH CHECK (rls_user_matches_auth_uid(user_id));
+
+CREATE POLICY "Users can update own counter"
+ON user_interaction_counters FOR UPDATE
+USING (rls_user_matches_auth_uid(user_id))
+WITH CHECK (rls_user_matches_auth_uid(user_id));
+```
+
+All operations work. All trigger functions remain `SECURITY INVOKER`. Three policies on the counter table. Source policies on `likes` and `comments` hardened to also check `auth.uid() = user_id`. This is the production state.
+
+This is the kind of permission dependency that's invisible when you're writing SQL in an editor. You think about what the user should be able to do. You add INSERT and UPDATE policies. You forget that the INSERT statement itself might need to read before it can write. The permission isn't for the user. It's for the database's own internal check. And RLS gates it anyway, because RLS gates everything.
+
+---
+
+## Defense-in-Depth: The Fix That Wasn't
+
+> "SECURITY DEFINER worked. All twelve functions. Everything passed. It took ten minutes. I reverted it anyway. Not because hard is virtuous — because the protection you remove might be the one you need when the code changes and nobody remembers how the triggers work."
+
+Approach 1 was the fast path. Add `SECURITY DEFINER SET search_path = public` to every trigger function. The functions run as table owner. The table owner bypasses RLS. No policies needed. No wrapper functions. No SELECT policy. No execution context debugging. Everything works.
+
+I applied it. It ran correctly. I reverted it anyway.
+
+### What SECURITY DEFINER Removes
+
+SECURITY DEFINER removes RLS from the equation for those functions. Every INSERT, every UPDATE — no policy check. The function writes wherever its logic directs it. If the logic is correct, everything is fine. The same operations happen. The same counters increment. The same invariants hold.
+
+The problem is what you lose. RLS is the last line of defense. It's not just for preventing users from reading each other's data. It's for catching bugs in application code that pass the wrong `user_id` into a function. It validates identity at the database level, after the application layer has already validated it. If the first layer works, the second layer is redundant. If the first layer fails, the second layer is the only thing left.
+
+### The Concrete Scenario
+
+Imagine a future code change introduces a bug. A race condition in a React hook. A cached session that outlives a logout. A logic error in a new feature that touches the like flow. `handle_like_insert` receives a `user_id` that doesn't belong to the current user. The trigger fires with the wrong ID.
+
+**With SECURITY DEFINER**: The trigger runs as table owner. It writes to `user_id = A`, user B's like increments user A's counter. No error. No log entry. Silent corruption. The counts are wrong. The leaderboard is wrong. The analytics are wrong. Nothing in the system tells you.
+
+**With SECURITY INVOKER + RLS**: The trigger runs as user B. RLS checks `rls_user_matches_auth_uid(A)`. `auth.uid()` returns B — the actual authenticated user. B ≠ A. Policy returns false. `42501`. The bug is caught immediately. The transaction rolls back. The error surfaces — not to the user as a helpful message, but to error monitoring. Something is wrong. You investigate. You fix the code. The database prevented silent data corruption.
+
+### When SECURITY DEFINER Is the Right Tool
+
+SECURITY DEFINER is not wrong — it has legitimate uses. The `get_top_user` and `get_interaction_analytics` RPCs use it to aggregate counter data across users, something RLS would prevent. Those functions need to bypass RLS because their job is to read across user boundaries. SECURITY DEFINER is the right tool for that job.
+
+But using it on trigger functions that write to a single user's own counter row is a different category of decision. It's not enabling a legitimate cross-user operation. It's avoiding the work of configuring RLS correctly.
+
+### The Per-Function Audit
+
+Before committing to the RLS approach, I audited all trigger and helper functions to confirm that every write to the counter table uses the authenticated user's own `user_id`. This matters because RLS with `auth.uid() = user_id` only works if the `user_id` being written always belongs to the caller.
+
+The audit confirmed safety across all functions. Every trigger function that touches the counter table either reads `NEW.user_id` or `OLD.user_id` from the source table row — rows created by the authenticated user and validated by the source table's own RLS policies. The functions don't fabricate user IDs. They don't cross user boundaries. They propagate the `user_id` that already passed RLS on the source table.
+
+Two gaps were found and closed. The `likes` INSERT policy only checked `auth.role() = 'authenticated'` — it didn't enforce `auth.uid() = user_id`. The `comments` INSERT policy had the same gap. Both were hardened to include `auth.uid() = user_id` alongside the role check. Defense-in-depth at the source level, not just the counter level.
+
+---
+
+## The Silent Failure Chain
+
+This bug highlighted how easily a system can mask failure when multiple layers hide information:
+
+- **Asymmetrical Database Behavior**: The database failed loudly on INSERTs but failed silently on UPDATEs. This made the issue appear sporadic when it was entirely deterministic.
+- **Superuser Testing**: Running migrations and tests via the SQL editor bypassed RLS, creating a false sense of security.
+- **Client Error Masking**: The frontend client caught the error and reported a generic "Network error," hiding the database-level privilege error from the user.
+- **Invisible Logs**: The real 42501 error was logged on the server, but without active alerting, it went unnoticed.
+
+When every layer of your stack makes a reasonable decision in isolation — hiding database internals from clients, using powerful admin tools for convenience, handling errors generically — the result can be a system that hides its own corruption. Each layer's behavior is defensible on its own. The failure is in the composition: no single layer knows enough to surface the real problem, and the layers that do know are the ones nobody is watching.
+
+The work is real — three policies, one wrapper function, understanding four PostgreSQL behaviors. But the alternative is removing a layer of protection that catches a class of bugs you can't predict. The protection you remove might be the one you need when the code changes and nobody remembers how the triggers work.
