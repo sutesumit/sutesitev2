@@ -4,8 +4,6 @@ import matter from "gray-matter";
 import type { BloqPost } from './types';
 import { getPostsDirectory, getPostEntries, readPostFile, postFileExists } from './reader';
 import { calculateReadingTime } from './reading-time';
-import { PaginationInfo, createPaginationInfo, normalizePage, normalizeSearchQuery } from '@/types/pagination';
-import { searchBlogPosts } from '@/lib/search';
 
 export function toUrlSafeString(text: string): string {
   return text
@@ -134,69 +132,6 @@ export function getBloqPosts(): BloqPost[] {
   });
   
   return cachedPosts;
-}
-
-export interface BloqFilters {
-  searchQuery?: string;
-  category?: string;
-  tags?: string[];
-  featuredOnly?: boolean;
-}
-
-export interface PaginatedBloqResult {
-  posts: BloqPost[];
-  pagination: PaginationInfo;
-}
-
-export function getBloqPostsPaginated(
-  page: number = 1,
-  limit: number = 10,
-  filters?: BloqFilters
-): PaginatedBloqResult {
-  const allPosts = getBloqPosts();
-  
-  const normalizedPage = normalizePage(page, 1);
-  const searchQuery = filters?.searchQuery ? normalizeSearchQuery(filters.searchQuery) : undefined;
-  const category = filters?.category;
-  const tags = filters?.tags;
-  const featuredOnly = filters?.featuredOnly;
-  
-  // Apply filters
-  let filtered = allPosts;
-  
-  // Search filter (using Fuse.js for fuzzy search)
-  if (searchQuery) {
-    filtered = searchBlogPosts(filtered, searchQuery);
-  }
-  
-  // Featured Only filter (Independent Toggle)
-  if (featuredOnly) {
-    filtered = filtered.filter(post => post.featured);
-  }
-  
-  // Category filter
-  if (category) {
-    filtered = filtered.filter(post => 
-      post.category?.toLowerCase() === category.toLowerCase()
-    );
-  }
-  
-  // Tags filter (OR logic - match ANY selected tag)
-  if (tags && tags.length > 0) {
-    const lowerTags = tags.map(t => t.toLowerCase());
-    filtered = filtered.filter(post => 
-      post.tags?.some(tag => lowerTags.includes(tag.toLowerCase()))
-    );
-  }
-
-  // Paginate
-  const from = (normalizedPage - 1) * limit;
-  const to = from + limit;
-  
-  return {
-    posts: filtered.slice(from, to),
-    pagination: createPaginationInfo(normalizedPage, limit, filtered.length),
-  };
 }
 
 export function getBloqPostBySlug(slug: string): BloqPost | undefined {

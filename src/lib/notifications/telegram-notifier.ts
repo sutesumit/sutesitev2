@@ -1,10 +1,12 @@
 import type { Blip } from "@/types/blip";
 import type { Byte } from "@/types/byte";
+import type { LiveSession } from "@/lib/live-bloq/types";
 import {
   formatClapIncrementNotification,
   formatBlipChannelMessage,
   formatBloqChannelMessage,
   formatByteChannelMessage,
+  formatLiveBloqChannelMessage,
   formatViewIncrementNotification,
   formatVisitorNotification,
 } from "./formatters";
@@ -66,6 +68,16 @@ export class TelegramBotNotifier implements TelegramNotifier {
     }
 
     await sendMessage(ownerChatId, formatVisitorNotification(visitor, referrer));
+  }
+
+  async notifyLiveBloqStarted(liveBloq: LiveSession): Promise<void> {
+    const channelId = getChannelId();
+
+    if (!channelId) {
+      return;
+    }
+
+    await sendMessage(channelId, formatLiveBloqChannelMessage(liveBloq));
   }
 
   async notifyBloqPublished(bloq: BloqNotificationPayload): Promise<void> {

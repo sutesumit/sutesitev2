@@ -1,9 +1,11 @@
 import { getBloqPosts } from './parser';
+import type { BloqPost } from './types';
 
-export function getAllTags(): { tag: string; count: number }[] {
-  const posts = getBloqPosts().filter(post => 
+export function getAllTags(extraPosts: BloqPost[] = []): { tag: string; count: number }[] {
+  const mdxPosts = getBloqPosts().filter(post => 
     post.status !== 'archived' && post.status !== 'trashed'
   );
+  const posts = [...mdxPosts, ...extraPosts];
   
   const tagMap = new Map<string, number>();
   
@@ -18,10 +20,11 @@ export function getAllTags(): { tag: string; count: number }[] {
     .sort((a, b) => b.count - a.count);
 }
 
-export function getAllCategories(): { category: string; count: number }[] {
-  const posts = getBloqPosts().filter(post => 
+export function getAllCategories(extraPosts: BloqPost[] = []): { category: string; count: number }[] {
+  const mdxPosts = getBloqPosts().filter(post => 
     post.status !== 'archived' && post.status !== 'trashed'
   );
+  const posts = [...mdxPosts, ...extraPosts];
   
   const categoryMap = new Map<string, number>();
   
@@ -37,10 +40,12 @@ export function getAllCategories(): { category: string; count: number }[] {
     .sort((a, b) => a.category.localeCompare(b.category));
 }
 
-export function getFeaturedCount(): number {
-  return getBloqPosts().filter(post => 
+export function getFeaturedCount(extraPosts: BloqPost[] = []): number {
+  const mdxPosts = getBloqPosts().filter(post => 
     post.featured && post.status !== 'archived' && post.status !== 'trashed'
-  ).length;
+  );
+  const featuredLive = extraPosts.filter(p => p.featured).length;
+  return mdxPosts.length + featuredLive;
 }
 
 export function getAllAuthors(): string[] {

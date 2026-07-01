@@ -31,6 +31,12 @@ vi.mock("@/lib/bloq", () => ({
   getBloqPostBySlug: vi.fn(),
 }));
 
+vi.mock("@/lib/live-bloq", () => ({
+  liveBloqService: {
+    getSession: vi.fn(),
+  },
+}));
+
 vi.mock("@/lib/notifications/telegram-notifier", () => ({
   telegramNotifier: telegramNotifierMock,
 }));
@@ -125,6 +131,30 @@ describe("/api/claps/[type]/[id] GET", () => {
     expect(payload).toEqual({ claps: 10, userClaps: 2 });
   });
 
+  it("returns claps for live bloq session", async () => {
+    const { getBloqPostBySlug } = await import("@/lib/bloq");
+    vi.mocked(getBloqPostBySlug).mockReturnValue(undefined);
+
+    const { liveBloqService } = await import("@/lib/live-bloq");
+    vi.mocked(liveBloqService.getSession).mockResolvedValue({
+      id: "session-1", slug: "live-post", status: "active",
+    } as never);
+
+    vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
+      data: { claps: 10 },
+      error: null,
+    });
+
+    const response = await GET(new Request("http://localhost/api/claps/bloq/live/live-post"), {
+      params: Promise.resolve({ type: "bloq", id: "live/live-post" }),
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ claps: 10, userClaps: 0 });
+    expect(liveBloqService.getSession).toHaveBeenCalledWith("live-post");
+  });
+
   it("returns 400 for invalid type", async () => {
     const response = await GET(new Request("http://localhost/api/claps/invalid/123"), {
       params: Promise.resolve({ type: "invalid", id: "123" }),
@@ -138,6 +168,9 @@ describe("/api/claps/[type]/[id] GET", () => {
   it("returns 404 for non-existent bloq post", async () => {
     const { getBloqPostBySlug } = await import("@/lib/bloq");
     vi.mocked(getBloqPostBySlug).mockReturnValue(undefined);
+
+    const { liveBloqService } = await import("@/lib/live-bloq");
+    vi.mocked(liveBloqService.getSession).mockResolvedValue(null);
 
     const response = await GET(new Request("http://localhost/api/claps/bloq/non-existent"), {
       params: Promise.resolve({ type: "bloq", id: "non-existent" }),
@@ -254,7 +287,41 @@ describe("/api/claps/[type]/[id] POST", () => {
     expect(payload).toEqual({ userClaps: 1, totalClaps: 4, maxReached: false });
   });
 
+  it("increments clap for live bloq session", async () => {
+    const { getBloqPostBySlug } = await import("@/lib/bloq");
+    vi.mocked(getBloqPostBySlug).mockReturnValue(undefined);
+
+    const { liveBloqService } = await import("@/lib/live-bloq");
+    vi.mocked(liveBloqService.getSession).mockResolvedValue({
+      id: "session-1", slug: "live-post", status: "active",
+    } as never);
+
+    vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
+      data: { user_claps: 1, total_claps: 11, max_reached: false },
+      error: null,
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/claps/bloq/live/live-post", {
+        method: "POST",
+        body: JSON.stringify({ fingerprint: "abc123" }),
+      }),
+      { params: Promise.resolve({ type: "bloq", id: "live/live-post" }) }
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ userClaps: 1, totalClaps: 11, maxReached: false });
+    expect(liveBloqService.getSession).toHaveBeenCalledWith("live-post");
+  });
+
   it("returns 400 when fingerprint is missing", async () => {
+    const { getBloqPostBySlug } = await import("@/lib/bloq");
+    vi.mocked(getBloqPostBySlug).mockReturnValue({
+      slug: "test-post",
+      title: "Test Post",
+    } as unknown as { slug: string; title: string });
+
     const response = await POST(
       new Request("http://localhost/api/claps/bloq/test-post", {
         method: "POST",
@@ -269,6 +336,12 @@ describe("/api/claps/[type]/[id] POST", () => {
   });
 
   it("returns 400 when fingerprint is invalid type", async () => {
+    const { getBloqPostBySlug } = await import("@/lib/bloq");
+    vi.mocked(getBloqPostBySlug).mockReturnValue({
+      slug: "test-post",
+      title: "Test Post",
+    } as unknown as { slug: string; title: string });
+
     const response = await POST(
       new Request("http://localhost/api/claps/bloq/test-post", {
         method: "POST",
@@ -299,6 +372,9 @@ describe("/api/claps/[type]/[id] POST", () => {
   it("returns 404 for non-existent bloq post", async () => {
     const { getBloqPostBySlug } = await import("@/lib/bloq");
     vi.mocked(getBloqPostBySlug).mockReturnValue(undefined);
+
+    const { liveBloqService } = await import("@/lib/live-bloq");
+    vi.mocked(liveBloqService.getSession).mockResolvedValue(null);
 
     const response = await POST(
       new Request("http://localhost/api/claps/bloq/non-existent", {

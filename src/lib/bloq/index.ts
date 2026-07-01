@@ -1,8 +1,6 @@
 export type { BloqPost } from './types';
 
-export { getBloqPosts, getBloqPostBySlug, toUrlSafeString, clearCache, getBloqPostsPaginated } from './parser';
-
-export type { BloqFilters, PaginatedBloqResult } from './parser';
+export { getBloqPosts, getBloqPostBySlug, toUrlSafeString, clearCache } from './parser';
 
 export { 
   getBloqPostsByTag, 

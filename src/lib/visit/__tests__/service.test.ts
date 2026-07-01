@@ -17,6 +17,9 @@ function createNotifier(): TelegramNotifier {
     notifyBlipCreated: vi.fn().mockResolvedValue(undefined),
     notifyVisitor: vi.fn().mockResolvedValue(undefined),
     notifyBloqPublished: vi.fn().mockResolvedValue(undefined),
+    notifyLiveBloqStarted: vi.fn().mockResolvedValue(undefined),
+    notifyViewIncrement: vi.fn().mockResolvedValue(undefined),
+    notifyClapIncrement: vi.fn().mockResolvedValue(undefined),
   };
 }
 

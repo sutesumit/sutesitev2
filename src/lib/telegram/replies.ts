@@ -47,4 +47,23 @@ export const replies = {
     visitCount?: number;
   }, referrer?: string) => formatVisitorNotification(visitor, referrer),
   subscribeIntro: "Follow @blipbotlive for fresh posts.",
+  liveSessionUsage:
+    "Usage:\n" +
+    "/livesession start &lt;title&gt; - Start a live session\n" +
+    "/livesession close - Close the active session\n" +
+    "/livesession cancel - Cancel the active session\n" +
+    "/livesession status - Show session status",
+  liveSessionAlreadyActive:
+    "You already have an active session. Close or cancel it first.",
+  liveSessionNoActive:
+    "No active session. Start one with /livesession start &lt;title&gt;",
+  liveSessionStartFailed: "Failed to start session. Try again?",
+  liveSessionClosed: "Session closed. The live page is now a permanent record.",
+  liveSessionCloseFailed: "Failed to close session.",
+  liveSessionCancelled: "Session cancelled. The page has been removed.",
+  liveSessionCancelFailed: "Failed to cancel session.",
+  liveSessionStatusFailed: "Could not fetch session status.",
+  liveSessionSummaryUsage: "Usage: /livesession summary &lt;text&gt;",
+  liveSessionSummaryFailed: "Failed to update summary.",
+  liveSessionEntryFailed: "Could not add that update to the live session.",
 } as const;

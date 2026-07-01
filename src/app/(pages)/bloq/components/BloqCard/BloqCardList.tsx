@@ -1,24 +1,34 @@
-import Link from 'next/link'
-import { motion as m } from 'framer-motion'
-import { BloqPost } from '@/lib/bloq'
-import { cn } from '@/lib/utils'
-import { BloqDate, BloqTitle, BloqSummary, BloqBackground, BloqReadingTime } from './parts'
-import ViewCounter from '@/components/shared/ViewCounter'
-import ClapsCounter from '@/components/shared/ClapsCounter'
+import Link from "next/link";
+import { motion as m } from "framer-motion";
+import { BloqPost } from "@/lib/bloq";
+import { cn } from "@/lib/utils";
+import {
+  BloqDate,
+  BloqTitle,
+  BloqSummary,
+  BloqBackground,
+  BloqReadingTime,
+} from "./parts";
+import ViewCounter from "@/components/shared/ViewCounter";
+import ClapsCounter from "@/components/shared/ClapsCounter";
 // import TagList from '../TagList'
 
 interface BloqCardListProps {
   post: BloqPost;
-  variant?: 'list' | 'related-post';
+  variant?: "list" | "related-post";
   className?: string;
 }
 
-export const BloqCardList = ({ post, variant = 'list', className }: BloqCardListProps) => {
+export const BloqCardList = ({
+  post,
+  variant = "list",
+  className,
+}: BloqCardListProps) => {
   const isFeatured = post.featured;
   const animationProps = {
     initial: "rest",
     whileHover: "hover",
-    animate: "rest"
+    animate: "rest",
   };
 
   return (
@@ -30,31 +40,56 @@ export const BloqCardList = ({ post, variant = 'list', className }: BloqCardList
         className={cn(
           `relative p-4 overflow-hidden project-list col-span-1 flex flex-col cursor-pointer`,
           isFeatured ? "featured-border" : "blue-border",
-          className
+          className,
         )}
         {...animationProps}
       >
         <BloqBackground isFeatured={isFeatured} />
-        
+
         <m.div layout className="flex h-full flex-col">
           <div className="flex-1">
-            <div className='flex flex-wrap flex-row items-center justify-between gap-y-2 mb-2'>
-              <div className={cn(
-                "flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4",
-                variant === 'related-post' && "hidden"
-              )}>
+            <div className="flex flex-wrap flex-row items-center justify-between gap-y-2 mb-2">
+              <div
+                className={cn(
+                  "flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4",
+                  variant === "related-post" && "hidden",
+                )}
+              >
                 <BloqDate post={post} />
                 <BloqReadingTime readingTime={post.readingTime} />
               </div>
-              <div className={cn(
-                "flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-4 ml-auto",
-                variant === 'related-post' && "w-full flex-row justify-between ml-0"
-              )}>
-                <ViewCounter type="bloq" identifier={post.url} className="text-xs flex items-center text-gray-500" />
-                <ClapsCounter postId={post.url} postType="bloq" interactive={false} className="text-xs !p-0 flex items-center text-gray-500" />
+              <div
+                className={cn(
+                  "flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-4 ml-auto",
+                  variant === "related-post" &&
+                    "w-full flex-row justify-between ml-0",
+                )}
+              >
+                <ViewCounter
+                  type="bloq"
+                  identifier={post.url}
+                  className="text-xs flex items-center text-gray-500"
+                />
+                <ClapsCounter
+                  postId={post.url}
+                  postType="bloq"
+                  interactive={false}
+                  className="text-xs !p-0 flex items-center text-gray-500"
+                />
               </div>
             </div>
-            <BloqTitle post={post} isFeatured={isFeatured} />
+            <div className="flex items-center gap-2 min-w-0">
+              <BloqTitle post={post} isFeatured={isFeatured} />
+              {post.liveStatus === "active" && (
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-500">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                  </span>
+                  Live
+                </span>
+              )}
+            </div>
             <BloqSummary post={post} />
           </div>
         </m.div>

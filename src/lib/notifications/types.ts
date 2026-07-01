@@ -1,5 +1,6 @@
 import type { Blip } from "@/types/blip";
 import type { Byte } from "@/types/byte";
+import type { LiveSession } from "@/lib/live-bloq/types";
 
 export type VisitorNotificationPayload = {
   city?: string;
@@ -34,6 +35,7 @@ export interface TelegramNotifier {
   notifyBlipCreated(blip: Blip): Promise<void>;
   notifyVisitor(visitor: VisitorNotificationPayload, referrer?: string): Promise<void>;
   notifyBloqPublished(bloq: BloqNotificationPayload): Promise<void>;
+  notifyLiveBloqStarted(liveBloq: LiveSession): Promise<void>;
   notifyViewIncrement(counter: CounterNotificationPayload): Promise<void>;
   notifyClapIncrement(counter: CounterNotificationPayload): Promise<void>;
 }
@@ -43,6 +45,7 @@ export const noopTelegramNotifier: TelegramNotifier = {
   async notifyBlipCreated(): Promise<void> {},
   async notifyVisitor(): Promise<void> {},
   async notifyBloqPublished(): Promise<void> {},
+  async notifyLiveBloqStarted(): Promise<void> {},
   async notifyViewIncrement(): Promise<void> {},
   async notifyClapIncrement(): Promise<void> {},
 };

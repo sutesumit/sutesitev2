@@ -57,3 +57,5 @@ next-env.d.ts
 .kilocode/
 .opencode/
 .gemini/skills/
+supabase/.temp/
+nul

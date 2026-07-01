@@ -1,5 +1,6 @@
 import { Bot, Context } from "grammy";
 import { handleStart, handleByte, handleBlip, handleList, handleGet, handleEdit, handleDel, handleMessage } from './commands/handlers';
+import { handleLiveSession } from './commands/live-session';
 
 type MyContext = Context;
 
@@ -13,6 +14,7 @@ const BOT_COMMANDS = [
   { command: "get", description: "Get a byte or blip" },
   { command: "edit", description: "Edit a byte or blip" },
   { command: "del", description: "Delete a byte or blip" },
+  { command: "livesession", description: "Manage live bloq sessions" },
 ] as const;
 
 export { BOT_COMMANDS };
@@ -38,6 +40,7 @@ export async function initBot(): Promise<Bot<MyContext>> {
   botInstance.command("get", handleGet);
   botInstance.command("edit", handleEdit);
   botInstance.command("del", handleDel);
+  botInstance.command("livesession", (ctx) => handleLiveSession(ctx, botInstance!));
   botInstance.on("message", (ctx) => handleMessage(ctx, botInstance!));
 
   return botInstance;

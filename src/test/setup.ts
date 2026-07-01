@@ -17,3 +17,4 @@ vi.mock('next/navigation', () => ({
 // Mock environment variables
 vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co')
 vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-key')
+vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key')

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatClapIncrementNotification,
+  formatLiveBloqChannelMessage,
   formatViewIncrementNotification,
 } from "@/lib/notifications/formatters";
 import { formatByte, formatBlip, formatBloq } from "@/lib/telegram/formatters";
@@ -15,7 +16,10 @@ describe("telegram replies and formatters", () => {
   });
 
   it("formats bloq channel messages with tags", () => {
-    const result = replies.channelBloq("Test Title", "test-slug", ["react", "nextjs"]);
+    const result = replies.channelBloq("Test Title", "test-slug", [
+      "react",
+      "nextjs",
+    ]);
     expect(result).toContain("Test Title");
     expect(result).toContain("test-slug");
     expect(result).toContain("react");
@@ -25,7 +29,7 @@ describe("telegram replies and formatters", () => {
   it("formats visitor notifications", () => {
     const result = replies.visitorNotification(
       { city: "Mumbai", country: "India", deviceType: "Mac", ip: "127.0.0.1" },
-      "https://google.com"
+      "https://google.com",
     );
 
     expect(result).toContain("Mumbai");
@@ -46,7 +50,7 @@ describe("telegram replies and formatters", () => {
         isReturning: true,
         visitCount: 520,
       },
-      "direct"
+      "direct",
     );
 
     expect(result).toContain("returning");
@@ -66,7 +70,9 @@ describe("telegram replies and formatters", () => {
     });
 
     expect(result).toContain("sumitsute.com | Dev Diary");
-    expect(result).toContain("ip 1.2.3.4 viewed | bloq | Test Title | total 128");
+    expect(result).toContain(
+      "ip 1.2.3.4 viewed | bloq | Test Title | total 128",
+    );
   });
 
   it("formats clap increment notifications with visitor fallback copy", () => {
@@ -94,7 +100,9 @@ describe("telegram replies and formatters", () => {
       ip: "1.2.3.4",
     });
 
-    expect(result).toContain("ip 1.2.3.4 clapped | blip | 8 | Change Amplification | total 6");
+    expect(result).toContain(
+      "ip 1.2.3.4 clapped | blip | 8 | Change Amplification | total 6",
+    );
   });
 
   it("escapes unsafe content in formatter output", () => {
@@ -144,5 +152,47 @@ describe("telegram replies and formatters", () => {
     expect(result).toContain("Test summary");
     expect(result).toContain("test-title");
     expect(result).toContain("react");
+  });
+
+  it("formats live bloq channel messages with LIVE prefix", () => {
+    const result = formatLiveBloqChannelMessage({
+      id: "s1",
+      slug: "react-conf-2026",
+      title: "React Conf 2026",
+      status: "active",
+      tags: [],
+      category: "Live",
+      authors: ["Sumit Sute"],
+      summary: null,
+      started_at: "2026-07-01T10:00:00Z",
+      closed_at: null,
+      entry_count: 0,
+      created_at: "2026-07-01T10:00:00Z",
+    });
+
+    expect(result).toContain("Sumit is bringing you live updates 🔴");
+    expect(result).toContain("<b>React Conf 2026</b>");
+    expect(result).toContain("/bloq/live/react-conf-2026");
+    expect(result).toContain("Follow along →");
+  });
+
+  it("formatLiveBloqChannelMessage escapes HTML in title", () => {
+    const result = formatLiveBloqChannelMessage({
+      id: "s1",
+      slug: "xss-test",
+      title: '<script>alert("xss")</script>',
+      status: "active",
+      tags: [],
+      category: "Live",
+      authors: ["Sumit Sute"],
+      summary: null,
+      started_at: "2026-07-01T10:00:00Z",
+      closed_at: null,
+      entry_count: 0,
+      created_at: "2026-07-01T10:00:00Z",
+    });
+
+    expect(result).toContain("&lt;script&gt;");
+    expect(result).not.toContain("<script>");
   });
 });

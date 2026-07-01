@@ -7,6 +7,8 @@ import { NotFoundError, ValidationError } from "@/lib/core/errors";
 import { isAllowed } from "../middleware/auth";
 import { formatByte, formatBlip } from "../formatters";
 import { replies } from "../replies";
+import { getOrRecoverActiveSession } from "../session-state";
+import { liveBloqService } from "./live-session";
 
 const MAX_CONTENT_LENGTH = 280;
 
@@ -284,6 +286,23 @@ export async function handleMessage(ctx: Context, bot: Bot<Context>): Promise<vo
   if (text.length > MAX_CONTENT_LENGTH) {
     await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH));
     return;
+  }
+
+  const activeSessionId = await getOrRecoverActiveSession(
+    ctx.from!.id,
+    liveBloqService
+  );
+  if (activeSessionId) {
+    try {
+      const entry = await liveBloqService.addEntry(activeSessionId, text);
+      await ctx.reply(`Entry #${entry.entry_sequence} added.`, {
+        parse_mode: "HTML",
+      });
+      return;
+    } catch {
+      await ctx.reply(replies.liveSessionEntryFailed);
+      return;
+    }
   }
 
   try {

@@ -1,5 +1,6 @@
 import type { Blip } from "@/types/blip";
 import type { Byte } from "@/types/byte";
+import type { LiveSession } from "@/lib/live-bloq/types";
 import type {
   BloqNotificationPayload,
   CounterNotificationPayload,
@@ -27,22 +28,33 @@ export function formatBlipChannelMessage(blip: Blip): string {
   return `🤖: <a href="${SITE_URL}/blip/${encodeURIComponent(blip.blip_serial)}">${escapeHtml(content)}</a>`;
 }
 
-export function formatBloqChannelMessage(bloq: BloqNotificationPayload): string {
-  const safeTags = bloq.tags && bloq.tags.length > 0
-    ? `\nTags: ${bloq.tags.map((tag) => escapeHtml(tag)).join(", ")}`
-    : "";
+export function formatBloqChannelMessage(
+  bloq: BloqNotificationPayload,
+): string {
+  const safeTags =
+    bloq.tags && bloq.tags.length > 0
+      ? `\nTags: ${bloq.tags.map((tag) => escapeHtml(tag)).join(", ")}`
+      : "";
 
   return `📝 <b>${escapeHtml(bloq.title)}</b>\n<a href="${SITE_URL}/bloq/${encodeURIComponent(bloq.slug)}">Read more</a>${safeTags}`;
 }
 
+export function formatLiveBloqChannelMessage(liveBloq: LiveSession): string {
+  const safeTitle = escapeHtml(liveBloq.title);
+  return `Sumit is bringing you live updates 🔴\n<b>${safeTitle}</b>\n<a href="${SITE_URL}/bloq/live/${encodeURIComponent(liveBloq.slug)}">Follow along →</a>`;
+}
+
 export function formatVisitorNotification(
   visitor: VisitorNotificationPayload,
-  referrer?: string
+  referrer?: string,
 ): string {
-  const locationParts = [visitor.city, visitor.region, visitor.country].filter(Boolean);
-  const location = locationParts.length > 0
-    ? locationParts.map((part) => escapeHtml(part!)).join(", ")
-    : "Unknown location";
+  const locationParts = [visitor.city, visitor.region, visitor.country].filter(
+    Boolean,
+  );
+  const location =
+    locationParts.length > 0
+      ? locationParts.map((part) => escapeHtml(part!)).join(", ")
+      : "Unknown location";
   const source = referrer ? escapeHtml(referrer) : "direct";
   const returning = visitor.isReturning ? "👋 returning" : "✨ new";
   const count = visitor.visitCount ? ` (${visitor.visitCount})` : "";
@@ -54,7 +66,7 @@ export function formatVisitorNotification(
 
 function formatCounterNotificationLine(
   eventType: "view" | "clap",
-  counter: CounterNotificationPayload
+  counter: CounterNotificationPayload,
 ): string {
   const parts = [
     counter.ip
@@ -76,10 +88,14 @@ function formatCounterNotificationLine(
   return parts.join(" | ");
 }
 
-export function formatViewIncrementNotification(counter: CounterNotificationPayload): string {
+export function formatViewIncrementNotification(
+  counter: CounterNotificationPayload,
+): string {
   return `${PROJECT_HEADER}\n${formatCounterNotificationLine("view", counter)}`;
 }
 
-export function formatClapIncrementNotification(counter: CounterNotificationPayload): string {
+export function formatClapIncrementNotification(
+  counter: CounterNotificationPayload,
+): string {
   return `${PROJECT_HEADER}\n${formatCounterNotificationLine("clap", counter)}`;
 }

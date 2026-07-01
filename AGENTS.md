@@ -22,10 +22,18 @@ npm run start            # Start production server
 # Linting
 npm run lint             # Run ESLint (extends next/core-web-vitals, next/typescript)
 
-# No test framework configured
+# Testing
+
+```bash
+npm test               # Vitest unit + integration tests (23 files, 177 tests)
+npm run test:watch     # Vitest in watch mode
+npm run test:e2e       # Playwright E2E tests (2 specs)
+npm run test:all       # Both unit + E2E
 ```
 
-There is no test suite configured for this project. Do not add tests.
+- **Unit/Integration**: Vitest + jsdom + @testing-library/react. Tests live in `src/**/__tests__/*.test.ts`. Follow the service/repository pattern with mocked dependencies (see `src/lib/byte/__tests__/service.test.ts` for canonical example).
+- **Integration (DB)**: Real Supabase tests behind `RUN_SUPABASE_INTEGRATION_TESTS=true` flag. Skip automatically when env vars not configured.
+- **E2E**: Playwright in `tests/e2e/`. Runs against `http://localhost:3000`. Dev server starts automatically.
 
 ## Code Style Guidelines
 

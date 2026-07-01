@@ -20,6 +20,11 @@ export function createTelegramMutationEffect(
         return;
       }
 
+      if (event.type === "live-bloq") {
+        await notifier.notifyLiveBloqStarted(event.liveBloq);
+        return;
+      }
+
       await notifier.notifyBloqPublished(event.bloq);
     },
   };

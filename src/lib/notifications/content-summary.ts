@@ -2,6 +2,7 @@ import { projects } from "@/data";
 import { getBlipByIdentifier } from "@/lib/blip";
 import { getBloqPostBySlug } from "@/lib/bloq";
 import { getByteByIdentifier } from "@/lib/byte";
+import { getSessionBySlug } from "@/lib/live-bloq/repository";
 import type { CounterNotificationContentType } from "@/lib/notifications/types";
 
 const BYTE_TITLE_LIMIT = 48;
@@ -29,11 +30,30 @@ export async function resolveNotificationContentSummary(
 ): Promise<NotificationContentSummary> {
   if (contentType === "bloq") {
     const post = getBloqPostBySlug(contentId);
+    if (post) {
+      return {
+        contentType,
+        contentId,
+        displayId: "",
+        title: post.title,
+      };
+    }
+
+    if (contentId.startsWith("live/")) {
+      const liveSession = await getSessionBySlug(contentId.slice("live/".length));
+      return {
+        contentType,
+        contentId,
+        displayId: liveSession?.slug ?? contentId,
+        title: liveSession?.title ?? null,
+      };
+    }
+
     return {
       contentType,
       contentId,
       displayId: "",
-      title: post?.title ?? null,
+      title: null,
     };
   }
 

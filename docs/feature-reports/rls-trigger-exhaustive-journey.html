@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RLS Trigger Exhaustive Journey — Full Documentary</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0d1117; --panel:#161b22; --text:#e6edf3; --muted:#8b949e; --line:#30363d; --accent:#58a6ff; --red:#ff7b72; --green:#3fb950; --yellow:#d29922; --purple:#d2a8ff; --orange:#f0883e; --teal:#39d353; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:14px/1.6 system-ui, -apple-system, Segoe UI, sans-serif; background:var(--bg); color:var(--text); }
+    main { max-width:1100px; margin:0 auto; padding:28px 20px 80px; }
+    h1 { margin:0 0 4px; font-size:28px; }
+    h2 { margin:40px 0 12px; font-size:20px; border-bottom:1px solid var(--line); padding-bottom:8px; }
+    h3 { margin:22px 0 8px; font-size:16px; color:var(--accent); }
+    h4 { margin:14px 0 6px; font-size:14px; color:var(--purple); }
+    .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+    .muted { color:var(--muted); font-size:12px; }
+    .box { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; margin:12px 0; }
+    .box-red { border-color:#8e3b36; }
+    .box-green { border-color:#2a6030; }
+    .box-yellow { border-color:#6e5622; }
+    .box-purple { border-color:#5a3d82; }
+    pre, code { font-family:ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size:13px; }
+    pre { background:#0d1117; border:1px solid var(--line); border-radius:6px; padding:12px; overflow-x:auto; white-space:pre-wrap; word-break:break-word; }
+    code { background:rgba(110,118,129,0.2); padding:1px 5px; border-radius:3px; }
+    pre code { background:none; padding:0; }
+    .pill { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:2px 10px; color:var(--muted); margin:2px 4px 2px 0; font-size:12px; }
+    .pill-fail { color:var(--red); border-color:#8e3b36; }
+    .pill-ok { color:var(--green); border-color:#2a6030; }
+    .pill-warn { color:var(--yellow); border-color:#6e5622; }
+    .pill-info { color:var(--accent); border-color:#1f4a7a; }
+    table { width:100%; border-collapse:collapse; margin:10px 0; font-size:13px; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); font-weight:600; white-space:nowrap; }
+    .timeline { position:relative; padding-left:24px; border-left:2px solid var(--line); margin:16px 0; }
+    .timeline-item { margin:14px 0; position:relative; }
+    .timeline-item::before { content:""; position:absolute; left:-30px; top:5px; width:10px; height:10px; border-radius:50%; background:var(--line); }
+    .timeline-item.phase-0::before { background:var(--green); }
+    .timeline-item.phase-1::before { background:var(--orange); }
+    .timeline-item.phase-2::before { background:var(--red); }
+    .timeline-item.phase-3::before { background:var(--yellow); }
+    .timeline-item.phase-4::before { background:var(--teal); }
+    .timeline-item .date { color:var(--muted); font-size:11px; }
+    .decision { border-left:3px solid var(--yellow); padding:8px 12px; margin:8px 0; background:rgba(210,153,34,0.06); border-radius:0 6px 6px 0; }
+    .decision .label { color:var(--yellow); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; }
+    .phase-label { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:0.5px; }
+    .phase-gold { background:rgba(240,136,62,0.2); color:var(--orange); }
+    .phase-silver { background:rgba(139,148,158,0.2); color:var(--muted); }
+    .phase-bronze { background:rgba(210,153,34,0.2); color:var(--yellow); }
+    .phase-final { background:rgba(57,211,83,0.2); color:var(--teal); }
+    .approach-card { border:1px solid var(--line); border-radius:8px; padding:14px; margin:10px 0; }
+    .approach-card.accepted { border-color:#2a6030; background:rgba(63,185,80,0.04); }
+    .approach-card.rejected { border-color:#8e3b36; background:rgba(255,123,114,0.04); }
+    blockquote { border-left:2px solid var(--line); margin:8px 0; padding:4px 14px; color:var(--muted); }
+    .fn-ref { color:var(--accent); font-family:ui-monospace, SFMono-Regular, Consolas, monospace; font-size:12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>RLS Trigger Exhaustive Journey</h1>
+    <p class="sub">Complete documentary of the <code>user_interaction_counters</code> RLS 42501 bug — from discovery through every failed approach to final resolution. Every dead end, reversal, negotiation, and decision documented in chronological order.</p>
+
+    <p style="font-size:12px;color:var(--muted);">Project: art (Supabase <code>ubgaljottuegfvzsrsbn</code>) · PostgreSQL 17.6 · June 2026</p>
+
+    <!-- ============================================================ -->
+    <h2>Chronological Timeline</h2>
+    <!-- ============================================================ -->
+
+    <div class="timeline">
+      <div class="timeline-item phase-0">
+        <div class="date">Before April 12, 2026</div>
+        <strong>Pre-bug state:</strong> RLS disabled on <code>user_interaction_counters</code>. Table is fully writable by any authenticated user. Trigger functions run as SECURITY INVOKER (default), but since RLS is off, this doesn't matter. Everything works.
+      </div>
+
+      <div class="timeline-item phase-1">
+        <div class="date">April 12, 2026 · 11:02:14 UTC</div>
+        <strong>Migration <code>enable_rls_on_user_interaction_counters</code> applied</strong><br>
+        <code>ALTER TABLE user_interaction_counters ENABLE ROW LEVEL SECURITY;</code><br>
+        <strong>Zero policies created.</strong> The migration plan (<code>.kilo/plans/1775990254226-gentle-sailor.md</code>, line 65) stated: "Written by triggers only — bypass RLS ✅" — <span class="pill pill-fail">WRONG</span>.<br>
+        Only <code>get_top_user</code> RPC was made SECURITY DEFINER (for reads). Trigger functions remained SECURITY INVOKER.<br>
+        <strong>Why the plan was wrong:</strong> Only SECURITY DEFINER functions bypass RLS. The default SECURITY INVOKER mode runs triggers as the calling user, so RLS still applies. The plan was tested in Supabase SQL editor (runs as postgres/superuser, bypasses RLS everywhere), creating a false sense of security.
+      </div>
+
+      <div class="timeline-item phase-1">
+        <div class="date">April 12 – June 12, 2026</div>
+        <strong>Silent bug window (~2 months).</strong><br>
+        Existing users with pre-existing counter rows don't see errors for existing likes (INSERT doesn't run — counter row already exists). <strong>New likes and non-anonymous comments fail.</strong><br>
+        Unlike always works because UPDATE with zero policies silently affects 0 rows (no error thrown).<br>
+        No one notices because: (a) the error is swallowed as "Network error occurred" in the client, (b) new user signups may be rare, (c) existing users' counter rows survived the migration.
+      </div>
+
+      <div class="timeline-item phase-2">
+        <div class="date">June 12, 2026</div>
+        <strong>Bug discovered.</strong> Re-liking after unliking fails with 42501. Investigation begins.
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Phase 1: Diagnosis and Understanding</h2>
+    <!-- ============================================================ -->
+
+    <h3>What We Knew at Discovery</h3>
+    <div class="box box-red">
+      <strong>Symptoms:</strong>
+      <ul style="margin:6px 0 0 0;">
+        <li>Browser console: <code>TypeError: NetworkError when attempting to fetch resource</code></li>
+        <li>Server log: <code>POST /api/likes</code> → 500 Internal Server Error</li>
+        <li>Actual PG error: <code>code: 42501, message: 'new row violates row-level security policy for table "user_interaction_counters"'</code></li>
+        <li><strong>Critical asymmetry:</strong> Unlike works. Like and re-like fail. Non-anonymous comments also fail.</li>
+      </ul>
+    </div>
+
+    <h3>Call Stack Trace (button click → database)</h3>
+    <pre><code>User clicks ❤️ → <span class="fn-ref">useLikes.toggleLike()</span>
+  → <span class="fn-ref">LikeService.toggleLike()</span>
+    → <span class="fn-ref">fetch("POST /api/likes")</span>
+      → <span class="fn-ref">route.ts POST handler</span>
+        → <span class="fn-ref">AuthManager.getAuthenticatedUser()</span> ✅
+        → <span class="fn-ref">request.json()</span> ✅
+        → <span class="fn-ref">getServerSupabase(user.accessToken)</span> → supabase client with user JWT
+        → <span class="fn-ref">supabase.from("likes").insert({ pagePath, user_id })</span>
+          → RLS "auth.role()='authenticated'" ✅ row inserted
+          → 🔥 TRIGGER: trg_like_insert → handle_like_insert()
+            → ensure_user_counter_row(NEW.user_id)
+              → INSERT INTO user_interaction_counters ON CONFLICT DO NOTHING
+              → ❌ RLS: zero policies → 42501 "new row violates row-level security policy"
+          → Transaction aborted, likes INSERT also rolled back
+          → Returns 500</code></pre>
+
+    <h3>The Asymmetry: Why Unlike Works but Like Doesn't</h3>
+    <table>
+      <tr><th>Operation</th><th>RLS with zero policies</th><th>Behavior</th><th>Result</th></tr>
+      <tr><td>INSERT</td><td>WITH CHECK fails</td><td><span class="pill pill-fail">Error 42501</span></td><td>Transaction rolls back</td></tr>
+      <tr><td>UPDATE</td><td>USING matches 0 rows</td><td><span class="pill pill-warn">Silent no-op</span></td><td>Transaction commits</td></tr>
+      <tr><td>DELETE</td><td>USING matches 0 rows</td><td><span class="pill pill-warn">Silent no-op</span></td><td>Transaction commits</td></tr>
+      <tr><td>SELECT</td><td>Empty result</td><td><span class="pill pill-warn">No rows returned</span></td><td>Query succeeds</td></tr>
+    </table>
+
+    <div class="box">
+      <strong>Key insight:</strong> Like → INSERT → error. Unlike → UPDATE → silent no-op → no error. This asymmetry is why the bug was partially masked for 2 months: unlikes always appeared to succeed, making the failure surface seem intermittent and random.
+    </div>
+
+    <h3>Root Cause: The Migration Plan's Fatal Assumption</h3>
+    <div class="box box-red">
+      <strong>From <code>.kilo/plans/1775990254226-gentle-sailor.md</code> (line 65):</strong>
+      <blockquote>"Written by triggers only — bypass RLS ✅"</blockquote>
+      <strong>This is wrong.</strong> Postgres trigger functions execute at the privilege level of their <em>creator</em>, not the table owner. The default <code>SECURITY INVOKER</code> mode (which was the state of all 11 trigger functions) means they run with the privileges of the session user — the end user's JWT. RLS applies to that user. Only <code>SECURITY DEFINER</code> functions inherit the owner's privileges and bypass RLS.<br><br>
+      <strong>Why testing didn't catch this:</strong> The plan was tested in the Supabase SQL editor, which runs as <code>postgres</code> (superuser). As superuser, RLS is always bypassed regardless of SECURITY INVOKER/DEFINER. The bug only manifests when queries execute under a real user's JWT — exactly what the Next.js API routes do via <code>getServerSupabase(user.accessToken)</code>.
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Phase 2: Approach #1 — SECURITY DEFINER (Rejected)</h2>
+    <!-- ============================================================ -->
+
+    <h3>The Approach</h3>
+    <p>Add <code>SECURITY DEFINER SET search_path = public</code> to all 11 trigger functions that write to <code>user_interaction_counters</code>.</p>
+
+    <div class="approach-card rejected">
+      <strong>Status: <span class="pill pill-fail">REJECTED</span></strong><br>
+      <strong>Plan:</strong> <code>.kilo/plans/rls-trigger-breakdown-and-fix.md</code><br>
+      <strong>Applied via:</strong> migration <code>make_trigger_functions_security_definer</code> on <code>ubgaljottuegfvzsrsbn</code><br>
+      <strong>Result:</strong> All 11 functions made SECURITY DEFINER. Like, unlike, re-like all return 200. Everything works.
+    </div>
+
+    <h3>Why It Was Rejected</h3>
+    <table>
+      <tr><th>Concern</th><th>Detail</th></tr>
+      <tr>
+        <td><strong>Privilege escalation</strong></td>
+        <td>SECURITY DEFINER bypasses RLS entirely on <code>user_interaction_counters</code>. Any bug in a trigger function that writes to the wrong user's row would silently succeed — zero RLS protection. This is too permissive.</td>
+      </tr>
+      <tr>
+        <td><strong>Defense-in-depth</strong></td>
+        <td>RLS exists for a reason. Bypassing it at the trigger level removes a safety layer. If a future bug in app code passes a wrong <code>user_id</code> into a trigger, RLS would have caught it. With SECURITY DEFINER, it won't.</td>
+      </tr>
+      <tr>
+        <td><strong>Architectural principle</strong></td>
+        <td>The correct fix is to configure RLS correctly, not to bypass it. If the triggers are always writing the authenticated user's own row, then an RLS policy that enforces <code>auth.uid() = user_id</code> should work.</td>
+      </tr>
+    </table>
+
+    <div class="decision">
+      <div class="label">DECISION</div>
+      <strong>Abandon SECURITY DEFINER approach.</strong> Revert all functions to SECURITY INVOKER. Add proper RLS policies on <code>user_interaction_counters</code> instead.
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Phase 3: Approach #2 — RLS Policies + SECURITY INVOKER (Reverted)</h2>
+    <!-- ============================================================ -->
+
+    <h3>The Approach</h3>
+    <p>Add two RLS policies on <code>user_interaction_counters</code> and revert all 11 functions to SECURITY INVOKER.</p>
+
+    <div class="approach-card rejected">
+      <strong>Status: <span class="pill pill-fail">REVERTED</span></strong> — Like and unlike work, but re-like and comment operations fail.<br>
+      <strong>Plan:</strong> <code>.kilo/plans/migrate-counter-triggers-to-rls-policies.md</code>
+    </div>
+
+    <h3>Per-Function Audit (Safety Analysis)</h3>
+    <p>Before writing policies, every trigger function was audited to confirm that all operations only touch <code>auth.uid()</code>'s own counter row. Result: <strong>all 11 functions are safe for RLS gating on <code>auth.uid() = user_id</code>.</strong></p>
+
+    <table>
+      <tr><th>Function</th><th>Source RLS enforces uid?</th><th>Counter operation</th><th>Safe?</th></tr>
+      <tr><td><code>handle_like_insert</code></td><td>⚠️ Only <code>auth.role()</code> (gap)</td><td>INSERT / UPDATE own</td><td>✅ App code enforces</td></tr>
+      <tr><td><code>handle_like_delete</code></td><td>✅ <code>auth.uid() = user_id</code></td><td>UPDATE own</td><td>✅</td></tr>
+      <tr><td><code>handle_like_update</code></td><td>✅ Both USING + WITH CHECK</td><td>UPDATE own (counter-transfer dead code)</td><td>✅</td></tr>
+      <tr><td><code>handle_comment_insert</code></td><td>⚠️ Only <code>auth.role()</code> (gap)</td><td>INSERT / UPDATE own</td><td>✅ App code enforces</td></tr>
+      <tr><td><code>handle_comment_delete</code></td><td>❌ No DELETE policy → dead code</td><td>UPDATE own</td><td>✅ Never fires</td></tr>
+      <tr><td><code>handle_comment_update</code></td><td>✅ Both USING + WITH CHECK</td><td>UPDATE own</td><td>✅</td></tr>
+      <tr><td><code>handle_comment_soft_delete</code></td><td>✅ Same as above</td><td>UPDATE own</td><td>✅</td></tr>
+      <tr><td><code>handle_father_son_stories_insert</code></td><td>✅ <code>auth.uid() = user_id</code></td><td>INSERT / UPDATE own</td><td>✅</td></tr>
+      <tr><td><code>handle_father_son_stories_delete</code></td><td>❌ No DELETE policy → dead code</td><td>UPDATE own</td><td>✅ Never fires</td></tr>
+      <tr><td><code>handle_father_son_stories_update</code></td><td>✅ Both USING + WITH CHECK</td><td>UPDATE own</td><td>✅</td></tr>
+      <tr><td><code>ensure_user_counter_row</code></td><td>— (called by above)</td><td>INSERT ON CONFLICT DO NOTHING</td><td>✅ Callers pass auth.uid()</td></tr>
+    </table>
+
+    <h3>Gaps Found</h3>
+    <div class="box box-yellow">
+      <strong>Gap 1:</strong> <code>likes</code> INSERT policy only checks <code>auth.role() = 'authenticated'</code> — doesn't enforce <code>auth.uid() = user_id</code>. A buggy app code path could set a different <code>user_id</code>.<br><br>
+      <strong>Gap 2:</strong> <code>comments</code> INSERT policy has the same gap.<br><br>
+      <strong>Gap 3:</strong> <code>handle_father_son_stories_insert</code> was already SECURITY DEFINER but missing <code>SET search_path = public</code> — a search-path injection vulnerability.
+    </div>
+
+    <h3>Migration Applied (<code>rls-policies-on-user-interaction-counters</code>)</h3>
+    <ol>
+      <li>Created INSERT policy: <code>WITH CHECK (auth.uid() = user_id)</code></li>
+      <li>Created UPDATE policy: <code>USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)</code></li>
+      <li>Reverted all 11 functions from SECURITY DEFINER to SECURITY INVOKER</li>
+      <li>Hardened <code>likes</code> and <code>comments</code> INSERT policies to also check <code>auth.uid() = user_id</code></li>
+      <li><strong>No SELECT policy</strong> — counter table is read exclusively via SECURITY DEFINER RPCs (<code>get_top_user</code>, <code>get_interaction_analytics</code>)</li>
+    </ol>
+
+    <h3>The Failure</h3>
+    <div class="box box-red">
+      <strong>Result:</strong> 42501 error on all INSERT operations into <code>user_interaction_counters</code>.<br><br>
+      <strong>Like:</strong> First like (no existing counter row) → INSERT succeeds via new policy ✅<br>
+      <strong>Unlike:</strong> UPDATE with <code>USING (auth.uid() = user_id)</code> → works ✅<br>
+      <strong>Re-like:</strong> Counter row already exists → <code>INSERT ... ON CONFLICT DO NOTHING</code> → 42501 ❌<br><br>
+      <strong>Root cause discovered later:</strong> <code>auth.uid()</code> fails when inlined in <code>LANGUAGE sql STABLE</code> context within policy expressions.
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Phase 4: Deep Dive — The PostgreSQL 17.6 auth.uid() Inlining Bug</h2>
+    <!-- ============================================================ -->
+
+    <h3>Diagnostic Investigation</h3>
+
+    <p>To determine why <code>auth.uid() = user_id</code> fails in policy expressions, a diagnostic function was created:</p>
+
+    <pre><code>CREATE OR REPLACE FUNCTION public._rls_debug_fn(input_user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+VOLATILE
+SECURITY INVOKER
+AS $$
+DECLARE
+  uid uuid;
+BEGIN
+  uid := auth.uid();
+  RAISE EXCEPTION '[RLS DEBUG] auth.uid()=% · input_user_id=% · match=%',
+    uid, input_user_id, (uid = input_user_id);
+END;
+$$;</code></pre>
+
+    <div class="box">
+      <strong>Critical discovery:</strong> When <code>auth.uid()</code> is called <em>through a PL/pgSQL wrapper</em>, it resolves correctly. When called <em>inline in a LANGUAGE sql STABLE policy expression</em>, it fails.<br><br>
+      <strong>Why:</strong> <code>auth.uid()</code> is <code>LANGUAGE sql STABLE</code>. PostgreSQL's query planner can <em>inline</em> STABLE SQL functions into the query. When inlined, the <code>coalesce</code> fallback from <code>NULL::request.jwt.claim.sub</code> to <code>request.jwt.claims::jsonb->>'sub'</code> may not fire correctly in the policy evaluation context. PL/pgSQL functions cannot be inlined by PostgreSQL — they force proper function call execution through the executor, where the <code>coalesce</code> fallback works.
+    </div>
+
+    <h3>Plan: PL/pgSQL Wrapper (<code>fix-rls-counter-trigger-pg-176.md</code>)</h3>
+
+    <p>Replace inline <code>auth.uid() = user_id</code> in all RLS policies with a PL/pgSQL wrapper function:</p>
+
+    <pre><code>CREATE OR REPLACE FUNCTION public.rls_user_matches_auth_uid(input_user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+VOLATILE
+SECURITY INVOKER
+SET search_path = public, auth
+AS $$
+BEGIN
+  RETURN auth.uid() = input_user_id;
+END;
+$$;</code></pre>
+
+    <div class="decision">
+      <div class="label">DECISION</div>
+      <strong>Adopt PL/pgSQL wrapper (<code>rls_user_matches_auth_uid</code>)</strong> for all RLS policy expressions on <code>user_interaction_counters</code>. This forces proper <code>auth.uid()</code> evaluation through the PL/pgSQL executor, preventing inlining of the <code>LANGUAGE sql STABLE</code> <code>auth.uid()</code> function.
+    </div>
+
+    <h3>The Re-Like Failure: Missing SELECT Policy</h3>
+    <div class="box box-red">
+      <strong>Problem:</strong> After deploying the PL/pgSQL wrapper policies, <strong>first like works, unlike works, but re-like still fails.</strong><br><br>
+      <strong>Root cause:</strong> <code>INSERT ... ON CONFLICT DO NOTHING</code> needs to <em>read existing rows</em> to detect the conflict. Under RLS, reading requires a SELECT policy. The counter table had INSERT and UPDATE policies — but no SELECT policy.<br><br>
+      <strong>PostgreSQL 17.6 behavior:</strong> WITH CHECK is evaluated BEFORE conflict detection. Even if the conflict check would find the row, the WITH CHECK fails first (permission denied for the SELECT required to check conflicts).
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Phase 5: The Missing Piece — SELECT Policy</h2>
+    <!-- ============================================================ -->
+
+    <h3>Migration: <code>add_counter_select_policy</code></h3>
+
+    <pre><code>CREATE POLICY "Users can select own counter"
+ON public.user_interaction_counters
+FOR SELECT
+TO public
+USING (public.rls_user_matches_auth_uid(user_id));</code></pre>
+
+    <div class="box box-green">
+      <strong>Final result:</strong> Like, unlike, re-like — all return 200. All 12 functions INVOKER. 3 policies (SELECT, INSERT, UPDATE) on counter table. Source policies hardened on likes/comments. Diagnostic artifacts cleaned up.
+    </div>
+
+    <h3>The Three-Policy Architecture (Final State)</h3>
+
+    <table>
+      <tr><th>Policy</th><th>Operation</th><th>Expression</th><th>Purpose</th></tr>
+      <tr>
+        <td><code>Users can select own counter</code></td>
+        <td>SELECT</td>
+        <td><code>rls_user_matches_auth_uid(user_id)</code></td>
+        <td>Enables <code>INSERT ON CONFLICT DO NOTHING</code> conflict detection</td>
+      </tr>
+      <tr>
+        <td><code>Users can insert own counter</code></td>
+        <td>INSERT</td>
+        <td><code>rls_user_matches_auth_uid(user_id)</code></td>
+        <td>Gates <code>ensure_user_counter_row()</code> INSERT</td>
+      </tr>
+      <tr>
+        <td><code>Users can update own counter</code></td>
+        <td>UPDATE</td>
+        <td><code>rls_user_matches_auth_uid(user_id)</code> (USING + WITH CHECK)</td>
+        <td>Gates all UPDATE operations in 10 trigger functions</td>
+      </tr>
+    </table>
+
+    <!-- ============================================================ -->
+    <h2>Full Approach Summary</h2>
+    <!-- ============================================================ -->
+
+    <table>
+      <tr><th>#</th><th>Approach</th><th>Plan File</th><th>Applied?</th><th>Result</th><th>Fate</th></tr>
+      <tr>
+        <td>1</td>
+        <td><strong>SECURITY DEFINER</strong> on all 11 trigger functions</td>
+        <td><code>rls-trigger-breakdown-and-fix.md</code></td>
+        <td>✅ Applied</td>
+        <td>Works perfectly</td>
+        <td><span class="pill pill-fail">Reverted</span> — bypasses RLS, no defense-in-depth</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>RLS policies + inline <code>auth.uid()</code></strong></td>
+        <td><code>migrate-counter-triggers-to-rls-policies.md</code></td>
+        <td>✅ Applied</td>
+        <td><span class="pill pill-fail">42501</span> — <code>auth.uid()</code> fails in inline policy expression</td>
+        <td><span class="pill pill-fail">Failed</span> — PG 17.6 inlining bug</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>PL/pgSQL wrapper (<code>rls_user_matches_auth_uid</code>)</strong></td>
+        <td><code>fix-rls-counter-trigger-pg-176.md</code></td>
+        <td>✅ Applied</td>
+        <td>Like ✅ · Unlike ✅ · <span class="pill pill-fail">Re-like fails</span></td>
+        <td><span class="pill pill-warn">Partial fix</span> — missing SELECT policy for conflict detection</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>SELECT policy on counter table</strong></td>
+        <td><code>add_counter_select_policy</code> (migration)</td>
+        <td>✅ Applied</td>
+        <td>Like ✅ · Unlike ✅ · Re-like ✅</td>
+        <td><span class="pill pill-ok">FINAL</span> — production state</td>
+      </tr>
+    </table>
+
+    <!-- ============================================================ -->
+    <h2>Approaches Considered But Not Pursued</h2>
+    <!-- ============================================================ -->
+
+    <div class="approach-card rejected">
+      <strong><span class="pill pill-fail">REJECTED</span> Hybrid SECURITY DEFINER</strong> — Only make <code>ensure_user_counter_row</code> SECURITY DEFINER, keep everything else INVOKER.<br>
+      <strong>Why rejected:</strong> Still a workaround, not root cause fix. Inconsistent security model. The other functions' UPDATE operations would still need working UPDATE RLS policies, so this only partially solves the problem and creates an inconsistent trust model.
+    </div>
+
+    <div class="approach-card rejected">
+      <strong><span class="pill pill-fail">REJECTED</span> Convert <code>ensure_user_counter_row</code> from <code>LANGUAGE sql</code> to <code>LANGUAGE plpgsql</code></strong><br>
+      <strong>Why rejected:</strong> Speculative guess, not evidence-based. The <code>ensure_user_counter_row</code> function itself is <code>LANGUAGE sql STABLE</code> — its execution isn't the problem. The problem is in the <em>policy expression</em> that gates access to the counter table, not in the function body. Converting the function wouldn't affect policy evaluation.
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Key Discoveries (Technical Deep Dive)</h2>
+    <!-- ============================================================ -->
+
+    <h3>Discovery #1: auth.uid() Inlining in Policy Expressions</h3>
+    <div class="box box-purple">
+      <strong>PostgreSQL 17.6 behavior:</strong> When <code>auth.uid()</code> (declared <code>LANGUAGE sql STABLE</code>) is used directly in RLS policy expressions, PostgreSQL's query planner may <strong>inline</strong> the function body into the query. This optimization skips the <code>coalesce</code> fallback from <code>NULL::request.jwt.claim.sub</code> to <code>request.jwt.claims::jsonb->>'sub'</code> — the function resolves to NULL instead of the actual user ID.<br><br>
+      <strong>Why PL/pgSQL works:</strong> PostgreSQL <strong>cannot inline</strong> <code>LANGUAGE plpgsql</code> functions. They must be called through the full executor, which properly evaluates the <code>coalesce</code> fallback chain.
+    </div>
+
+    <h3>Discovery #2: SELECT Policy Required for ON CONFLICT</h3>
+    <div class="box box-purple">
+      <strong>In PostgreSQL:</strong> <code>INSERT ... ON CONFLICT DO NOTHING</code> requires <strong>SELECT permission</strong> on the target table to detect whether a conflicting row exists. Under RLS, this means a SELECT policy is required — not just an INSERT policy.<br><br>
+      <strong>Why the first like succeeds:</strong> No existing counter row → no conflict to detect → no SELECT needed → INSERT policy alone suffices.<br><br>
+      <strong>Why re-like fails:</strong> Counter row exists → must SELECT to check conflict → no SELECT policy → 42501.
+    </div>
+
+    <h3>Discovery #3: request.jwt.claim.sub Is NULL in Triggers</h3>
+    <div class="box box-purple">
+      Inside trigger functions, <code>request.jwt.claim.sub</code> is <strong>NULL</strong>. Only <code>request.jwt.claims</code> (the full JSON) is available. This is why the <code>coalesce</code> chain in <code>auth.uid()</code> matters — the function falls back from <code>request.jwt.claim.sub</code> (NULL in triggers) to <code>request.jwt.claims->>'sub'</code> (works in triggers) before falling back to <code>NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid</code>.
+    </div>
+
+    <h3>Discovery #4: WITH CHECK Evaluated Before Conflict Detection</h3>
+    <div class="box box-purple">
+      <strong>PostgreSQL 17.6 execution order for <code>INSERT ... ON CONFLICT DO NOTHING</code>:</strong><br>
+      1. Evaluate WITH CHECK policy<br>
+      2. Check for conflict<br>
+      3. If conflict → DO NOTHING; if no conflict → INSERT<br><br>
+      This means the WITH CHECK must pass even when the row will ultimately be a no-op due to conflict. The SELECT required for step 2 is a separate permission from the INSERT WITH CHECK.
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>All SQL Migrations Applied (in Order)</h2>
+    <!-- ============================================================ -->
+
+    <table>
+      <tr><th>#</th><th>Migration Name</th><th>What It Did</th><th>Status</th></tr>
+      <tr>
+        <td>0</td>
+        <td><code>enable_rls_on_user_interaction_counters</code> (April 12)</td>
+        <td>Enabled RLS with zero policies. Made <code>get_top_user</code> SECURITY DEFINER.</td>
+        <td><span class="pill pill-fail">The Bug</span></td>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td><code>make_trigger_functions_security_definer</code></td>
+        <td>All 11 functions → SECURITY DEFINER + SET search_path.</td>
+        <td><span class="pill pill-fail">Reverted</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>rls-policies-on-user-interaction-counters</code></td>
+        <td>Reverted 11 functions to INVOKER. Added INSERT + UPDATE policies with inline <code>auth.uid() = user_id</code>. Hardened source INSERT policies on likes/comments.</td>
+        <td><span class="pill pill-fail">Failed</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>fix_user_interaction_counter_rls</code></td>
+        <td>Created <code>rls_user_matches_auth_uid(uuid)</code> PL/pgSQL wrapper. Replaced inline <code>auth.uid()</code> policies with wrapper function.</td>
+        <td><span class="pill pill-warn">Partial</span></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>add_counter_select_policy</code></td>
+        <td>Added SELECT policy on counter table for <code>ON CONFLICT DO NOTHING</code> conflict detection.</td>
+        <td><span class="pill pill-ok">FINAL</span></td>
+      </tr>
+    </table>
+
+    <!-- ============================================================ -->
+    <h2>Decisions Log (Chronological)</h2>
+    <!-- ============================================================ -->
+
+    <div class="decision">
+      <div class="label">DECISION 1 — April 12, 2026</div>
+      <strong>Enable RLS on <code>user_interaction_counters</code> with zero policies.</strong><br>
+      <em>Rationale:</em> "Triggers bypass RLS." (incorrect assumption)<br>
+      <em>Outcome:</em> The bug.
+    </div>
+
+    <div class="decision">
+      <div class="label">DECISION 2 — June 12, 2026</div>
+      <strong>Apply SECURITY DEFINER fix as immediate remediation.</strong><br>
+      <em>Rationale:</em> Fastest path to restore functionality. Known risk of bypassing RLS.<br>
+      <em>Outcome:</em> Works, but rejected as permanent solution.
+    </div>
+
+    <div class="decision">
+      <div class="label">DECISION 3 — June 12, 2026</div>
+      <strong>Revert SECURITY DEFINER. Use RLS policies with <code>auth.uid() = user_id</code>.</strong><br>
+      <em>Rationale:</em> Configure RLS correctly rather than bypass it. Audit confirmed all triggers only touch <code>auth.uid()</code>'s own row.<br>
+      <em>Outcome:</em> Failed — <code>auth.uid()</code> inlining bug in PG 17.6.
+    </div>
+
+    <div class="decision">
+      <div class="label">DECISION 4 — June 12, 2026</div>
+      <strong>Adopt <code>rls_user_matches_auth_uid(uuid)</code> PL/pgSQL wrapper.</strong><br>
+      <em>Rationale:</em> PL/pgSQL cannot be inlined by PostgreSQL's query planner. Forces proper <code>auth.uid()</code> evaluation through the executor.<br>
+      <em>Outcome:</em> Partial fix — re-like still fails (missing SELECT policy).
+    </div>
+
+    <div class="decision">
+      <div class="label">DECISION 5 — June 12, 2026</div>
+      <strong>Add SELECT policy on <code>user_interaction_counters</code>.</strong><br>
+      <em>Rationale:</em> <code>INSERT ... ON CONFLICT DO NOTHING</code> requires SELECT permission for conflict detection under RLS.<br>
+      <em>Outcome:</em> <span class="pill pill-ok">FINAL FIX</span> — all operations work.
+    </div>
+
+    <div class="decision">
+      <div class="label">DECISION 6 — June 12, 2026</div>
+      <strong>Harden <code>likes</code> and <code>comments</code> INSERT policies.</strong><br>
+      <em>Rationale:</em> Add <code>auth.uid() = user_id</code> to source table INSERT policies for defense-in-depth. Existing app code already sets <code>user_id</code> from auth session.<br>
+      <em>Outcome:</em> Applied. No regressions.
+    </div>
+
+    <div class="decision">
+      <div class="label">DECISION 7 — June 12, 2026</div>
+      <strong>Keep <code>handle_comment_delete</code> and <code>handle_father_son_stories_delete</code> as SECURITY INVOKER.</strong><br>
+      <em>Rationale:</em> Both are dead code (no DELETE RLS policies on source tables). If DELETE policies are added later, these triggers automatically work with existing RLS on counters. No need to handle them specially.<br>
+      <em>Outcome:</em> Kept as-is.
+    </div>
+
+    <div class="decision">
+      <div class="label">DECISION 8 — June 12, 2026</div>
+      <strong>Clean up diagnostic artifacts.</strong><br>
+      <em>Rationale:</em> <code>_rls_debug_fn</code>, <code>_diag_counter_insert</code>, test triggers, and <code>_rls_audit</code> were diagnostic-only. Remove to avoid confusion in production schema.<br>
+      <em>Outcome:</em> All diagnostic artifacts dropped.
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Negotiations and Trajectory Changes</h2>
+    <!-- ============================================================ -->
+
+    <h3>Trajectory Shift #1: SECURITY DEFINER → RLS Policies</h3>
+    <div class="box">
+      <strong>Initial plan:</strong> Fix the bug by making everything SECURITY DEFINER. <strong>Counter-argument:</strong> This is a workaround, not a fix. RLS exists for defense-in-depth; bypassing it at the trigger level removes protection.<br><br>
+      <strong>Negotiation outcome:</strong> Revert approach #1, pursue proper RLS policies. This is the "harder but correct" path.
+    </div>
+
+    <h3>Trajectory Shift #2: Inline auth.uid() → PL/pgSQL Wrapper</h3>
+    <div class="box">
+      <strong>Initial plan:</strong> Simple inline <code>auth.uid() = user_id</code> in policy expressions. <strong>Reality:</strong> Fails in PG 17.6 due to SQL function inlining.<br><br>
+      <strong>Negotiation outcome:</strong> Create PL/pgSQL wrapper. This was a reluctant decision — adds a helper function to the schema — but necessary because <code>auth.uid()</code> is <code>LANGUAGE sql STABLE</code> and PG inlines it.
+    </div>
+
+    <h3>Trajectory Shift #3: Two Policies → Three Policies</h3>
+    <div class="box">
+      <strong>Initial plan:</strong> INSERT and UPDATE policies only. "No SELECT policy needed — table is read via SECURITY DEFINER RPCs only."<br>
+      <strong>Reality:</strong> <code>INSERT ... ON CONFLICT DO NOTHING</code> requires SELECT for conflict detection. This was a missing piece discovered through testing, not analysis.<br><br>
+      <strong>Negotiation outcome:</strong> Add SELECT policy. Three-policy architecture is the minimum viable set.
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Common Confusions &amp; Clarifications</h2>
+    <!-- ============================================================ -->
+
+    <p class="sub">Concepts that human reviewers consistently stumbled on — addressed here with explicit comparisons and step-by-step breakdowns.</p>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #1: RLS Was Only Enabled on the Counter Table</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box box-yellow">
+      <strong>Before April 12:</strong> <code>likes</code>, <code>comments</code>, and <code>father_son_stories</code> already had RLS policies. <code>user_interaction_counters</code> had RLS <strong>disabled</strong> — the last table without protection.<br><br>
+      <strong>April 12:</strong> RLS was enabled <strong>only</strong> on <code>user_interaction_counters</code> — with zero policies.<br><br>
+      <strong>Why this matters:</strong> All other tables kept working for reads and writes — their policies never changed. Operations on <code>likes</code> failed because their <strong>triggers</strong> tried to write to the broken counter table and the transaction rolled back — not because the likes table itself was broken.
+    </div>
+
+    <table>
+      <tr><th>Table</th><th>RLS Before April 12</th><th>RLS After April 12</th><th>Policies</th></tr>
+      <tr><td><code>likes</code></td><td>Enabled</td><td>Enabled</td><td><code>auth.role()='authenticated'</code>, DELETE/UPDATE with <code>auth.uid()=user_id</code></td></tr>
+      <tr><td><code>comments</code></td><td>Enabled</td><td>Enabled</td><td>Same pattern</td></tr>
+      <tr><td><code>father_son_stories</code></td><td>Enabled</td><td>Enabled</td><td>Same pattern</td></tr>
+      <tr style="background:rgba(255,123,114,0.06);"><td><strong><code>user_interaction_counters</code></strong></td><td><strong>Disabled</strong></td><td><strong>Enabled</strong></td><td><strong>Zero policies</strong> ← THE BUG</td></tr>
+    </table>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #2: The 4 Approaches — Clearly Separated</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <p>The distinction between Approach #2 (inline <code>auth.uid()</code>) and Approach #3 (PL/pgSQL wrapper) is subtle but critical. Both added INSERT + UPDATE policies with <code>auth.uid() = user_id</code>. The difference is <strong>how <code>auth.uid()</code> was called</strong>: inline in the policy expression vs through a PL/pgSQL wrapper function.</p>
+
+    <table>
+      <tr><th>#</th><th>Approach</th><th>What Changed</th><th>auth.uid() Used How?</th><th>Result</th><th>Why</th></tr>
+      <tr>
+        <td>1</td>
+        <td><strong>SECURITY DEFINER</strong></td>
+        <td>Changed function security mode</td>
+        <td>N/A (bypasses RLS entirely)</td>
+        <td><span class="pill pill-ok">All ✅</span></td>
+        <td>Functions run as table owner → RLS bypassed</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>Inline auth.uid() in policies</strong></td>
+        <td>Added INSERT + UPDATE policies with <code>auth.uid() = user_id</code> in policy expression</td>
+        <td><strong>Inlined</strong> by PG planner → returns NULL</td>
+        <td><span class="pill pill-fail">42501 on INSERT</span></td>
+        <td>PG 17.6 inlines <code>LANGUAGE sql STABLE</code>; coalesce fails</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>PL/pgSQL wrapper</strong></td>
+        <td>Same policies via <code>rls_user_matches_auth_uid()</code> function call</td>
+        <td>Called through PL/pgSQL executor (cannot be inlined) → resolves correctly</td>
+        <td><span class="pill pill-warn">Like ✅ Unlike ✅ Re-like ❌</span></td>
+        <td>auth.uid() works, but <code>ON CONFLICT</code> needs SELECT policy</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>SELECT policy</strong></td>
+        <td>Added SELECT policy on counters</td>
+        <td>Same wrapper function</td>
+        <td><span class="pill pill-ok">All ✅</span></td>
+        <td>Conflict detection now has permission</td>
+      </tr>
+    </table>
+
+    <div class="box box-purple">
+      <strong>Key takeaway:</strong> Approach #2 and #3 are <strong>not</strong> the same thing. #2 writes <code>auth.uid() = user_id</code> directly in the policy expression. #3 writes <code>rls_user_matches_auth_uid(user_id)</code> — a function that internally calls <code>auth.uid()</code>. The indirection through PL/pgSQL is what prevents inlining.
+    </div>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #3: What Is an RLS Policy?</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box">
+      <strong>An RLS policy is a <em>boolean expression</em> attached to a table — not a function.</strong><br><br>
+      <strong>Policy:</strong> A rule that says "for this operation, allow rows where this expression is true."<br>
+      <strong>Function:</strong> A callable block of code. The policy expression <em>can</em> reference functions, but the policy itself is metadata on the table, not a function.
+    </div>
+
+    <pre><code><em>-- THIS is a policy (an expression/rule on the table):</em>
+CREATE POLICY "Users can insert own counter"
+ON user_interaction_counters FOR INSERT
+WITH CHECK (rls_user_matches_auth_uid(user_id));
+
+<em>-- THIS is a function (called by the policy expression):</em>
+CREATE FUNCTION rls_user_matches_auth_uid(input_user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN auth.uid() = input_user_id;
+END;
+$$;</code></pre>
+
+    <div class="box">
+      <strong>In the Supabase dashboard:</strong> when you go to a table → "Policies," you're seeing these boolean expressions. When a query hits the table, PostgreSQL evaluates the matching policy expression for each row. If the expression returns <code>true</code>, the row is accessible. If <code>false</code>, the row is silently excluded (UPDATE/DELETE/SELECT) or the row is rejected (INSERT).
+    </div>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #4: Why the SELECT Policy Exists (It's Not for User Reads)</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box box-purple">
+      <strong>The SELECT policy is not for users reading their counter data from the frontend.</strong> Counter reads go through SECURITY DEFINER RPCs (<code>get_top_user</code>, <code>get_interaction_analytics</code>) that bypass RLS entirely.<br><br>
+      <strong>The SELECT policy exists solely to enable the conflict detection step</strong> inside <code>INSERT ... ON CONFLICT DO NOTHING</code>. Without a SELECT policy, PostgreSQL refuses to check whether a conflicting row already exists → 42501.
+    </div>
+
+    <h4>Why First Like Succeeds but Re-Like Fails</h4>
+    <table>
+      <tr><th>Scenario</th><th>Step 1: WITH CHECK</th><th>Step 2: Conflict Detection (needs SELECT)</th><th>Step 3: Result</th></tr>
+      <tr>
+        <td><strong>First like</strong> (no existing counter row)</td>
+        <td><span class="pill pill-ok">✅ Passes</span> (INSERT policy)</td>
+        <td>No conflict to detect → SELECT not needed</td>
+        <td><span class="pill pill-ok">✅ Row inserted</span></td>
+      </tr>
+      <tr>
+        <td><strong>Re-like</strong> (counter row already exists)</td>
+        <td><span class="pill pill-ok">✅ Passes</span> (INSERT policy)</td>
+        <td><span class="pill pill-fail">❌ SELECT fails</span> (no SELECT policy) → can't check conflict</td>
+        <td><span class="pill pill-fail">❌ 42501</span></td>
+      </tr>
+    </table>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #5: WITH CHECK Before Conflict Detection — Why It Matters</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box box-yellow">
+      <strong>This execution order is functionally critical — not "aesthetic" or "just logical flow."</strong><br><br>
+      PostgreSQL 17.6 evaluates <code>INSERT ... ON CONFLICT DO NOTHING</code> in this fixed order:<br>
+      <strong>1.</strong> WITH CHECK policy (INSERT policy)<br>
+      <strong>2.</strong> Conflict detection (requires SELECT permission)<br>
+      <strong>3.</strong> If conflict → DO NOTHING; else → INSERT<br><br>
+      <strong>The implication:</strong> Even when a row <em>already exists</em> (so the INSERT will ultimately be a no-op), the WITH CHECK <strong>must pass first</strong>. If <code>auth.uid()</code> returns NULL (inlining bug in Approach #2), the WITH CHECK fails at step 1 — you never reach step 2. The operation errors out even though nothing actually needs to be inserted.
+    </div>
+
+    <table>
+      <tr><th>Step</th><th>Approach #2 (inline auth.uid())</th><th>Approach #3 (wrapper, no SELECT)</th><th>Approach #4 (FINAL)</th></tr>
+      <tr>
+        <td>WITH CHECK</td>
+        <td><span class="pill pill-fail">❌ auth.uid()=NULL</span></td>
+        <td><span class="pill pill-ok">✅ auth.uid() resolves</span></td>
+        <td><span class="pill pill-ok">✅ Same</span></td>
+      </tr>
+      <tr>
+        <td>Conflict detection</td>
+        <td>Never reached</td>
+        <td><span class="pill pill-fail">❌ No SELECT → 42501</span></td>
+        <td><span class="pill pill-ok">✅ SELECT policy → conflict detected</span></td>
+      </tr>
+      <tr>
+        <td>Result</td>
+        <td><span class="pill pill-fail">❌ 42501</span></td>
+        <td><span class="pill pill-fail">❌ 42501</span></td>
+        <td><span class="pill pill-ok">✅ DO NOTHING (row exists)</span></td>
+      </tr>
+    </table>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #6: JWT Flow — Next.js to PostgreSQL Session</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box">
+      <strong>How the user's JWT reaches the database and enables RLS:</strong>
+    </div>
+
+    <pre><code>Browser
+  → HTTP request with cookie (<code style="background:rgba(210,153,34,0.15);">auth-token</code>)
+    → Next.js API route (<code>src/app/api/likes/route.ts</code>)
+      → <span class="fn-ref">AuthManager.getAuthenticatedUser()</span>
+        ← reads cookie, decodes JWT payload, checks <code>exp</code> expiry
+        ← extracts <code>user.id</code> + <code>user.accessToken</code>
+        → <span class="fn-ref">getServerSupabase(user.accessToken)</span>
+          → <code>createClient(url, anonKey, { headers: { Authorization: "Bearer &lt;jwt&gt;" } })</code>
+            → Supabase client sends query to <strong>PostgREST</strong> (Supabase's REST API layer)
+              → PostgREST validates JWT signature, extracts claims
+                → PostgREST sets <code>request.jwt.claims</code> + <code>request.jwt.claim.sub</code> in the PG session
+                  → PostgreSQL executes the query
+                    → RLS policy expression evaluates <code>rls_user_matches_auth_uid(user_id)</code>
+                      → Function calls <code>auth.uid()</code> → reads <code>current_setting('request.jwt.claims')</code>
+                        → returns user UUID ✅</code></pre>
+
+    <div class="box">
+      <strong>Key insight:</strong> The auth check is <strong>not</strong> between Next.js and the Supabase client. The Supabase client simply passes the JWT as a header. The real validation — JWT signature verification + claim extraction — happens at <strong>PostgREST</strong>. PostgREST injects the claims into the PostgreSQL session, and then RLS evaluates them. RLS is the gatekeeper at the database level.
+    </div>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #7: The auth.uid() Coalesce Chain — Two Fallback Paths</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box box-purple">
+      <code>auth.uid()</code> tries two different session settings to find the user's UUID. Both are needed because one of them is NULL in triggers.
+    </div>
+
+    <pre><code>CREATE OR REPLACE FUNCTION auth.uid()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+AS $$
+SELECT coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),          <em>-- Path A</em>
+    (nullif(current_setting('request.jwt.claims', true),                 <em>-- Path B</em>
+     '')::jsonb ->> 'sub')
+)::uuid
+$$;</code></pre>
+
+    <table>
+      <tr><th>Setting</th><th>Inside Trigger Functions?</th><th>When Is It Set?</th><th>Notes</th></tr>
+      <tr>
+        <td><code>request.jwt.claim.sub</code> (Path A)</td>
+        <td><span class="pill pill-fail">NULL</span></td>
+        <td>Set by PostgREST for direct queries only</td>
+        <td>This is why <code>coalesce</code> is needed — Path A fails in triggers</td>
+      </tr>
+      <tr>
+        <td><code>request.jwt.claims</code> (Path B)</td>
+        <td><span class="pill pill-ok">Available ✅</span></td>
+        <td>Set by PostgREST for all queries (the full JSON blob)</td>
+        <td>Always available. Path B is what actually works in triggers.</td>
+      </tr>
+    </table>
+
+    <div class="box box-yellow">
+      <strong>What went wrong:</strong> When <code>auth.uid()</code> is inlined by PostgreSQL's query planner (Approach #2), the function body is merged into the calling query. The <code>coalesce</code> doesn't properly evaluate both branches in the policy evaluation context → the function returns NULL instead of the UUID. When called through a PL/pgSQL wrapper (Approach #3), the executor calls it properly → <code>coalesce</code> works → Path B resolves the <code>sub</code> claim → returns correct UUID.
+    </div>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #8: Defense-in-Depth — Concrete "What Could Go Wrong"</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box box-red">
+      <strong>Scenario:</strong> Imagine a future code change introduces a bug. Due to a race condition, a cached session, or a logic error in app code, <code>handle_like_insert</code> receives a <code>user_id</code> that doesn't belong to the current user. Maybe the app mistakenly passes user A's ID when user B is clicking the like button.
+    </div>
+
+    <table>
+      <tr><th></th><th>With SECURITY DEFINER (Approach #1)</th><th>With SECURITY INVOKER + RLS (Final)</th></tr>
+      <tr>
+        <td><strong>What happens?</strong></td>
+        <td>The trigger runs as table owner. It writes to <code>user_id = A</code> regardless of who the real user is. User B's like increments user A's counter. <strong>No error. No log. Silent corruption.</strong></td>
+        <td>The trigger runs as session user (user B's JWT). RLS checks <code>rls_user_matches_auth_uid(A)</code> → <code>auth.uid()</code> returns B → B ≠ A → policy returns false → <strong>42501 error. Bug caught immediately.</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Defense-in-depth?</strong></td>
+        <td><span class="pill pill-fail">❌ No — single layer of trust</span></td>
+        <td><span class="pill pill-ok">✅ Yes — database is the last line of defense</span></td>
+      </tr>
+    </table>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #9: Silent Bug Window — All Three Factors</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box">
+      The bug went undetected for ~2 months. <strong>All three</strong> of these factors contributed:
+    </div>
+
+    <div class="box box-yellow">
+      <strong>Factor 1 — Existing counter rows survived the migration.</strong> Users who already had a counter row before April 12 never hit the INSERT path for their existing interactions. The UPDATE path (for decrementing counters) silently affects 0 rows — no error thrown.
+    </div>
+
+    <div class="box box-yellow">
+      <strong>Factor 2 — UPDATE with zero RLS policies = silent success.</strong> Unlike and other operations that UPDATE the counter table don't throw 42501. They match 0 rows and silently succeed. This made it appear that the system was working normally for 2 months.
+    </div>
+
+    <div class="box box-yellow">
+      <strong>Factor 3 — Client error swallowing.</strong> The API handler caught the 500 Internal Server Error and returned a generic message. The client-side <code>like-service.ts</code> displayed "Network error occurred." Users blamed their internet connection, not a backend bug. The actual 42501 error code was hidden in server logs that no one was monitoring.
+    </div>
+
+    <!-- ------------------------------------------------------------ -->
+    <h3>Clarification #10: Trigger Architecture — Why the Counter Table Gets Updated</h3>
+    <!-- ------------------------------------------------------------ -->
+
+    <div class="box">
+      Every time a user likes, comments, or interacts with father_son_stories, a database trigger <strong>atomically</strong> updates their counter row. This guarantees consistency — you cannot create a like without the counter updating.
+    </div>
+
+    <pre><code><em>User clicks ❤️ (like):</em>
+  → INSERT INTO likes (page_path, user_id) VALUES (...)
+    → RLS on likes approves ✅
+    → 🔥 TRIGGER fires: <span class="fn-ref">handle_like_insert()</span>
+      → <span class="fn-ref">ensure_user_counter_row</span>(NEW.user_id)
+        → INSERT INTO user_interaction_counters ON CONFLICT DO NOTHING
+        → RLS must approve: SELECT (conflict check) + INSERT (new row)
+      → UPDATE user_interaction_counters
+        SET like_count = like_count + 1, updated_at = now()
+        WHERE user_id = NEW.user_id
+        → RLS must approve: UPDATE (USING + WITH CHECK)
+
+<em>User clicks 💔 (unlike):</em>
+  → DELETE FROM likes WHERE id = ?
+    → RLS on likes approves ✅
+    → 🔥 TRIGGER fires: <span class="fn-ref">handle_like_delete()</span>
+      → UPDATE user_interaction_counters
+        SET like_count = GREATEST(like_count - 1, 0), updated_at = now()
+        WHERE user_id = OLD.user_id
+        → RLS must approve: UPDATE (USING + WITH CHECK)</code></pre>
+
+    <div class="box box-green">
+      <strong>Architectural pattern:</strong> Using database triggers for counter updates guarantees <strong>atomicity</strong> — the counter update is part of the same transaction as the source operation. No app code can forget to call <code>incrementCounter()</code>. The database enforces the invariant at all times.<br><br>
+      This same pattern applies to <code>comments</code> (incrementing <code>comment_count</code>) and <code>father_son_stories</code> (incrementing <code>story_count</code>). All three source tables have triggers that update the same counter table.
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Complete File Inventory (Relevant to This Fix)</h2>
+    <!-- ============================================================ -->
+
+    <table>
+      <tr><th>File</th><th>Role</th></tr>
+      <tr><td><code>.kilo/plans/1775990254226-gentle-sailor.md</code></td><td>Original plan that enabled RLS — contains the incorrect "triggers bypass RLS" assumption</td></tr>
+      <tr><td><code>.kilo/plans/rls-trigger-breakdown-and-fix.md</code></td><td>Approach #1 plan (SECURITY DEFINER)</td></tr>
+      <tr><td><code>.kilo/plans/migrate-counter-triggers-to-rls-policies.md</code></td><td>Approach #2 plan (RLS policies + inline auth.uid()) with full per-function audit</td></tr>
+      <tr><td><code>.kilo/plans/fix-rls-counter-trigger-pg-176.md</code></td><td>Approach #3 plan (PL/pgSQL wrapper for auth.uid() inlining bug)</td></tr>
+      <tr><td><code>artifacts/human/rls-trigger-breakdown.html</code></td><td>Junior engineer explanation (SECURITY DEFINER approach — pre-dated later reversals)</td></tr>
+      <tr><td><code>artifacts/human/rls-trigger-exhaustive-journey.html</code></td><td>This document — the complete documentary</td></tr>
+      <tr><td><code>src/app/api/likes/route.ts</code></td><td>POST handler — catches 42501 at line 90</td></tr>
+      <tr><td><code>src/lib/likes/like-service.ts</code></td><td>Client-side fetch — wraps 500 as "Network error occurred"</td></tr>
+      <tr><td><code>src/lib/supabase/server.ts</code></td><td><code>getServerSupabase()</code> creates client with user's JWT</td></tr>
+    </table>
+
+    <!-- ============================================================ -->
+    <h2>Future-Proofing Checklist (for Any RLS Change)</h2>
+    <!-- ============================================================ -->
+
+    <div class="box">
+      <table>
+        <tr><td>☐</td><td>Check <code>prosecdef</code> in <code>pg_proc</code> for <strong>all</strong> trigger functions that touch RLS-protected tables</td></tr>
+        <tr><td>☐</td><td>Ensure every SECURITY DEFINER function has <code>SET search_path = public</code></td></tr>
+        <tr><td>☐</td><td>Test with a real user JWT, not just the Supabase SQL editor</td></tr>
+        <tr><td>☐</td><td>Test both INSERT and UPDATE paths separately — they behave differently under RLS</td></tr>
+        <tr><td>☐</td><td>When enabling RLS on a trigger-written table, always write policies — never assume triggers bypass RLS</td></tr>
+        <tr><td>☐</td><td>Test <code>INSERT ... ON CONFLICT DO NOTHING</code> specifically — requires SELECT permission under RLS</td></tr>
+        <tr><td>☐</td><td>If using <code>auth.uid()</code> in policy expressions, test in PG 17.6 — may need PL/pgSQL wrapper</td></tr>
+        <tr><td>☐</td><td>Remember that <code>SECURITY INVOKER</code> trigger functions run as the <em>session user</em>, not the table owner</td></tr>
+        <tr><td>☐</td><td>Test re-like/re-insert-after-delete flows specifically — they exercise ON CONFLICT paths</td></tr>
+      </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>Final State (Production)</h2>
+    <!-- ============================================================ -->
+
+    <table>
+      <tr><th>Component</th><th>State</th></tr>
+      <tr><td>All 12 trigger/helper functions</td><td><code>SECURITY INVOKER</code> (prosecdef = false) ✅</td></tr>
+      <tr><td><code>rls_user_matches_auth_uid(uuid)</code> helper</td><td>PL/pgSQL VOLATILE INVOKER — reference implementation for <code>auth.uid()</code> comparison</td></tr>
+      <tr><td>Counter table policies</td><td>3: SELECT, INSERT, UPDATE — all via <code>rls_user_matches_auth_uid(user_id)</code></td></tr>
+      <tr><td>Likes INSERT policy</td><td>Hardened: <code>auth.role() = 'authenticated' AND auth.uid() = user_id</code></td></tr>
+      <tr><td>Comments INSERT policy</td><td>Hardened: <code>auth.role() = 'authenticated' AND auth.uid() = user_id</code></td></tr>
+      <tr><td>Counter reads</td><td>Via SECURITY DEFINER RPCs (<code>get_top_user</code>, <code>get_interaction_analytics</code>) — bypass RLS</td></tr>
+      <tr><td>Diagnostic artifacts</td><td>All dropped (<code>_rls_debug_fn</code>, <code>_diag_counter_insert</code>, test triggers, <code>_rls_audit</code>)</td></tr>
+    </table>
+
+    <p class="muted" style="margin-top:40px; font-size:12px;">Exhaustive documentary compiled June 25, 2026 · Project: art (Supabase <code>ubgaljottuegfvzsrsbn</code>) · PostgreSQL 17.6</p>
+  </main>
+</body>
+</html>

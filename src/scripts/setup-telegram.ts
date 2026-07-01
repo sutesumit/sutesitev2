@@ -38,6 +38,7 @@ const BOT_COMMANDS = [
   { command: "get", description: "Get a byte or blip" },
   { command: "edit", description: "Edit a byte or blip" },
   { command: "del", description: "Delete a byte or blip" },
+  { command: "livesession", description: "Manage live bloq sessions" },
 ] as const;
 
 async function main(): Promise<void> {

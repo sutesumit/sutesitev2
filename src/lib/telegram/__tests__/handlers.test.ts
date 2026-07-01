@@ -29,6 +29,13 @@ vi.mock("@/lib/blip/service", () => ({
   createBlipService: vi.fn(() => blipServiceMock),
 }));
 
+// Use shared mock factory to avoid module caching conflicts across test files
+import { mockLiveBloqService, mockCreateLiveBloqService } from "@/test/mocks/live-bloq";
+vi.mock("@/lib/live-bloq/service", () => ({
+  liveBloqService: mockLiveBloqService,
+  createLiveBloqService: mockCreateLiveBloqService,
+}));
+
 vi.mock("@/lib/content-publish", () => ({
   contentMutationEffects: {},
 }));
@@ -40,7 +47,15 @@ vi.mock("@/lib/blip/validation", () => ({
   }),
 }));
 
+vi.mock("../session-state", () => ({
+  getOrRecoverActiveSession: vi.fn(() => null),
+  setActiveSession: vi.fn(),
+  clearActiveSession: vi.fn(),
+  getActiveSession: vi.fn(),
+}));
+
 import { handleBlip, handleByte, handleList, handleMessage } from "../commands/handlers";
+import { getOrRecoverActiveSession } from "../session-state";
 
 const createMockContext = (match: string | null, userId = 12345) => ({
   from: { id: userId },
@@ -142,5 +157,77 @@ describe("telegram command handlers", () => {
       expect.stringContaining("002"),
       { parse_mode: "HTML" }
     );
+  });
+
+  it("routes message to live entry when session is active", async () => {
+    vi.mocked(getOrRecoverActiveSession).mockResolvedValueOnce("session-1");
+    vi.mocked(mockLiveBloqService.addEntry).mockResolvedValueOnce({
+      entry_id: "e1",
+      entry_sequence: 3,
+      session_slug: "my-slug",
+    });
+
+    const ctx = createMockContext("live update!");
+    await handleMessage(ctx, createMockBot() as never);
+
+    expect(mockLiveBloqService.addEntry).toHaveBeenCalledWith(
+      "session-1",
+      "live update!"
+    );
+    expect(ctx.reply).toHaveBeenCalledWith(
+      "Entry #3 added.",
+      { parse_mode: "HTML" }
+    );
+    expect(byteServiceMock.createByte).not.toHaveBeenCalled();
+  });
+
+  it("falls back to byte creation when no active session", async () => {
+    vi.mocked(getOrRecoverActiveSession).mockResolvedValueOnce(null);
+    byteServiceMock.createByte.mockResolvedValueOnce({
+      id: "1",
+      byte_serial: "005",
+      content: "just a byte",
+      created_at: "2026-07-01T10:00:00Z",
+    });
+
+    const ctx = createMockContext("just a byte");
+    await handleMessage(ctx, createMockBot() as never);
+
+    expect(mockLiveBloqService.addEntry).not.toHaveBeenCalled();
+    expect(byteServiceMock.createByte).toHaveBeenCalledWith("just a byte");
+  });
+
+  it("shows live-session error when addEntry throws (session closed during check)", async () => {
+    vi.mocked(getOrRecoverActiveSession).mockResolvedValueOnce("session-1");
+    vi.mocked(mockLiveBloqService.addEntry).mockRejectedValueOnce(
+      new Error("Session not active")
+    );
+
+    const ctx = createMockContext("fallback byte");
+    await handleMessage(ctx, createMockBot() as never);
+
+    expect(mockLiveBloqService.addEntry).toHaveBeenCalledWith(
+      "session-1",
+      "fallback byte"
+    );
+    expect(byteServiceMock.createByte).not.toHaveBeenCalled();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      "Could not add that update to the live session."
+    );
+  });
+
+  it("skips commands when session is active (commands start with /)", async () => {
+    const ctx = {
+      from: { id: 12345 },
+      match: null,
+      reply: vi.fn().mockResolvedValue(undefined),
+      message: { text: "/byte some content" },
+    } as unknown as Parameters<typeof handleMessage>[0];
+
+    await handleMessage(ctx, createMockBot() as never);
+
+    // Should return early, no entry or byte created
+    expect(mockLiveBloqService.addEntry).not.toHaveBeenCalled();
+    expect(byteServiceMock.createByte).not.toHaveBeenCalled();
   });
 });

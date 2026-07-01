@@ -36,4 +36,33 @@ describe("content mutation effects", () => {
       })
     ).resolves.toBeUndefined();
   });
+
+  it("handles live-bloq events in composed effects", async () => {
+    const first = { onMutation: vi.fn() };
+    const second = { onMutation: vi.fn() };
+    const effect = composeContentMutationEffects([first, second]);
+    const event = {
+      action: "published" as const,
+      type: "live-bloq" as const,
+      liveBloq: {
+        id: "s1",
+        slug: "my-live",
+        title: "My Live Session",
+        status: "active" as const,
+        tags: [],
+        category: "Live",
+        authors: ["Sumit Sute"],
+        summary: null,
+        started_at: "2026-07-01T10:00:00Z",
+        closed_at: null,
+        entry_count: 0,
+        created_at: "2026-07-01T10:00:00Z",
+      },
+    };
+
+    await effect.onMutation(event);
+
+    expect(first.onMutation).toHaveBeenCalledWith(event);
+    expect(second.onMutation).toHaveBeenCalledWith(event);
+  });
 });

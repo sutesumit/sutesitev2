@@ -1,5 +1,7 @@
 import { getBloqPosts } from "@/lib/bloq";
 import { getBytes } from "@/lib/byte";
+import { listSessions } from "@/lib/live-bloq/repository";
+import { liveSessionToBloqPost } from "@/lib/live-bloq";
 import type { FeedConfig } from './types';
 import { escapeXml, bloqToFeedItem, byteToFeedItem } from './formatters';
 
@@ -14,12 +16,18 @@ export async function generateFeed(
   maxItems: number = 50, 
   config: FeedConfig = DEFAULT_CONFIG
 ): Promise<string> {
-  const [bloqs, bytesResult] = await Promise.all([
+  const [bloqs, bytesResult, sessions] = await Promise.all([
     Promise.resolve(getBloqPosts()),
     getBytes(1, 100), // Get more items for feed (high limit)
+    listSessions(),
   ]);
 
-  const bloqItems = bloqs.map(post => bloqToFeedItem(post, config.siteUrl));
+  // Include live sessions in feed (active + closed, exclude cancelled)
+  const livePosts = sessions
+    .filter((s) => s.status !== 'cancelled')
+    .map(liveSessionToBloqPost);
+
+  const bloqItems = [...bloqs, ...livePosts].map(post => bloqToFeedItem(post, config.siteUrl));
   const byteItems = bytesResult.data.map(byte => byteToFeedItem(byte, config.siteUrl));
 
   const allItems = [...bloqItems, ...byteItems]

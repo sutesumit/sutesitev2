@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { getBloqPostBySlug } from "@/lib/bloq";
+import { liveBloqService } from "@/lib/live-bloq";
 import { jsonError, jsonSuccess } from "@/lib/api/responses";
 import { resolveNotificationContentSummary } from "@/lib/notifications/content-summary";
 import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
@@ -15,6 +16,14 @@ function validatePostType(type: string): type is PostType {
     return VALID_POST_TYPES.includes(type as PostType);
 }
 
+async function ensureBloqPostExists(id: string): Promise<boolean> {
+    const post = getBloqPostBySlug(id);
+    if (post) return true;
+    const liveSlug = id.startsWith('live/') ? id.slice(5) : id;
+    const session = await liveBloqService.getSession(liveSlug);
+    return session !== null;
+}
+
 export async function POST(
     req: Request,
     { params }: RouteParams
@@ -27,8 +36,8 @@ export async function POST(
         }
 
         if (type === 'bloq') {
-            const post = getBloqPostBySlug(id);
-            if (!post) {
+            const exists = await ensureBloqPostExists(id);
+            if (!exists) {
                 return jsonError("Post not found", 404);
             }
         }
@@ -88,8 +97,8 @@ export async function GET(
         }
 
         if (type === 'bloq') {
-            const post = getBloqPostBySlug(id);
-            if (!post) {
+            const exists = await ensureBloqPostExists(id);
+            if (!exists) {
                 return jsonError("Post not found", 404);
             }
         }
