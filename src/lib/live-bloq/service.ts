@@ -106,6 +106,7 @@ export function createLiveBloqService(deps?: {
       const session = await repository.closeSession(sessionId);
       revalidatePath(`/bloq/live/${session.slug}`);
       revalidatePath('/bloq');
+      revalidatePath('/');
       return session;
     },
 
@@ -113,6 +114,7 @@ export function createLiveBloqService(deps?: {
       const session = await repository.cancelSession(sessionId);
       revalidatePath(`/bloq/live/${session.slug}`);
       revalidatePath('/bloq');
+      revalidatePath('/');
       return session;
     },
 

@@ -283,6 +283,7 @@ describe("LiveBloqService", () => {
     expect(repository.closeSession).toHaveBeenCalledWith("session-1");
     expect(result).toEqual(closed);
     expect(revalidatePath).toHaveBeenCalledWith("/bloq/live/my-slug");
+    expect(revalidatePath).toHaveBeenCalledWith('/');
     expect(mutationEffect.onMutation).not.toHaveBeenCalled();
   });
 
@@ -312,6 +313,7 @@ describe("LiveBloqService", () => {
     expect(repository.cancelSession).toHaveBeenCalledWith("session-1");
     expect(result).toEqual(cancelled);
     expect(revalidatePath).toHaveBeenCalledWith("/bloq/live/my-slug");
+    expect(revalidatePath).toHaveBeenCalledWith('/');
     expect(mutationEffect.onMutation).not.toHaveBeenCalled();
   });
 

@@ -61,16 +61,16 @@ export function LiveBloqFeed({
       setConnectionOk(true);
       const data = await res.json();
       if (data.entries && data.entries.length > 0) {
-setEntries((prev) => {
-           const existingIds = new Set(prev.map((e) => e.id));
-           const newEntries = data.entries.filter(
-             (e: LiveEntry) => !existingIds.has(e.id),
-           );
-           if (newEntries.length === 0) return prev;
-           const combined = [...newEntries, ...prev];
-           combined.sort((a, b) => b.sequence - a.sequence);
-           return combined;
-         });
+        setEntries((prev) => {
+          const existingIds = new Set(prev.map((e) => e.id));
+          const newEntries = data.entries.filter(
+            (e: LiveEntry) => !existingIds.has(e.id),
+          );
+          if (newEntries.length === 0) return prev;
+          const combined = [...newEntries, ...prev];
+          combined.sort((a, b) => b.sequence - a.sequence);
+          return combined;
+        });
         const maxSeq = Math.max(
           ...data.entries.map((e: LiveEntry) => e.sequence),
         );
@@ -159,11 +159,10 @@ setEntries((prev) => {
                 >
                   {/* Entry content */}
                   <div
-                    className={`flex-1 min-w-0 rounded-lg px-3 py-2 -ml-1 cursor-default transition-all duration-200 ease-out ${
-                      isLatest
+                    className={`flex-1 min-w-0 rounded-lg px-3 py-2 -ml-1 cursor-default transition-all duration-200 ease-out ${isLatest
                         ? "bg-red-500/5 border border-red-500/10 hover:bg-red-500/10 hover:shadow-red-500/5"
                         : "bg-muted/30 hover:bg-muted/50"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-baseline gap-2 mb-0.5">
                       <time
