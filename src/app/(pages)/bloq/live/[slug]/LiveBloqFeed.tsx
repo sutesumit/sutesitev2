@@ -36,12 +36,13 @@ export function LiveBloqFeed({
   initialEntries,
   slug,
 }: LiveBloqFeedProps) {
-  const [entries, setEntries] = useState<LiveEntry[]>(initialEntries);
+  const sortedInitialEntries = [...initialEntries].sort((a, b) => b.sequence - a.sequence);
+  const [entries, setEntries] = useState<LiveEntry[]>(sortedInitialEntries);
   const [liveStatus, setLiveStatus] = useState(session.status);
   const [connectionOk, setConnectionOk] = useState(true);
   const lastSequenceRef = useRef(
-    initialEntries.length > 0
-      ? initialEntries[initialEntries.length - 1].sequence
+    sortedInitialEntries.length > 0
+      ? sortedInitialEntries[0].sequence
       : 0,
   );
 
@@ -60,16 +61,16 @@ export function LiveBloqFeed({
       setConnectionOk(true);
       const data = await res.json();
       if (data.entries && data.entries.length > 0) {
-        setEntries((prev) => {
-          const existingIds = new Set(prev.map((e) => e.id));
-          const newEntries = data.entries.filter(
-            (e: LiveEntry) => !existingIds.has(e.id),
-          );
-          if (newEntries.length === 0) return prev;
-          const combined = [...newEntries, ...prev];
-          combined.sort((a, b) => b.sequence - a.sequence);
-          return combined;
-        });
+setEntries((prev) => {
+           const existingIds = new Set(prev.map((e) => e.id));
+           const newEntries = data.entries.filter(
+             (e: LiveEntry) => !existingIds.has(e.id),
+           );
+           if (newEntries.length === 0) return prev;
+           const combined = [...newEntries, ...prev];
+           combined.sort((a, b) => b.sequence - a.sequence);
+           return combined;
+         });
         const maxSeq = Math.max(
           ...data.entries.map((e: LiveEntry) => e.sequence),
         );
@@ -145,7 +146,7 @@ export function LiveBloqFeed({
 
           <AnimatePresence initial={false}>
             {entries.map((entry, i) => {
-              const isLatest = isLive && i === entries.length - 1;
+              const isLatest = isLive && i === 0; // Highlight newest entry (sorted descending)
 
               return (
                 <motion.li
@@ -156,23 +157,12 @@ export function LiveBloqFeed({
                   transition={{ duration: 0.3, ease: "easeOut" }}
                   className="relative flex gap-4 pb-4 last:pb-0"
                 >
-                  {/* Timeline dot */}
-                  {/*<div className="relative flex shrink-0 items-start pt-1.5">
-                    <span
-                      className={`relative z-10 flex h-[15px] w-[15px] rounded-full border-2 border-background ${
-                        isLatest
-                          ? "bg-red-500 shadow-[0_0_0_2px_rgba(239,68,68,0.3)]"
-                          : "bg-muted-foreground/30"
-                      }`}
-                    />
-                  </div>*/}
-
                   {/* Entry content */}
                   <div
-                    className={`flex-1 min-w-0 rounded-lg px-3 py-2 -ml-1 ${
+                    className={`flex-1 min-w-0 rounded-lg px-3 py-2 -ml-1 cursor-default transition-all duration-200 ease-out ${
                       isLatest
-                        ? "bg-red-500/5 border border-red-500/10"
-                        : "bg-muted/30"
+                        ? "bg-red-500/5 border border-red-500/10 hover:bg-red-500/10 hover:shadow-red-500/5"
+                        : "bg-muted/30 hover:bg-muted/50"
                     }`}
                   >
                     <div className="flex items-baseline gap-2 mb-0.5">
