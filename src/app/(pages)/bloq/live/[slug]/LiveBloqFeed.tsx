@@ -66,7 +66,9 @@ export function LiveBloqFeed({
             (e: LiveEntry) => !existingIds.has(e.id),
           );
           if (newEntries.length === 0) return prev;
-          return [...prev, ...newEntries];
+          const combined = [...newEntries, ...prev];
+          combined.sort((a, b) => b.sequence - a.sequence);
+          return combined;
         });
         const maxSeq = Math.max(
           ...data.entries.map((e: LiveEntry) => e.sequence),
@@ -147,6 +149,7 @@ export function LiveBloqFeed({
 
               return (
                 <motion.li
+                  layout
                   key={entry.id}
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
