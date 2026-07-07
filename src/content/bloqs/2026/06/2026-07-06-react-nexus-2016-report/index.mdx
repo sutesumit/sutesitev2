@@ -1,0 +1,75 @@
+---
+title: "A Curated Dump of React Nexus 2016"
+publishedAt: "2026-07-06"
+summary: "Two days at React Nexus 2026 in Bangalore. Some talks hit, most didn't. Here's what I'm carrying home: for the couple of you at Beneathatree who might read this, and for myself, still unpacking what to pay attention to."
+slug: "react-nexus-2016-report"
+tags:
+  - react
+  - conference
+  - frontend
+  - reflections
+  - architecture
+  - tanstack
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: true
+---
+###
+
+Dear Beneathatree crew, and any curious soul who got tripped into this report:
+
+This was my first [React Nexus](https://reactnexus.com/). And like most conferences, this one too felt more about the people than the talks. Maybe expecting originality in conferences with this scale and depth is unrealistic. Maybe conferences like these attempt to attract credentials over content for credibility, not the other way. I was left with mixed feelings.
+
+Some felt like a personal report on things and problems we were trying to solve. Some only summarized a relatively new trend, rehearsing what's fresh without adding anything fresh to it. The topics were wide and well covered on the surface: Accessibility, Design Systems, Observability. But most came wrapped in the agentic approach first, engineering depth second. A wiki paragraph, presented aloud, without really digging deeper. That also did give a pulse: what's happening in the landscape, who's building what. But overall? Mostly noise. Good signals, definitely there, yet scattered thin. And React Dev Tools? A complete miss.
+
+I took messy live notes across both days. Here are my [Notes from React Nexus 2026 - Day 1](/bloq/live/notes-from-react-nexus-2026) and here are my [Notes from React Nexus 2026 - Day 2](/bloq/live/notes-from-react-nexus-2026-day-2). Surface reason: for a couple of you at Beneathatree who might care. Real reason: keep the old journalism muscle alive — crude as it is, this muscle knows only one way to stay sharp: stay locked in every session, every minute. Take notes raw, don't polish in the moment. Let the signal and noise bleed onto the same page. Probably why the conference kept me overwhelmed, yet left me underwhelmed with what to carry home.
+
+Bijoy, our younger colleague, hovered around. Less engaged, more tired and fractured (literally) than I was. No way he would find it memorable either. But it's unfair to turn this report into an opinion fest. Plenty of glowing [LinkedIn posts](https://www.linkedin.com/search/results/all/?keywords=%23reactnexus2026&origin=HASH_TAG_FROM_FEED) from the same auditorim.
+
+Here's what I set out to do:for the couple of you who might be reading this at Beneathatree. Surface the signals, as many as I can find, without sweetening the page. Filter the noise, as much as I can, without erasing what was real. And then go beyond the talks themselves. Pull in references that matter but weren't mentioned. That last bit is personal. Me, thinking out loud, leaving something behind for a future self.
+
+So: a curated dump of topics and resources from both days here in this piece. Then I'll quantify the takeaways, as objectively as I can. This sounds snobbish. Maybe rude. I'm doing it deliberately. I want to get better at extracting value beyond networking from conferences. 
+
+***
+
+## Day 1:
+
+The conference started right on time. The emcees opened with well-rehearsed banter while the auditorium was still filling—effortfully candid, scripted in that way where you can see the seams. The introductions were engaging. Often sloppy, too. Effortfully candid, effortlessly generated. But this was only rehearsed openings, thinks felt a lot more humane as the day went on.
+
+I hadn't heard of most of the sponsors. CodeWalnut, ImageKit—all new to me. Except Zoho. The emcees slipped in a product plug for Zoho's serverless offerings. They acknowledged the schedule was drowning in AI talks. In hindsight, it was thankfully not entirely true. Then they very brazenly tried to make a case for why engineers remain irreplaceable. The jokes and stage drama were okay. The auditorium was nearly full by then. I just wish they'd spread the humour across the day instead of front-loading it all at the opening. But we are here for the talks, not for the opening.
+
+---
+### React Is Becoming a Platform, And Most Developers Haven't Noticed Yet | Tapas Adhikary, CEO, CreoWis
+
+[Tapas](https://www.linkedin.com/in/tapasadhikary/) opens by sharing—almost as an aside—that this was the first year his full-length talk got accepted. He'd applied every single time. This year, not only accepted, but as the keynote. He saves the personal introduction for later instead of leading with it. I like such talk templates. Doesn't make you sit through a bio before earning your attention. He's a serial React community builder and YouTuber, but that comes after the intro the substance.
+
+React is always evolving, he says. There's always something new to learn. It stopped being just a UI library a long time ago. Streaming, SSR, Server Actions—these have fundamentally expanded what React is. He walks through the history since 2013, and it's striking how simple the original bargain was: manage state, render UI to the DOM. Nothing more. That's it. A "V" in MVC.
+
+Around 2018, something shifted. Applications were shipping JavaScript bundles north of a megabyte with long, sequential network waterfalls, and the ecosystem started reaching for better ways to orchestrate data. The talk feels humane and informative—not the usual sloppiness you brace for at these things.
+
+React never really cared about the backend in the beginning. But routing, data fetching, all the concerns that live on the other side of the network—they kept surfacing. React kept pushing against the limits of what a client-only library could do, and the cracks started showing.
+
+Tapas continues to talk about the complexity crisis of SPAs—the tension between SEO, zero-loading expectations, and applications that keep growing past what the client can reasonably handle.
+
+He asks the room: how many people started using React in 2013? A handful of hands go up. Then he traces the arc: a client-heavy library in 2015, the Hooks era around 2020, and today—a platform that increasingly embraces the server as a first-class concern, not an afterthought.
+
+Moving computation closer to the edge shrinks the traditional server roundtrip. Hooks like `useOptimistic` represent a deeper shift in mental model. You're no longer thinking "fetch, wait, render." You're thinking about what the user should see *now* while the network catches up behind them.
+
+The "framework bloodbath," as Tapas puts it, now consists of Next.js, React Router v7, and TanStack Start. They largely solve the same category of problems. Forget the competition. What's striking is the convergence. These tools are all reaching for the same shape.
+
+Tapas gives Next.js credit for something specific: pioneering the App Router mental model and, more importantly, helping establish the vocabulary and architectural parity the ecosystem now shares. While now TanStack Start doing it very beautifully. Across all three frameworks, you'll find router-level loaders, server-first mutations, streaming SSR, hydration optimization—just under different names. All of them arguing about the implementation while agreeing on architecture. React increasingly acts as the common platform that makes these backend capabilities possible.
+
+For those of us at Beneathatree wrestling with framework choices: his take is that whichever of the three you pick, you're generally in good shape. He recommends TanStack Start for founding teams with experience—lean, composable, you own more of the stack. Next.js remains a strong recommendation for new teams because so much comes out of the box. But the real takeaway isn't which framework to choose. It's the paradigm shift underneath: React is moving from client-first thinking toward server-first applications.
+
+He illustrates this with an ebook-selling application—client UI coordinated with the Next.js App Router, Razorpay, Supabase, Vercel Blob storage, all within the React ecosystem. It's a lot of pieces. But the point is they all fit.
+
+Here's the line I wrote down:: today there's hardly anything called "global state" in the traditional sense. The conversation has shifted toward server state. Complex lifecycle discussions matter far less than they used to. Suspense is widely adopted, because it brings sanity to the developer experience while debugging. Edge-based architectures increasingly shape how we design applications. If you've been building React apps for a while, that's a quiet earthquake.
+
+The biggest transformation in React, Tapas argues, isn't any single feature. It's where applications execute. React applications are steadily moving from the browser toward the server—not because of some ideological swing, but because user expectations demanded it. The browser alone couldn't keep up.
+
+He closes by mentioning his book, *[The React Clean Code Rule Book](https://www.tapascript.io/books/react-clean-code-rule-book)*. If the talk resonated, it's probably worth a look.
+
+---
+*[To be continued...]*
