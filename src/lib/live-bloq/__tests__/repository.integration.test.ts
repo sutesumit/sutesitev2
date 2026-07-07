@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   createSession,
   addEntry,
@@ -16,7 +16,7 @@ import {
 const hasIntegrationEnv = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.SUPABASE_SERVICE_ROLE_KEY &&
-  process.env.RUN_SUPABASE_INTEGRATION_TESTS === "true"
+  process.env.RUN_SUPABASE_INTEGRATION_TESTS === "true",
 );
 
 const describeIf = hasIntegrationEnv ? describe : describe.skip;
@@ -62,7 +62,10 @@ describeIf("LiveBloq repository integration", () => {
   });
 
   it("enforces single active session via unique index", async () => {
-    const s1 = await createSession("First Active", `active-test-1-${Date.now()}`);
+    const s1 = await createSession(
+      "First Active",
+      `active-test-1-${Date.now()}`,
+    );
     sessionId = s1.id;
 
     const s2Slug = `active-test-2-${Date.now()}`;
@@ -74,7 +77,10 @@ describeIf("LiveBloq repository integration", () => {
       // This means the earlier test or some other state left no active session
       // We should still verify that trying to have two actives fails
       await closeSession(s1.id);
-      const s3 = await createSession("Third Active", `active-test-3-${Date.now()}`);
+      const s3 = await createSession(
+        "Third Active",
+        `active-test-3-${Date.now()}`,
+      );
       try {
         await createSession("Should Fail", `active-test-4-${Date.now()}`);
         // If we get here, unique index isn't working
@@ -93,7 +99,10 @@ describeIf("LiveBloq repository integration", () => {
   });
 
   it("adds entries via RPC and increments entry_count", async () => {
-    const session = await createSession("Entry Test", `entry-test-${Date.now()}`);
+    const session = await createSession(
+      "Entry Test",
+      `entry-test-${Date.now()}`,
+    );
     sessionId = session.id;
 
     const r1 = await addEntry(session.id, "First entry");
@@ -113,7 +122,10 @@ describeIf("LiveBloq repository integration", () => {
   });
 
   it("rejects addEntry on closed session", async () => {
-    const session = await createSession("Close Test", `close-test-${Date.now()}`);
+    const session = await createSession(
+      "Close Test",
+      `close-test-${Date.now()}`,
+    );
     sessionId = session.id;
 
     await addEntry(session.id, "Before close");
@@ -142,7 +154,10 @@ describeIf("LiveBloq repository integration", () => {
   });
 
   it("getEntriesAfter returns only entries with higher sequence", async () => {
-    const session = await createSession("After Test", `after-test-${Date.now()}`);
+    const session = await createSession(
+      "After Test",
+      `after-test-${Date.now()}`,
+    );
     sessionId = session.id;
 
     await addEntry(session.id, "Entry 1");
@@ -163,7 +178,10 @@ describeIf("LiveBloq repository integration", () => {
   });
 
   it("closeSession sets status and closed_at", async () => {
-    const session = await createSession("Close State Test", `close-state-${Date.now()}`);
+    const session = await createSession(
+      "Close State Test",
+      `close-state-${Date.now()}`,
+    );
     sessionId = session.id;
 
     const closed = await closeSession(session.id);
@@ -176,7 +194,10 @@ describeIf("LiveBloq repository integration", () => {
   });
 
   it("cancelSession sets status to cancelled", async () => {
-    const session = await createSession("Cancel Test", `cancel-test-${Date.now()}`);
+    const session = await createSession(
+      "Cancel Test",
+      `cancel-test-${Date.now()}`,
+    );
     sessionId = session.id;
 
     const cancelled = await cancelSession(session.id);
@@ -202,7 +223,10 @@ describeIf("LiveBloq repository integration", () => {
   });
 
   it("findActiveSession returns the active session", async () => {
-    const session = await createSession("Find Active", `find-active-${Date.now()}`);
+    const session = await createSession(
+      "Find Active",
+      `find-active-${Date.now()}`,
+    );
     sessionId = session.id;
 
     const active = await findActiveSession();
@@ -218,7 +242,10 @@ describeIf("LiveBloq repository integration", () => {
 
   it("listSessions returns all sessions ordered by started_at DESC", async () => {
     const s1 = await createSession("List First", `list-first-${Date.now()}`);
-    const s2 = await createSession("List Second", `list-second-${Date.now() + 1}`);
+    const s2 = await createSession(
+      "List Second",
+      `list-second-${Date.now() + 1}`,
+    );
 
     const sessions = await listSessions();
     const ids = sessions.map((s) => s.id);
@@ -233,7 +260,10 @@ describeIf("LiveBloq repository integration", () => {
   });
 
   it("ON DELETE CASCADE removes entries when session is deleted", async () => {
-    const session = await createSession("Cascade Test", `cascade-${Date.now()}`);
+    const session = await createSession(
+      "Cascade Test",
+      `cascade-${Date.now()}`,
+    );
     await addEntry(session.id, "Entry to cascade");
 
     const entriesBefore = await getEntries(session.id);
