@@ -1,8 +1,8 @@
 ---
-title: "A Curated Dump of React Nexus 2016"
+title: "A Curated Dump of React Nexus 2026"
 publishedAt: "2026-07-06"
 summary: "Two days at React Nexus 2026 in Bangalore. Some talks hit, most didn't. Here's what I'm carrying home: for the couple of you at Beneathatree who might read this, and for myself, still unpacking what to pay attention to at conferences."
-slug: "react-nexus-2016-report"
+slug: "react-nexus-2026-report"
 tags:
   - react
   - conference
@@ -76,12 +76,32 @@ He closes by mentioning his book, *[The React Clean Code Rule Book](https://www.
 
 - [React for Two Computers by Dan Abramov](https://overreacted.io/react-for-two-computers/#await-and-rpc) — If I ever need a refresher on the mental model, I would come back here. Dan walks through thinking of React as software split across two machines. First there's the talk and then there's even more beautiful and elaborate written version.
 - [SPA to SSR and Everything in Between](https://youtu.be/9Y-klH9kkko) by Tanner Linsley — TanStack creator Tanner Linsley explains the engineering rationale behind React Server Components, how React has shifted toward the server, and why we should embrace more server-side rendering where it makes sense.
-- [Theo Reacts: Ryan Florence's "Remixing React Router" Talk](https://youtu.be/wZqdTFo0-yY) — A lot of the ideas Ryan Florence discusses are now built into modern React frameworks. But this remains one of the most appreciated talks on the architectural thinking that shaped those solutions. Could have been a good prelude to what Tapas presented.
+- [Theo Reacts: Ryan Florence's "Remixing React Router" Talk](https://youtu.be/wZqdTFo0-yY) — A lot of the ideas Ryan Florence discusses are now built into modern React frameworks. But this remains one of the most appreciated talks on the architectural thinking that shaped those solutions. Could have been a good prelude to what Tapas presented. On another note, this is highly relevant to the work we have been doing with React Router 7 these days at Speak2.
 
+</details>
+---
+
+### 1.2 React with the server, without compromise: TanStack Start | Sreetam Das, Senior Frontend Engineer II, Remote
+
+[Sreetam](https://sreetamdas.com/) has a personal dev site — started in <del>2021</del> 2016, if you consider the first commit on the first repo, as plain HTML and CSS, then a React SPA, then Next.js Pages Router, and eventually, Cloudflare Workers with TanStack Start. His site is his scratch file. Cheap to break. Easy to rebuild. So Drizzle goes in. Zustand goes in. TanStack goes in. That story is his talk.
+
+His biggest motivation to leave Next.js? Staying free. Not escaping a bill he already had, but avoiding one altogether. Cloudflare's generous free tier made that viable. TanStack Start made the architecture feel clean.
+
+He didn't land on TanStack immediately. He also tried SvelteKit, Vite, Remix. Next.js introducted the React Server Components, but most people struggled with moving the mental model from client-first to server-first full-stack development. Next.js eventually fixed Turbopack, but by then he'd already experienced Vite's speed, data-loading and nested routes and didn't want to go back. TanStack Start, which was a full-stack on top of TanStack Router. Was fully open and framework-agnostic. Client-first by default, but server-capable when you need it with SSR, streaming, server-routes, server functions, middleware and route-level caching.
+
+Technically, what he demonstrates is genuinely interesting. Routes own the entire data contract — the loader data is cached, types flow end-to-end without ceremony.  Server functions go beyond regular HTTP endpoints: a static JSON function file is sent from the server when called. There's middleware across boundaries with `client()` and `server()` contexts. Really comes handly for user timezones and cookies. Rendering is a dial you can tune per route: full SSR, data-only SSR, client-only. Inspired by SvelteKit actually. Streaming SSR with a shell. Build-time server functions for static data and store them as a static JSON file. One route, many choices. [His slides](https://srtm.fyi/tss) walk through each of these — the loader contracts, the server functions, the rendering dial — with code snippets and diagram
+
+He also plugs `type-fest`, TypeScript taking care of route types, and TanStack CLI for guidance. The TanStack library ecosystem keeps the experience consistent. There's talk of composite components and deferred hydration. And, buried in the middle: this is the first actual mention of agentic engineering all day. TanStack Start is apparently "agent ready."
+
+The talk is packed, maybe even too packed. Like Tapas before him, Sreetam's session feels rooted in engineering philosophy and genuine DX concerns. It's the kind of talk that makes you want to over-engineer your personal site. Bijoy, watching alongside, was more curious about why Sreetam left SvelteKit.
+
+<details>
+  <summary><b>Further Reading</b></summary>
+  - [TanStack Start: A Client First Web Framework](https://youtu.be/8XGcc-FRPuo) by Tanner Linsley — The creator explains the engineering philosophy behind TanStack Start: why it's client-first, type-safe, and built around the router.
+  - [Tanstack Start vs NextJS - Server Functions Battle](https://youtu.be/Iun1DE_oHG0) by Jack Herrington — A side-by-side comparison of how server-side functions are authored, typed, and deployed in TanStack Start versus Next.js.
+  - [I Moved Off of Next.js](https://youtu.be/Sc5ca-VJdxY) by Theo Browne — T3Chat's story of how Next.js routing limitations forced them into React Router hacks, and how TanStack Start delivered a clean routing system with solid primitives across both backend and frontend.
 </details>
 
 ---
 
-###
-[To be continued...]
-`[██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 3/40`
+[To be continued...] [███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 4/40
