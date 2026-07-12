@@ -83,17 +83,17 @@ He closes by mentioning his book, *[The React Clean Code Rule Book](https://www.
 
 ### 1.2 React with the server, without compromise: TanStack Start | Sreetam Das, Senior Frontend Engineer II, Remote
 
-[Sreetam](https://sreetamdas.com/) has a personal dev site — started in <del>2021</del> 2016, if you consider the first commit on the first repo, as plain HTML and CSS, then a React SPA, then Next.js Pages Router, and eventually, Cloudflare Workers with TanStack Start. His site is his scratch file. Cheap to break. Easy to rebuild. So Drizzle goes in. Zustand goes in. TanStack goes in. That story is his talk.
+[Sreetam](https://sreetamdas.com/) has a personal dev site — started in <del>2021, as a second repo</del> 2016, if you consider the first commit on the first repo, as plain HTML and CSS, then a React SPA, then Next.js Pages Router, and eventually, Cloudflare Workers with TanStack Start. His site is his scratch file. Too personal to abandon. The one that outlasts everything else. Yet, nothing's sacred with 0 users (his claim, not mine) and 1M visitors (his omission, not mine). So Drizzle goes in. Zustand goes in. TanStack goes in. That story is his talk.
 
 His biggest motivation to leave Next.js? Staying free. Not escaping a bill he already had, but avoiding one altogether. Cloudflare's generous free tier made that viable. TanStack Start made the architecture feel clean.
 
 He didn't land on TanStack immediately. He also tried SvelteKit, Vite, Remix. Next.js introducted the React Server Components, but most people struggled with moving the mental model from client-first to server-first full-stack development. Next.js eventually fixed Turbopack, but by then he'd already experienced Vite's speed, data-loading and nested routes and didn't want to go back. TanStack Start, which was a full-stack on top of TanStack Router. Was fully open and framework-agnostic. Client-first by default, but server-capable when you need it with SSR, streaming, server-routes, server functions, middleware and route-level caching.
 
-Technically, what he demonstrates is genuinely interesting. Routes own the entire data contract — the loader data is cached, types flow end-to-end without ceremony.  Server functions go beyond regular HTTP endpoints: a static JSON function file is sent from the server when called. There's middleware across boundaries with `client()` and `server()` contexts. Really comes handly for user timezones and cookies. Rendering is a dial you can tune per route: full SSR, data-only SSR, client-only. Inspired by SvelteKit actually. Streaming SSR with a shell. Build-time server functions for static data and store them as a static JSON file. One route, many choices. [His slides](https://srtm.fyi/tss) walk through each of these — the loader contracts, the server functions, the rendering dial — with code snippets and diagram
+Technically, what he demonstrates is genuinely interesting. Routes own the entire data contract — the loader data is cached, types flow end-to-end without you needing to intervene.  Server functions go beyond regular HTTP endpoints: a static JSON function file is sent from the server when called. There's middleware across boundaries with `client()` and `server()` contexts. Really comes handly for user timezones and cookies. Rendering is a dial you can tune per route: full SSR, data-only SSR, client-only. Inspired by SvelteKit actually. Streaming SSR with a shell. Build-time server functions for static data and store them as a static JSON file. One route, many choices. [His slides](https://srtm.fyi/tss) walk through each of these — the loader contracts, the server functions, the rendering dial — with code snippets and diagram. 
 
 He also plugs `type-fest`, TypeScript taking care of route types, and TanStack CLI for guidance. The TanStack library ecosystem keeps the experience consistent. There's talk of composite components and deferred hydration. And, buried in the middle: this is the first actual mention of agentic engineering all day. TanStack Start is apparently "agent ready."
 
-The talk is packed, maybe even too packed. Like Tapas before him, Sreetam's session feels rooted in engineering philosophy and genuine DX concerns. It's the kind of talk that makes you want to over-engineer your personal site. Bijoy, watching alongside, was more curious about why Sreetam left SvelteKit.
+The talk is packed, maybe even too packed. Like Tapas before him, Sreetam's session feels rooted in engineering philosophy and genuine DX concerns. It's the kind of talk that makes you want to over-engineer your personal site. Bijoy, watching alongside, was more curious about why Sreetam left SvelteKit. Sreetam also makes a plug for his 25k downloaded [VS Code Theme: Karma](https://marketplace.visualstudio.com/items?itemName=SreetamD.karma)
 
 <details>
   <summary><b>Further Reading</b></summary>
@@ -103,5 +103,23 @@ The talk is packed, maybe even too packed. Like Tapas before him, Sreetam's sess
 </details>
 
 ---
+### 1.3 Rendering Only What Matters: Performance Wins with Partial Prerendering | Archana Agivale, Tech Lead, QED42
 
-[To be continued...] [███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 4/40
+Archana delivers a short, straight-line talk. Archana is stellar contributor actually. Next.js, Strapi, Shadcn. No anecdotes, no warm-up, just a freight train of performance reasoning. I wish there had been a break before this one.
+
+Her core argument: performance is not just about how much data you send to the client, but about *when* you render it. Nobody stays on slow sites for more than two seconds. Google rankings depend on LCP. These are the stakes she opens with. The talk then primarily evolves to be about Partial Prerendering (PPR), introduced in Next.js 15.
+
+For the context, Archana walks us through Next.js's rendering evolution. SSR: always fresh, but slow and expensive. SSG: super fast, but stale whenever data changes. ISR: a balance, but still rebuilds everything. Then comes partial prerendering, introduced in Next.js 15, which takes the best of both worlds: static shell with dynamic islands. The browser can paint the static shell — header, hero, layout — immediately, improving LCP, while the dynamic content (inventory, reviews, ratings) streams in progressively at runtime also helping with CLS.
+
+Her implementation tips are practical: use Suspense boundaries, separate dynamic and static zones, prioritize what's above the fold, use server components, cache expensive CMS calls. Static layout shells can have component-specific cache lifetimes.
+
+She's upfront about limitations. Partial prerendering isn't for everything. When every byte of information needs to be fresh, you're back to SSR. She touches briefly on cache components, noting that Next.js 16 will take the PPR model further with them.
+
+<details>
+  <summary><b>Further Reading</b></summary>
+  - [React Server Components: Do They Really Improve Performance?](https://www.developerway.com/posts/react-server-components-performance) by Nadia Makarevich — A data-driven deep dive comparing CSR, SSR, and RSC under the same app and test setup. Explains why and how streaming React Server Components improve initial load performance under the hood. Exercises here could make the abstractions in Archana's talk a lot more solid.
+  - [Exploring Partial Prerendering in Next.js](https://youtu.be/mrJpzqkODxw) — Vercel Ship 2025 workshop by James Quick (BigCommerce). Where Archana makes the strategic case for PPR, this is the tactical complement: building reusable Suspense-wrapped components with `use()`, Render Props, and a custom Promise Cache.
+</details>
+---
+
+[To be continued...] [████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 5/40
