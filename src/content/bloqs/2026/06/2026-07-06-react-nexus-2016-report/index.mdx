@@ -145,4 +145,23 @@ The morning session closes with a 15-minute break. The energy has been dense. I 
 
 ---
 
-[To be continued...] [█████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 5/40
+### 1.5 React Upgrade at Scale: The Good, The Bad, and The Unexpected | Akshay Ashok, SDE II, Rippling
+
+His slides are a React app. Of course they are. The talk is the same. Some very sharp sloppy copywriting in mostly well curated story from the trenches. This is a war story. Upgrading React across a large codebase with real users. He starts with the obvious: even with an agentic approach, a lot of unit tests will break. Runtime errors will surface in places you didn't expect. Concurrent rendering was the most challenging chapter in his team's migrations.
+
+The technical insights are direct. Updating types first, then moving to the actual code changes — a process that would takes months in pre-agentic times. Asserting intermediate states may not work in tests migrating from React 17 to 18 because React 18 batches state updates differently. Nuances around synchronous and concurrent modes: concurrent rendering breaks during user interactions like clicks, observable in DevTools. There's no escaping directly to React 19 by bypassing 18 — the concurrency model shift is a prerequisite. React 19 is mostly removals and semantic changes; agents can handle large chunks of that work.
+
+One underappreciated detail: there's no single entry point during the runtime for a gradual migration from 18 to 19. His team's solution was to create a separate build at the infrastructure level and serve them with instant rollback capability. For rollout and rollback, he literally recommends an `if/else` in `createRoot(el)`. Sometimes the simplest thing that could possibly work is the right answer.
+
+Why go through all this? The React compiler, less legacy debt, async in render, Actions, `useOptimistic` — the features that make the migration worth it. But the talk is honest: this is painful, expensive work. And at enterprise scale, the agentic approach doesn't eliminate the pain. It possibly only shifts where you feel it.
+
+Bijoy stayed curious about something I'd glossed over: `locator.js`. Click a component in the browser, and it opens the corresponding code in your IDE. It started breaking after Akshay's migrations, they had to fix it with some  That's a tool worth knowing about, even if it's fragile. This talk had more detail than I could condense.
+
+<details>
+  <summary><b>Further Reading</b></summary>
+  - [Enhancing The New York Times Web Performance with React 18](https://medium.com/timesopen/enhancing-the-new-york-times-web-performance-with-react-18-d6f91a7c5af8) by Ilya Gurevich — Very popular article, similar migration story. Types and deps first, then the hydration headaches, then the payoff: INP dropped ~30%, re-renders halved. Akshay's talk pairs well with this.
+</details>
+
+---
+
+[To be continued...] [██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 6/40
