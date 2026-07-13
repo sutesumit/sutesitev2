@@ -43,7 +43,7 @@ I hadn't heard of most of the sponsors. CodeWalnut, ImageKit, WSO2—all new to 
 ---
 ### 1.1 React Is Becoming a Platform, And Most Developers Haven't Noticed Yet | Tapas Adhikary, CEO, CreoWis
 
-[Tapas](https://www.linkedin.com/in/tapasadhikary/) opens by sharing—almost as an aside—that this was the first year his full-length talk got accepted. He'd applied every single time. This year, not only accepted, but as the keynote. He saves the personal introduction for later instead of leading with it. I like such talk templates. Doesn't make you sit through a bio before earning your attention. He's a serial React community builder and YouTuber, but that comes after the intro the substance.
+[Tapas](https://www.linkedin.com/in/tapasadhikary/) opens by sharing—almost as an aside—that this was the first year his full-length talk got accepted. He later shared [The slides from this talk](https://www.linkedin.com/posts/tapasadhikary_react-is-becoming-a-platform-a-talk-by-ugcPost-7482392359465496576-fkKl/) on LinkedIn. He'd applied every single time. This year, not only accepted, but as the keynote. He saves the personal introduction for later instead of leading with it. I like such talk templates. Doesn't make you sit through a bio before earning your attention. He's a serial React community builder and YouTuber, but that comes after the intro the substance.
 
 React is always evolving, he says. There's always something new to learn. It stopped being just a UI library a long time ago. Streaming, SSR, Server Actions—these have fundamentally expanded what React is. He walks through the history since 2013, and it's striking how simple the original bargain was: manage state, render UI to the DOM. Nothing more. That's it. A "V" in MVC.
 
@@ -122,4 +122,27 @@ She's upfront about limitations. Partial prerendering isn't for everything. When
 </details>
 ---
 
-[To be continued...] [████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 5/40
+### 1.4 The Third State: How React's Activity API Fixes the Hidden Problem in Every App You've Ever Built | Piyush Assudani, SSE, RBJ Technologies
+
+Piyush is a designer-engineer and brings energy the room needed. The personalities of the speakers, I scribbled, were curated like a salad. He's dramatic. He's candid.
+
+The problem he diagnoses is one you've felt but maybe never named: mounting and unmounting are the only two states in React's component lifecycle. There is nothing in between. Unmounting destroys everything — state, focus, scroll position. The hack has always been `display: none`, which keeps the component alive but still fires functions without a visible UI. React historically coupled visibility with existence. That coupling is the bug.
+
+The fix is a third, middle state: *background*. React's Activity API introduces a `mode` prop that deprioritises re-rendering when the component moves to the background, selectively preserving the states that matter while releasing what doesn't. It saves the struggle of recreating user state, preserving UI memory that nobody was preserving before.
+
+When to use it? Search interfaces, shopping carts, chat sidebars — anything a user leaves and returns to. When not to? Toast notifications, tooltips (too cheap to matter), login modals (used once anyway). The judgment call is part of the API.
+
+Piyush made what could have been a dry spec walkthrough into something theatrical. I did later write that the "third middle state" talk could have been a small email. But I'm not sure that's fair. Sometimes the small email contains exactly the right idea.
+
+<details>
+  <summary><b>Further Reading</b></summary>
+  - [View Transitions and Activity — React Conf 2025](https://youtu.be/G9xD6lHgrMM?si=cZfyYN3l6U5zDbVB) by Chance Strickland — Where Piyush gives you the *why* (the third state as a philosophical correction to React's lifecycle), Chance gives you the *how*: Activity API usage alongside View Transitions, automatic transition orchestration via `startTransition`, and background resource preloading to prevent janky loading states.
+</details>
+
+---
+
+The morning session closes with a 15-minute break. The energy has been dense. I sit with Bijoy and we both feel the cognitive load — too many ideas packed too tightly. But there's coffee, and the second half re-renders with a new paint.
+
+---
+
+[To be continued...] [█████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 5/40
