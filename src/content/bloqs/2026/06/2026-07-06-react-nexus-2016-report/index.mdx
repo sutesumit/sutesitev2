@@ -20,9 +20,9 @@ featured: true
 
 Dear [Beneathatree](https://beneathatree.com/) crew, and any curious soul who got tripped into this report:
 
-This was my first [React Nexus](https://reactnexus.com/). And like most conferences, this one too felt more about the people than the talks. Maybe expecting originality in conferences with this scale and depth is unrealistic. Maybe conferences like these attempt to attract credentials over content for credibility, not the other way. I was left with mixed feelings.
+This was my first [React Nexus](https://reactnexus.com/). And like most conferences, this one too felt more about the people than the talks. I was left with mixed feelings. Maybe expecting originality in conferences with this scale and depth is unrealistic. Maybe they're not here to hand you bespoke polished gems — they dump a lot of unprocessed mud at your feet. The diamonds — the signals that matter to you — are there, but you have to be very intentional about finding, picking and bringing them home. Otherwise, you walk away with nothing but noise. Maybe a few connections, if you're <del>lucky</del> a social butterfly.
 
-Some felt like a personal report on things and problems we were trying to solve. Some only summarized a relatively new trend, rehearsing what's fresh without adding anything fresh to it. The topics were wide and well covered on the surface: Accessibility, Design Systems, Observability. But most came wrapped in the agentic approach first, engineering depth second. A wiki paragraph, presented aloud, without really digging deeper. That also did give a pulse: what's happening in the landscape, who's building what. But overall? Mostly noise. Good signals, definitely there, yet scattered thin. And React Dev Tools? A complete miss.
+Some felt like a personal report on things and problems we were trying to solve. Some only summarized a relatively new trend, rehearsing what's fresh without adding anything fresh to it. The topics were wide and well covered on the surface: Accessibility, Design Systems, Observability. But most came wrapped in the agentic approach first, engineering depth second. But thats not surprising for new age of conference talks too. Also, they weren't workshops either. A wiki paragraph, presented aloud, often without digging much in the limited time windows. That also did give a pulse: what's happening in the landscape, who's building what. But overall? Good signals, definitely there, yet scattered thin. And React Dev Tools? A complete miss, unfortunately.
 
 I took messy live notes across both days. Here are my [Notes from React Nexus 2026 - Day 1](/bloq/live/notes-from-react-nexus-2026) and here are my [Notes from React Nexus 2026 - Day 2](/bloq/live/notes-from-react-nexus-2026-day-2). Surface reason: for a couple of you at Beneathatree who might care. Real reason: keep the old journalism muscle alive — crude as it is, this muscle knows only one way to stay sharp: stay locked in every session, every minute. Take notes raw, don't polish in the moment. Let the signal and noise bleed onto the same page. Probably why the conference kept me overwhelmed, yet left me underwhelmed with what to carry home.
 
@@ -166,8 +166,6 @@ Bijoy stayed curious about something I'd glossed over: `locator.js`. Click a com
 
 ### 1.6 AI Solved\* Coding. Shipping Is the New Bottleneck | Vignesh Krishnan, Developer Relations Engineer, Zoho
 
-The asterisk in the title does a lot of work.
-
 Vignesh is a Zoho veteran of ten years, and this is a full-length sponsor showcase. His opening claim: AI has dramatically shrunk the time to *build*, but the time to *ship* hasn't changed much. AI doesn't decide where the app runs, where the data lives, how to autoscale, or how auth works. These are the real bottlenecks, and they're not going away.
 
 Then the Catalyst tour begins. Zoho makes SaaS — 55+ apps, 150 million users, 16 data centres. Catalyst is their full-stack hosting platform: frontend hosting and deployment, object storage, an event bus. Then authentication components, third-party service integrations, S3-compatible bucket migration paths, push notifications, mail services. Then QuickML, which imports datasets and returns models with API endpoints. Then serverless backend, Docker image support, cloud-scale databases.
@@ -178,4 +176,30 @@ The talk ends with a plug for Datathon 2026 with Zoho and Karnataka Police. Than
 
 ---
 
-[To be continued...] [███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 7/40
+
+### 1.7 What I Learned Building Payments | Smile Gupta, Software Engineer II, Wayfair
+
+Smile's [charmingly illustrated slides](https://www.linkedin.com/posts/smilegupta_what-i-learned-building-payments-so-you-ugcPost-7482127002586644480-WbZ8/) are almost storybook-like — and while that feels surprising for a payments talk, the warmth of the presentation lowers your guard just enough for the technical depth to cut through.
+
+She started with the disclaimer that this wasn't about payments architecture. Something I wasn't expecting. But of course, this is a React conference; it is, in her defence, entirely about the high-stakes frontend user experience during payment navigation.
+
+Different payment service providers have different authentication models: some use an API key + URL, some redirect with a return URL, some use multi-use tokens, and some use single-use tokens. The flow is standard enough: frontend starts, backend creates a session, the Payment Service Provider returns a token or session ID, the token goes to the frontend, the frontend opens the payment page or SDK, the user completes the payment, the result is shown with a reference, and the backend verifies it too. But the edge cases are where the real complexity lives.
+
+Take the auth token lifecycle, for example. A user starts a payment, leaves the page, comes back ten minutes later, and the flow is broken. The token has expired, or the session state doesn't match. UI and payment readiness need to always stay in sync. These are the kinds of bugs your users discover first. Refetching the cached token is not a bad idea here. But there are also different token models depending on the provider. Some have API key + URL. Some use redirect + return URL. Some use multi-use tokens. Stripe's 3DS gets a plug here. Others rely on single-use tokens. The problem above is specific to that last case.
+
+The error UX is where Smile shines. "Something went wrong" is not a good error message when money is involved. Trust is at stake. She advocates for well-designed and actionable error systems: tell the user upfront whether they were charged or not. Can I retry safely? What's the next step? If a specific payment provider is down, clearly tell the user it's unavailable while nudging them toward an alternative payment method. There's also the problem of the "ghost order". Payment succeeds, but the order fails on the checkout side. The user sees the debit but gets no confirmation. This mostly happens when the return URL is broken or the backend update fails, possibly due to network issues. These gaps erode trust silently. Clear user feedback telling them that the payment has been processed but the order creation failed would be a much better UX.
+
+Someone from the audience points out that Safari blocks pop-ups, AJAX requests must always originate from a user click, and redirect-based payment flows break on certain browsers and WebViews. Smile's answer: check capabilities across payment SDKs and browsers first, then conditionally offer the available options.
+
+Good observability and good logs have a strong case here, along with being mindful about what we log and what we must never log. Never log personal information. "Payment UI is a lot more than just UI. Design for clarity. Engineer for trust.", said Smile Gupta.
+
+<details>
+  <summary><b>Further Reading</b></summary>
+  - [Building a mental model for Stripe payments](https://stripe.dev/blog/building-a-mental-model-for-stripe-payments) — Stripe Bloqs are very cool and fancy for the first time arrivers. The Stripe article gives (relatively simplistic) backend and systems perspective with a state machine that Smile deliberately skips and has the state machine I was hoping to originally (and wrongly) expecting at this FE Conference.
+  - [Teaching Agents to Pay: A Developer's Guide](https://youtu.be/5DkIHPfTX-Y?si=VYpGUwnHkqWkjKlw) (Allison Farris) — Allison argues that multiple AI agents and merchants could create a similar integration mess, motivating standards like the Universal Commerce Protocol. The "calling tools in a while loop" describes the common agent loop (reason → call tool → receive result → reason again), where the backend keeps supplying conversation history and tool outputs to the LLM. Both talks ultimately emphasize the same principle: the merchant remains the source of truth. Allison adds that clear protocols, structured data, and trustworthy state management keep increasingly complex payment ecosystems reliable for agentic experiences.
+  - [From Puffers to Payment Buttons: The Story Behind My React Nexus Deck](https://dev.to/smilegupta/from-puffers-to-payment-buttons-the-story-behind-my-react-nexus-deck-2037) (Smile Gupta) — Smile apparently spent so long agonizing over the visual narrative — pufferfish, payment buttons, the whole journey — that the creative process itself became a separate blog post. The amount of energy poured into getting the slides just right could probably power a small React app, but why waste that story away? Turn it into this blog.
+</details>
+
+---
+
+[To be continued...] [████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 8/40
