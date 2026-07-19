@@ -317,4 +317,50 @@ The talk is practical but stays at a high level. He did give quick examples, tho
 
 ---
 
-[TBC] [████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░] 12/40
+### 1.13 From Copilot to Collaborator: Architecting an Autonomous Workflow for Frontend Teams | Amit Panigrahi, Computer Scientist II, Adobe
+
+Amit opens with an anecdote that lands: a two-hour coding task that turns into a three-day affair because of everything around the code. The PRD takes a day. Design takes two hours. Implementation is another two hours. Unit tests and integration tests — painful, boring — eat up three more hours. Build and test: another hour. Reviews and deploys with their latency: another day. Amit calls this the developer tax.
+
+He traces the evolution of AI integration: from autocomplete to chat LLMs to agentic loops. Low agency to medium to full. His autonomous dev pipeline consists of a product agent, coding agents, a QA agent, and a reviewer agent. A process that takes 3-4 days manually now takes 45 minutes in the agentic pipeline. The Agent Composer handles reasoning, planning, reflection, retries with plan, execute, observe — MCPs providing the reality checks at each stage. "Agent + MCP: brain and hands," he says.
+
+Then, the reality check. His own agentic pipeline to generate the missing unit tests, spiked the Infrastructure costs. Build time went from 2 minutes to 47 minutes. Because unoptimized process with 3 retries on each failure. Trust collapsed. Fifty percent token wastage was traced to harness overload. But liner harness, to struggles with quality of the unit tests.
+
+The breakthrough came with a custom Agent Composer operating in distinct phases: planning, execution, observation, and correction. MCP servers give it direct access to GitHub, terminal, Jira, and Postgres. The fully autonomous dev pipeline parses the PRD to identify affected files and creates a scoped task graph. The coding agent then implements everything with unit and integration tests — no lint errors. The QA agent — which Amit calls crucial — uses Cypress/Playwright to run regression tests and generate coverage reports. On top of this sits a reviewer agent that runs security scans with cross-model gap tests, though a human remains in the loop.
+
+The dark side gets a section. Prompt injection, goal hijacking, autonomous flows going rogue. I note that I don't see enough discourse around orchestration and multi-agent flow unreliability — these are the failure modes most worth talking about, and they're barely mentioned.
+
+Amit still flags the need for code review and security, though he's hopeful about newer models. Amit's custom dashboard shows how the new generation of tools has multiplied his productivity and complements his working hours with AFK modes.
+
+---
+
+### 1.14 How Atlassian Refused to Let CI Become the Bottleneck of Agentic Development | Chaitanya Deorukhkar, Principal Engineer, Atlassian
+
+This is the talk that makes Day 1 worth it.
+
+Chaitanya works on Jira at Atlassian, which is a <del>very large</del> extremely massive monorepo. 500k files. Everything is a package in organized in specific domain folders. Two hundred PRs every day just for Jira. The expectation, in the agentic era, is 2,000. AI increases code throughput, sure, but does it increase shipping speed? Not really. Because the bottleneck just moved.
+
+CI check is the recurring choke point. At every stage — review, merge queue, deployment — there are way too many tests. Even more in the agentic era, where every agent generates its own test suite. The dependency graph is a mess: highly coupled, deeply convoluted, a dense forest of code where every change risks a wildfire. The common dumping grounds—/utils, /types, /common—are a root cause: whatever doesn't belong anywhere goes here, and there are so many of them. They pull in large packages for singular constants, types, and functions. Unrelated code gets packaged together, entangling everything. Hearing this, it hit me: SOLID principles are not really followed in enterprise codebases — and now they're paying for it. The result is not aesthetics: more tests to run, slower static validation, long-running CI checks, and higher TTRP. The CI cost is very, very high.
+
+Atlassian's response is Project Thunderstone. The core insight: you don't need to run every test for every change. You only need to run the tests affected by the change. The tool that makes this possible is FactsMap — a Rust-based, in-house dependency graph engine. But FactsMap was helpful largely because it surfaced just how bad the coupling was: everything depended upon everything. It produces actual JSON (not Markdown), mapping exactly what each file touches. FactsMap identifies what's changed, traces the dependency graph, and flags only what needs selective validation. 
+
+The principles: Tools, Rules, Guardrails. Rules create package levels based on impact — directional boundaries that keep dependencies under control. Tools give visibility: a CLI package that shows the tax for every change. "With these tools, developers are paying a lot less tax." But developers wouldn't care at this scale. What matters is CI complexity. The result: 90% fewer tests using FactsMap. Less than 50% of integration tests running on each change.
+
+Guardrails prevent regression, but they come at a cost: friction. So Atlassian built a toolkit to make living with them bearable. **Thunderstone Package Complexity** surfaces the hidden CI tax of each package — how much it costs to touch — using FactsMap under the hood. **Thunderstone Migrate** does the heavy lifting: through codemod actually, given a target folder, inlines rarely-used constants, types, and functions right into their call sites; promotes heavily shared ones into dedicated packages of their own; and unknots tangled packages by pulling out discrete subgraphs of files. Over time, this sorts packages into usage-frequency tiers, each mapped to a tax bracket with directional rules — a package can only depend on tiers at or above its own, with explicit thresholds. And when a violation slips through? **Thunderstone Doctor** inspects the offending commit, traces the root cause, and prescribes a fix. No AI. Deterministic, reliable, boring.
+
+The metrics Chaitanya shows are genuinely impressive. Worst case, all percentiles (P90, P70, P50) touched 139,000 files. Dumping grounds like utils, types, and common directories were pulling in large packages unnecessarily. The codebase was, in his words, "really shit." Making the CI cost astronomical. Thunderstone helped them drop by more than half. 90%-50% fewer tests. 
+
+"Codebase health is everyone's responsibility," he says. "You need owners, drivers, and torchbearers. Quantification is super helpful — to know the problem from *what* to *why*. Preventing regression is just as important as shipping features."
+
+This was a good talk. Still high-level in places, but rooted in low-level impact. Good storytelling that moves developers. But stepping back: the talk is not about dependency analysis algorithms. It's about organizational engineering. Chaitanya spends most of the time convincing the audience why this problem matters and how Atlassian got people to change their behavior. The actual implementation and codemod internals are largely absent. That's a perfectly valid conference talk, but it means the audience walks away inspired rather than equipped.
+
+The last talk of the day.
+
+<details>
+  <summary><b>Further Reading</b></summary>
+    - [How to Refactor Large Codebases? Building JavaScript Codemods](https://youtu.be/Sj5KazWK1c8) by Yomesh Gupta — If Chaitanya's talk is the *why*, this is the *how*. Chaitanya mentions that Thunderstone Migrate does its heavy lifting "through codemod actually" but doesn't go deeper; Yomesh fills that gap with a hands-on implementation deep dive. He walks through what a codemod actually is under the hood — AST traversal, transformation rules, jscodeshift — the mechanical substrate that makes "move this constant to its call sites across 500k files".
+    - [A Monorepo Is NOT a Monolith](https://nx.dev/blog/monorepo-is-not-monolith) — Nx's framing: the dependency graph is the primitive; everything else is an application of it. Once you have an accurate graph, a whole ecosystem of capabilities naturally emerges around it. This is the same idea that explains why Atlassian built FactsMap, Google built Bazel, Meta built Buck2, and others have Graphify. Chaitanya's talk would have been a perfect case study for this.
+    - [A Fitness Function Is Just a Test That Fails the Build When the Architecture Drifts](https://tiarebalbi.com/en/blog/fitness-function-test-that-fails-the-build) by Tiarê Balbi Bonamini — The atomic form of Chaitanya's "guardrails" layer. Tiarê shows a single test enforcing an architectural invariant. Thunderstone shows what happens when you build the full stack: dependency graph → rules → tools → guardrails, producing the same effect at industrial scale. Two ends of one linear system.
+</details>
+
+---
+[TBC] [██████████████████░░░░░░░░░░░░░░░░░░░░░░] 18/40
