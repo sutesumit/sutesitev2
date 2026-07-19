@@ -16,7 +16,6 @@ category: "Engineering"
 draft: false
 featured: true
 ---
-
 ###
 
 Dear [Beneathatree](https://beneathatree.com/) crew, and any curious soul who got tripped into this report:
@@ -33,7 +32,7 @@ Here's what I set out to do: surface the signals, as many as I can find, without
 
 So: a curated dump of topics and resources from both days. Practice, mostly — learning to walk out of a conference with something more than a few handshakes.
 
----
+***
 
 ## Day 1:
 
@@ -42,7 +41,6 @@ The conference started right on time. The emcees opened with well-rehearsed bant
 I hadn't heard of most of the sponsors. CodeWalnut, ImageKit, WSO2—all new to me. Except Zoho. The emcees <del>slipped</del> pushed in a product plug for Zoho's serverless offerings. They claimed the schedule was drowning in AI talks. In hindsight, it was thankfully not entirely true. Then they very brazenly tried to make a case for why engineers remain irreplaceable. The jokes and stage drama were okay. The auditorium was nearly full by then. I just wish they'd spread the humour across the day instead of front-loading it all at the opening. And yes, things felt a lot more humane as the day went on. But we are here for the talks, not for the opening.
 
 ---
-
 ### 1.1 React Is Becoming a Platform, And Most Developers Haven't Noticed Yet | Tapas Adhikary, CEO, CreoWis
 
 [Tapas](https://www.linkedin.com/in/tapasadhikary/) opens by sharing—almost as an aside—that this was the first year his full-length talk got accepted. He later shared [The slides from this talk](https://www.linkedin.com/posts/tapasadhikary_react-is-becoming-a-platform-a-talk-by-ugcPost-7482392359465496576-fkKl/) on LinkedIn. He'd applied every single time. This year, not only accepted, but as the keynote. He saves the personal introduction for later instead of leading with it. I like such talk templates. Doesn't make you sit through a bio before earning your attention. He's a serial React community builder and YouTuber, but that comes after the intro the substance.
@@ -57,7 +55,7 @@ Tapas continues to talk about the complexity crisis of SPAs—the tension betwee
 
 He asks the room: how many people started using React in 2013? A handful of hands go up. Then he traces the arc: a client-heavy library in 2015, the Hooks era around 2020, and today—a platform that increasingly embraces the server as a first-class concern, not an afterthought.
 
-Moving computation closer to the edge shrinks the traditional server roundtrip. Hooks like `useOptimistic` represent a deeper shift in mental model. You're no longer thinking "fetch, wait, render." You're thinking about what the user should see _now_ while the network catches up behind them.
+Moving computation closer to the edge shrinks the traditional server roundtrip. Hooks like `useOptimistic` represent a deeper shift in mental model. You're no longer thinking "fetch, wait, render." You're thinking about what the user should see *now* while the network catches up behind them.
 
 The "framework bloodbath," as Tapas puts it, now consists of Next.js, React Router v7, and TanStack Start. They largely solve the same category of problems. Forget the competition. What's striking is the convergence. These tools are all reaching for the same shape.
 
@@ -71,33 +69,14 @@ Here's the line I wrote down:: today there's hardly anything called "global stat
 
 The biggest transformation in React, Tapas argues, isn't any single feature. It's where applications execute. React applications are steadily moving from the browser toward the server—not because of some ideological swing, but because user expectations demanded it. The browser alone couldn't keep up.
 
-He closes by mentioning his book, _[The React Clean Code Rule Book](https://www.tapascript.io/books/react-clean-code-rule-book)_. If the talk resonated, it's probably worth a look.
+He closes by mentioning his book, *[The React Clean Code Rule Book](https://www.tapascript.io/books/react-clean-code-rule-book)*. If the talk resonated, it's probably worth a look.
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [React for Two Computers by Dan
-  Abramov](https://overreacted.io/react-for-two-computers/#await-and-rpc) — If I
-  ever need a refresher on the mental model, I would come back here. Dan walks
-  through thinking of React as software split across two machines. First there's
-  the talk and then there's even more beautiful and elaborate written version. -
-  [SPA to SSR and Everything in Between](https://youtu.be/9Y-klH9kkko) by Tanner
-  Linsley — TanStack creator Tanner Linsley explains the engineering rationale
-  behind React Server Components, how React has shifted toward the server, and
-  why we should embrace more server-side rendering where it makes sense. - [Theo
-  Reacts: Ryan Florence's "Remixing React Router"
-  Talk](https://youtu.be/wZqdTFo0-yY) — A lot of the ideas Ryan Florence
-  discusses are now built into modern React frameworks. But this remains one of
-  the most appreciated talks on the architectural thinking that shaped those
-  solutions. Could have been a good prelude to what Tapas presented. On another
-  note, this is highly relevant to the work we have been doing with React Router
-  7 these days at Speak2. - [Don't Go South With Next.js Caching – Supercharging
-  Performance by Tapas Adhikary | React Nexus
-  2025](https://youtu.be/3HHRuAymlzE) — Tapas had given a shorter half-length
-  talk last year; this isn't his first one. This talk explores the complexities
-  of caching in Next.js 15 to help developers avoid common pitfalls and optimize
-  application performance.
+  <summary><b>Further Reading</b></summary>
+    - [React for Two Computers by Dan Abramov](https://overreacted.io/react-for-two-computers/#await-and-rpc) — If I ever need a refresher on the mental model, I would come back here. Dan walks through thinking of React as software split across two machines. First there's the talk and then there's even more beautiful and elaborate written version.
+    - [SPA to SSR and Everything in Between](https://youtu.be/9Y-klH9kkko) by Tanner Linsley — TanStack creator Tanner Linsley explains the engineering rationale behind React Server Components, how React has shifted toward the server, and why we should embrace more server-side rendering where it makes sense.
+    - [Theo Reacts: Ryan Florence's "Remixing React Router" Talk](https://youtu.be/wZqdTFo0-yY) — A lot of the ideas Ryan Florence discusses are now built into modern React frameworks. But this remains one of the most appreciated talks on the architectural thinking that shaped those solutions. Could have been a good prelude to what Tapas presented. On another note, this is highly relevant to the work we have been doing with React Router 7 these days at Speak2.
+    - [Don't Go South With Next.js Caching – Supercharging Performance by Tapas Adhikary | React Nexus 2025](https://youtu.be/3HHRuAymlzE) — Tapas had given a shorter half-length talk last year; this isn't his first one. This talk explores the complexities of caching in Next.js 15 to help developers avoid common pitfalls and optimize application performance.
 </details>
 ---
 
@@ -109,36 +88,25 @@ His biggest motivation to leave Next.js? Staying free. Not escaping a bill he al
 
 He didn't land on TanStack immediately. He also tried SvelteKit, Vite, Remix. Next.js introducted the React Server Components, but most people struggled with moving the mental model from client-first to server-first full-stack development. Next.js eventually fixed Turbopack, but by then he'd already experienced Vite's speed, data-loading and nested routes and didn't want to go back. TanStack Start, which was a full-stack on top of TanStack Router. Was fully open and framework-agnostic. Client-first by default, but server-capable when you need it with SSR, streaming, server-routes, server functions, middleware and route-level caching.
 
-Technically, what he demonstrates is genuinely interesting. Routes own the entire data contract — the loader data is cached, types flow end-to-end without you needing to intervene. Server functions go beyond regular HTTP endpoints: a static JSON function file is sent from the server when called. There's middleware across boundaries with `client()` and `server()` contexts. Really comes handly for user timezones and cookies. Rendering is a dial you can tune per route: full SSR, data-only SSR, client-only. Inspired by SvelteKit actually. Streaming SSR with a shell. Build-time server functions for static data and store them as a static JSON file. One route, many choices. [His slides](https://srtm.fyi/tss) walk through each of these — the loader contracts, the server functions, the rendering dial — with code snippets and diagram.
+Technically, what he demonstrates is genuinely interesting. Routes own the entire data contract — the loader data is cached, types flow end-to-end without you needing to intervene.  Server functions go beyond regular HTTP endpoints: a static JSON function file is sent from the server when called. There's middleware across boundaries with `client()` and `server()` contexts. Really comes handly for user timezones and cookies. Rendering is a dial you can tune per route: full SSR, data-only SSR, client-only. Inspired by SvelteKit actually. Streaming SSR with a shell. Build-time server functions for static data and store them as a static JSON file. One route, many choices. [His slides](https://srtm.fyi/tss) walk through each of these — the loader contracts, the server functions, the rendering dial — with code snippets and diagram. 
 
 He also plugs `type-fest`, TypeScript taking care of route types, and TanStack CLI for guidance. The TanStack library ecosystem keeps the experience consistent. There's talk of composite components and deferred hydration. And, buried in the middle: this is the first actual mention of agentic engineering all day. TanStack Start is apparently "agent ready."
 
 The talk is packed, maybe even too packed. Like Tapas before him, Sreetam's session feels rooted in engineering philosophy and genuine DX concerns. It's the kind of talk that makes you want to over-engineer your personal site. Bijoy, watching alongside, was more curious about why Sreetam left SvelteKit. Sreetam also makes a plug for his 25k downloaded [VS Code Theme: Karma](https://marketplace.visualstudio.com/items?itemName=SreetamD.karma)
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [TanStack Start: A Client First Web Framework](https://youtu.be/8XGcc-FRPuo)
-  by Tanner Linsley — The creator explains the engineering philosophy behind
-  TanStack Start: why it's client-first, type-safe, and built around the router.
-  - [Tanstack Start vs NextJS - Server Functions
-  Battle](https://youtu.be/Iun1DE_oHG0) by Jack Herrington — A side-by-side
-  comparison of how server-side functions are authored, typed, and deployed in
-  TanStack Start versus Next.js. - [I Moved Off of
-  Next.js](https://youtu.be/Sc5ca-VJdxY) by Theo Browne — T3Chat's story of how
-  Next.js routing limitations forced them into React Router hacks, and how
-  TanStack Start delivered a clean routing system with solid primitives across
-  both backend and frontend.
+  <summary><b>Further Reading</b></summary>
+  - [TanStack Start: A Client First Web Framework](https://youtu.be/8XGcc-FRPuo) by Tanner Linsley — The creator explains the engineering philosophy behind TanStack Start: why it's client-first, type-safe, and built around the router.
+  - [Tanstack Start vs NextJS - Server Functions Battle](https://youtu.be/Iun1DE_oHG0) by Jack Herrington — A side-by-side comparison of how server-side functions are authored, typed, and deployed in TanStack Start versus Next.js.
+  - [I Moved Off of Next.js](https://youtu.be/Sc5ca-VJdxY) by Theo Browne — T3Chat's story of how Next.js routing limitations forced them into React Router hacks, and how TanStack Start delivered a clean routing system with solid primitives across both backend and frontend.
 </details>
 
 ---
-
 ### 1.3 Rendering Only What Matters: Performance Wins with Partial Prerendering | Archana Agivale, Tech Lead, QED42
 
 Archana delivers a short, straight-line talk. Archana is stellar contributor actually. Next.js, Strapi, Shadcn. No anecdotes, no warm-up, just a freight train of performance reasoning. I wish there had been a break before this one.
 
-Her core argument: performance is not just about how much data you send to the client, but about _when_ you render it. Nobody stays on slow sites for more than two seconds. Google rankings depend on LCP. These are the stakes she opens with. The talk then primarily evolves to be about Partial Prerendering (PPR), introduced in Next.js 15.
+Her core argument: performance is not just about how much data you send to the client, but about *when* you render it. Nobody stays on slow sites for more than two seconds. Google rankings depend on LCP. These are the stakes she opens with. The talk then primarily evolves to be about Partial Prerendering (PPR), introduced in Next.js 15.
 
 For the context, Archana walks us through Next.js's rendering evolution. SSR: always fresh, but slow and expensive. SSG: super fast, but stale whenever data changes. ISR: a balance, but still rebuilds everything. Then comes partial prerendering, introduced in Next.js 15, which takes the best of both worlds: static shell with dynamic islands. The browser can paint the static shell — header, hero, layout — immediately, improving LCP, while the dynamic content (inventory, reviews, ratings) streams in progressively at runtime also helping with CLS.
 
@@ -147,26 +115,10 @@ Her implementation tips are practical: use Suspense boundaries, separate dynamic
 She's upfront about limitations. Partial prerendering isn't for everything. When every byte of information needs to be fresh, you're back to SSR. She touches briefly on cache components, noting that Next.js 16 will take the PPR model further with them.
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [React Server Components: Do They Really Improve
-  Performance?](https://www.developerway.com/posts/react-server-components-performance)
-  by Nadia Makarevich — A data-driven deep dive comparing CSR, SSR, and RSC
-  under the same app and test setup. Explains why and how streaming React Server
-  Components improve initial load performance under the hood. Exercises here
-  could make the abstractions in Archana's talk a lot more solid. - [Exploring
-  Partial Prerendering in Next.js](https://youtu.be/mrJpzqkODxw) — Vercel Ship
-  2025 workshop by James Quick (BigCommerce). Where Archana makes the strategic
-  case for PPR, this is the tactical complement: building reusable
-  Suspense-wrapped components with `use()`, Render Props, and a custom Promise
-  Cache. - [Static Regeneration: Supercharging Nextjs with Strapi
-  Webhooks](https://youtu.be/XBTfOeOT-IQ?si=TcyINeaze9kcRC4_) by Archana Agivale
-  | React Nexus 2025 — Archana also spoke at React Nexus 2025; this isn't her
-  first one. Explores the tension between SSG's performance benefits and the
-  cost of frequent rebuilds in editor-driven sites, then presents a custom
-  event-driven (with Strapi, SQS and Cron Jobs) architecture that reconciles the
-  two.
+  <summary><b>Further Reading</b></summary>
+  - [React Server Components: Do They Really Improve Performance?](https://www.developerway.com/posts/react-server-components-performance) by Nadia Makarevich — A data-driven deep dive comparing CSR, SSR, and RSC under the same app and test setup. Explains why and how streaming React Server Components improve initial load performance under the hood. Exercises here could make the abstractions in Archana's talk a lot more solid.
+  - [Exploring Partial Prerendering in Next.js](https://youtu.be/mrJpzqkODxw) — Vercel Ship 2025 workshop by James Quick (BigCommerce). Where Archana makes the strategic case for PPR, this is the tactical complement: building reusable Suspense-wrapped components with `use()`, Render Props, and a custom Promise Cache.
+  - [Static Regeneration: Supercharging Nextjs with Strapi Webhooks](https://youtu.be/XBTfOeOT-IQ?si=TcyINeaze9kcRC4_) by Archana Agivale | React Nexus 2025 — Archana also spoke at React Nexus 2025; this isn't her first one. Explores the tension between SSG's performance benefits and the cost of frequent rebuilds in editor-driven sites, then presents a custom event-driven (with Strapi, SQS and Cron Jobs) architecture that reconciles the two.
 </details>
 ---
 
@@ -176,23 +128,15 @@ Piyush is a designer-engineer and brings energy the room needed. The personaliti
 
 The problem he diagnoses is one you've felt but maybe never named: mounting and unmounting are the only two states in React's component lifecycle. There is nothing in between. Unmounting destroys everything — state, focus, scroll position. The hack has always been `display: none`, which keeps the component alive but still fires functions without a visible UI. React historically coupled visibility with existence. That coupling is the bug.
 
-The fix is a third, middle state: _background_. React's Activity API introduces a `mode` prop that deprioritises re-rendering when the component moves to the background, selectively preserving the states that matter while releasing what doesn't. It saves the struggle of recreating user state, preserving UI memory that nobody was preserving before.
+The fix is a third, middle state: *background*. React's Activity API introduces a `mode` prop that deprioritises re-rendering when the component moves to the background, selectively preserving the states that matter while releasing what doesn't. It saves the struggle of recreating user state, preserving UI memory that nobody was preserving before.
 
 When to use it? Search interfaces, shopping carts, chat sidebars — anything a user leaves and returns to. When not to? Toast notifications, tooltips (too cheap to matter), login modals (used once anyway). The judgment call is part of the API.
 
 Piyush made what could have been a dry spec walkthrough into something theatrical. I did later write that the "third middle state" talk could have been a small email. But I'm not sure that's fair. Sometimes the small email contains exactly the right idea.
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [View Transitions and Activity — React Conf
-  2025](https://youtu.be/G9xD6lHgrMM?si=cZfyYN3l6U5zDbVB) by Chance Strickland —
-  Where Piyush gives you the *why* (the third state as a philosophical
-  correction to React's lifecycle), Chance gives you the *how*: Activity API
-  usage alongside View Transitions, automatic transition orchestration via
-  `startTransition`, and background resource preloading to prevent janky loading
-  states.
+  <summary><b>Further Reading</b></summary>
+  - [View Transitions and Activity — React Conf 2025](https://youtu.be/G9xD6lHgrMM?si=cZfyYN3l6U5zDbVB) by Chance Strickland — Where Piyush gives you the *why* (the third state as a philosophical correction to React's lifecycle), Chance gives you the *how*: Activity API usage alongside View Transitions, automatic transition orchestration via `startTransition`, and background resource preloading to prevent janky loading states.
 </details>
 
 ---
@@ -211,24 +155,18 @@ One underappreciated detail: there's no single entry point during the runtime fo
 
 Why go through all this? The React compiler, less legacy debt, async in render, Actions, `useOptimistic` — the features that make the migration worth it. But the talk is honest: this is painful, expensive work. And at enterprise scale, the agentic approach doesn't eliminate the pain. It possibly only shifts where you feel it.
 
-Bijoy stayed curious about something I'd glossed over: `locator.js`. Click a component in the browser, and it opens the corresponding code in your IDE. It started breaking after Akshay's migrations, they had to fix it with some That's a tool worth knowing about, even if it's fragile. This talk had more detail than I could condense.
+Bijoy stayed curious about something I'd glossed over: `locator.js`. Click a component in the browser, and it opens the corresponding code in your IDE. It started breaking after Akshay's migrations, they had to fix it with some  That's a tool worth knowing about, even if it's fragile. This talk had more detail than I could condense.
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [Enhancing The New York Times Web Performance with React
-  18](https://medium.com/timesopen/enhancing-the-new-york-times-web-performance-with-react-18-d6f91a7c5af8)
-  by Ilya Gurevich — Very popular article, similar migration story. Types and
-  deps first, then the hydration headaches, then the payoff: INP dropped ~30%,
-  re-renders halved. Akshay's talk pairs well with this.
+  <summary><b>Further Reading</b></summary>
+  - [Enhancing The New York Times Web Performance with React 18](https://medium.com/timesopen/enhancing-the-new-york-times-web-performance-with-react-18-d6f91a7c5af8) by Ilya Gurevich — Very popular article, similar migration story. Types and deps first, then the hydration headaches, then the payoff: INP dropped ~30%, re-renders halved. Akshay's talk pairs well with this.
 </details>
 
 ---
 
 ### 1.6 AI Solved\* Coding. Shipping Is the New Bottleneck | Vignesh Krishnan, Developer Relations Engineer, Zoho
 
-Vignesh is a Zoho veteran of ten years, and this is a full-length sponsor showcase. His opening claim: AI has dramatically shrunk the time to _build_, but the time to _ship_ hasn't changed much. AI doesn't decide where the app runs, where the data lives, how to autoscale, or how auth works. These are the real bottlenecks, and they're not going away.
+Vignesh is a Zoho veteran of ten years, and this is a full-length sponsor showcase. His opening claim: AI has dramatically shrunk the time to *build*, but the time to *ship* hasn't changed much. AI doesn't decide where the app runs, where the data lives, how to autoscale, or how auth works. These are the real bottlenecks, and they're not going away.
 
 Then the Catalyst tour begins. Zoho makes SaaS — 55+ apps, 150 million users, 16 data centres. Catalyst is their full-stack hosting platform: frontend hosting and deployment, object storage, an event bus. Then authentication components, third-party service integrations, S3-compatible bucket migration paths, push notifications, mail services. Then QuickML, which imports datasets and returns models with API endpoints. Then serverless backend, Docker image support, cloud-scale databases.
 
@@ -237,6 +175,7 @@ The talk loops through a live demo where Vignesh one-shot deploys an application
 The talk ends with a plug for Datathon 2026 with Zoho and Karnataka Police. Thank you Zoho, for sponsoring this conference.
 
 ---
+
 
 ### 1.7 What I Learned Building Payments | Smile Gupta, Software Engineer II, Wayfair
 
@@ -255,33 +194,10 @@ Someone from the audience points out that Safari blocks pop-ups, AJAX requests m
 Good observability and good logs have a strong case here, along with being mindful about what we log and what we must never log. Never log personal information. "Payment UI is a lot more than just UI. Design for clarity. Engineer for trust.", said Smile Gupta.
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [Building a mental model for Stripe
-  payments](https://stripe.dev/blog/building-a-mental-model-for-stripe-payments)
-  — Stripe Bloqs are very cool and fancy for the first time arrivers. The Stripe
-  article gives (relatively simplistic) backend and systems perspective with a
-  state machine that Smile deliberately skips and has the state machine I was
-  hoping to originally (and wrongly) expecting at this FE Conference. -
-  [Teaching Agents to Pay: A Developer's
-  Guide](https://youtu.be/5DkIHPfTX-Y?si=VYpGUwnHkqWkjKlw) (Allison Farris) —
-  Allison argues that multiple AI agents and merchants could create a similar
-  integration mess, motivating standards like the Universal Commerce Protocol.
-  The "calling tools in a while loop" describes the common agent loop (reason →
-  call tool → receive result → reason again), where the backend keeps supplying
-  conversation history and tool outputs to the LLM. Both talks ultimately
-  emphasize the same principle: the merchant remains the source of truth.
-  Allison adds that clear protocols, structured data, and trustworthy state
-  management keep increasingly complex payment ecosystems reliable for agentic
-  experiences. - [From Puffers to Payment Buttons: The Story Behind My React
-  Nexus
-  Deck](https://dev.to/smilegupta/from-puffers-to-payment-buttons-the-story-behind-my-react-nexus-deck-2037)
-  (Smile Gupta) — Smile apparently spent so long agonizing over the visual
-  narrative — pufferfish, payment buttons, the whole journey — that the creative
-  process itself became a separate blog post. The amount of energy poured into
-  getting the slides just right could probably power a small React app, but why
-  waste that story away? Turn it into this blog.
+  <summary><b>Further Reading</b></summary>
+  - [Building a mental model for Stripe payments](https://stripe.dev/blog/building-a-mental-model-for-stripe-payments) — Stripe Bloqs are very cool and fancy for the first time arrivers. The Stripe article gives (relatively simplistic) backend and systems perspective with a state machine that Smile deliberately skips and has the state machine I was hoping to originally (and wrongly) expecting at this FE Conference.
+  - [Teaching Agents to Pay: A Developer's Guide](https://youtu.be/5DkIHPfTX-Y?si=VYpGUwnHkqWkjKlw) (Allison Farris) — Allison argues that multiple AI agents and merchants could create a similar integration mess, motivating standards like the Universal Commerce Protocol. The "calling tools in a while loop" describes the common agent loop (reason → call tool → receive result → reason again), where the backend keeps supplying conversation history and tool outputs to the LLM. Both talks ultimately emphasize the same principle: the merchant remains the source of truth. Allison adds that clear protocols, structured data, and trustworthy state management keep increasingly complex payment ecosystems reliable for agentic experiences.
+  - [From Puffers to Payment Buttons: The Story Behind My React Nexus Deck](https://dev.to/smilegupta/from-puffers-to-payment-buttons-the-story-behind-my-react-nexus-deck-2037) (Smile Gupta) — Smile apparently spent so long agonizing over the visual narrative — pufferfish, payment buttons, the whole journey — that the creative process itself became a separate blog post. The amount of energy poured into getting the slides just right could probably power a small React app, but why waste that story away? Turn it into this blog.
 </details>
 
 ---
@@ -296,34 +212,17 @@ The problem, Apurv argues, is that LLMs are generic, stale, and blind to your sp
 
 He references popular examples: Amazon's Cloudscape, GitHub Primer, Adobe Spectrum — all have mature design systems and foundations. His approach is to encode your own system into an Agent Skill. His skill has following skeleton: a `SKILL.md` file (the instruction set), a `references/` directory (documentation the model can consult), `scripts/` (deterministic tooling to feed context), and `assets/` (images, screenshots). The reference docs don't just inform the model — they also generate, verify, and audit the workflow outputs. Deterministic scripts are critical because they create a ground truth the model can't hallucinate its way around.
 
-A few practical details: such a skill is currently limited to Vision Language Models — the model must be able to _see_ your reference screenshots. There's a `disable-model-invocation` flag that prevents the model from auto-invoking the skill, only triggering it on explicit `/slash` commands. An important nuance for anyone building these: the skill needs to stay living. It should update automatically, either through agents or routines, as your design system evolves.
+A few practical details: such a skill is currently limited to Vision Language Models — the model must be able to *see* your reference screenshots. There's a `disable-model-invocation` flag that prevents the model from auto-invoking the skill, only triggering it on explicit `/slash` commands. An important nuance for anyone building these: the skill needs to stay living. It should update automatically, either through agents or routines, as your design system evolves.
 
 I don't have the exact skill that Apurv used during his demo, and I didn't see a link to it in his slides. But that's not the point of such a bespoke approach. He rightly gives us the recipe to create one. First, inventory your sources: tokens, component types/catalog, guidelines/docs, Storybook. Second, write an ingest script to emit `knowledge/`, `tokens.json`, `components.json`, `usage/`. Third, write `SKILL.md` — a sharp description, the tree workflows, and the rubric. Fourth, add scripts for audit (rubric), screenshot, and compare to verify. Fifth, install the skill in the repo. Finally, add a GitHub Action to re-ingest on every release to keep it current forever. Although Apurv doesn't share the exact skill, he instead shares a meta-skill that interrogates you to create the above skill ([github.com/apurvkhare/design-system-skill](https://github.com/apurvkhare/design-system-skill)).
 
 The concept of encoding institutional design knowledge into something an agent can consult, rather than crossing your fingers that the model already knows, is a pattern that extends well beyond UI.
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [Meet DESIGN.md](https://youtu.be/W1gWIQp9k1Y?si=7n2ItkL0DPeaobHW) — is
-  Google's open spec for describing a design system to AI agents — not just
-  tokens and components, but the reasoning behind them. Any compatible AI tool
-  can generate on-brand UI from a single source of truth. It's the same instinct
-  as Apurv's Agent Skill (package design knowledge so an agent can consult it),
-  but standardized for interoperability rather than locked to one workflow. -
-  [`/impeccable document`](https://impeccable.style/docs/document/) by Paul
-  Bakaus is one of the most cutting-edge tools pushing back against AI slop. It
-  takes the same philosophy as Google's spec and turns it into an opinionated,
-  end-to-end workflow: scan a codebase to generate the DESIGN.md, then let the
-  tooling consume it across generation, refinement, and auditing. It's also
-  similar to Apurv's vision, just off-the-shelf instead of hand-rolled. -
-  [Frontend Observability Odyssey by Apurv Khare | React Nexus
-  2025](https://youtu.be/7b3WV4g-uSY) — Apurv's talk from last year, covering
-  frontend observability telemetry pillars (metrics, events, logs, traces) and
-  the OpenTelemetry framework with Grafana and Sentry demos. If you're curious,
-  this is where Apurv made the "like just another Google product" remark that
-  Wadad referenced this time.
+  <summary><b>Further Reading</b></summary>
+    - [Meet DESIGN.md](https://youtu.be/W1gWIQp9k1Y?si=7n2ItkL0DPeaobHW) — is Google's open spec for describing a design system to AI agents — not just tokens and components, but the reasoning behind them. Any compatible AI tool can generate on-brand UI from a single source of truth. It's the same instinct as Apurv's Agent Skill (package design knowledge so an agent can consult it), but standardized for interoperability rather than locked to one workflow.
+    - [`/impeccable document`](https://impeccable.style/docs/document/) by Paul Bakaus is one of the most cutting-edge tools pushing back against AI slop. It takes the same philosophy as Google's spec and turns it into an opinionated, end-to-end workflow: scan a codebase to generate the DESIGN.md, then let the tooling consume it across generation, refinement, and auditing. It's also similar to Apurv's vision, just off-the-shelf instead of hand-rolled.
+    - [Frontend Observability Odyssey by Apurv Khare | React Nexus 2025](https://youtu.be/7b3WV4g-uSY) — Apurv's talk from last year, covering frontend observability telemetry pillars (metrics, events, logs, traces) and the OpenTelemetry framework with Grafana and Sentry demos. If you're curious, this is where Apurv made the "like just another Google product" remark that Wadad referenced this time.
 </details>
 ---
 
@@ -342,24 +241,12 @@ The session ends with a CodeWalnut plug. Nattu talks about how the company spent
 It's a classic CEO keynote. Big on vision. The talk is engaging enough that I didn't mind sitting through it. Bijoy, meanwhile, was doing his best to stay awake through the afternoon slump.
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [Graphify + Obsidian + Claude Code = CHEAT
-  CODE](https://youtu.be/mWLDn49_8HA?si=VaoPM63N_A52sUiX) — What agent memory
-  and Graphify actually look like in practice — pitfalls, what works, and a
-  working setup with Obsidian as long-term memory, Graphify as the map, and
-  Claude as the navigator. The idea is that careful curation leads to efficient
-  token usage and better retrievals. But this walkthrough doesn't actually
-  demonstrate the utility through, mostly the setup. - [LLM Knowledge Bases by
-  Andrej Karpathy](https://x.com/karpathy/status/2039805659525644595?s=20) — I
-  took this tweet and turned it into a custom skill: a wiki with its own
-  AGENTS.md that ingests raw immutable sources into an LLM-maintained knowledge
-  base with interconnected graphs. I use the Obsidian browser extension to pipe
-  in webpages, and it's been especially handy for generating impact reports from
-  merged PR diffs and Trello cards — all knowledge maintenance, outside actual
-  code generation.
+  <summary><b>Further Reading</b></summary>
+    - [Graphify + Obsidian + Claude Code = CHEAT CODE](https://youtu.be/mWLDn49_8HA?si=VaoPM63N_A52sUiX) — What agent memory and Graphify actually look like in practice — pitfalls, what works, and a working setup with Obsidian as long-term memory, Graphify as the map, and Claude as the navigator. The idea is that careful curation leads to efficient token usage and better retrievals. But this walkthrough doesn't actually demonstrate the utility through, mostly the setup.
+    - [LLM Knowledge Bases by Andrej Karpathy](https://x.com/karpathy/status/2039805659525644595?s=20) — I took this tweet and turned it into a custom skill: a wiki with its own AGENTS.md that ingests raw immutable sources into an LLM-maintained knowledge base with interconnected graphs. I use the Obsidian browser extension to pipe in webpages, and it's been especially handy for generating impact reports from merged PR diffs and Trello cards — all knowledge maintenance, outside actual code generation.
 </details>
+
+---
 
 ---
 
@@ -369,35 +256,51 @@ Rishab opens with a story about spotting a black panther while trekking on foot 
 
 Here are his [slides](https://www.canva.com/design/DAHEgGBYlJ0/_B5S0L929esg-V3bYgWLQw/edit) with a framework that breaks migration into three parts. Analysis takes 50% of the time. Code generation and migration is about 80% correct on the first pass. Verification is what closes the gap from 80% to 95-100%. The numbers feel honest, and the implication is clear: AI helps most in the middle phase, but the edges — understanding the code and proving it still works — remain fundamentally human work.
 
-For analysis, he goes deep on context. You need more than the code. You need the dependency graph: what depends on what, not just at the package level but folder by folder, function by function, _what does this code mean and what does it do_. He plugs Graphify (second plug of the day, after Nattu) as a tool for building that understanding. Migrating to a new framework requires a tree-like structure of context files — distributed `agent.md` files, not one monolithic document. Putting everything in a single `agent.md` is a mistake for the effective context size.
+For analysis, he goes deep on context. You need more than the code. You need the dependency graph: what depends on what, not just at the package level but folder by folder, function by function, *what does this code mean and what does it do*. He plugs Graphify (second plug of the day, after Nattu) as a tool for building that understanding. Migrating to a new framework requires a tree-like structure of context files — distributed `agent.md` files, not one monolithic document. Putting everything in a single `agent.md` is a mistake for the effective context size.
 
-For the prompt engineering, he has a specific five-component model: Persona (who the agent is), Context Injection (the map of the codebase), Constraints (the guardrails), Few-Shot Examples (the patterns to follow), Chain of Thought (the logic check). He categorises skills into Discovery (understanding), Manipulation (making changes), and Validation (verifying correctness). _(His public skill for this is on GitHub — [deeper link pending](https://github.com/Rishab-Bhattacharyya-96), couldn't fetch it yet.)_ Tests are the bedrock. Create tests before migration — legacy TDD, kept alive for the modernised codebase.
+For the prompt engineering, he has a specific five-component model: Persona (who the agent is), Context Injection (the map of the codebase), Constraints (the guardrails), Few-Shot Examples (the patterns to follow), Chain of Thought (the logic check). He categorises skills into Discovery (understanding), Manipulation (making changes), and Validation (verifying correctness). *(His public skill for this is on GitHub — [deeper link pending](https://github.com/Rishab-Bhattacharyya-96), couldn't fetch it yet.)* Tests are the bedrock. Create tests before migration — legacy TDD, kept alive for the modernised codebase.
 
 Then he shows his workflow orchestrator: a set of `.md` files that define the migration pipeline — orchestrator, analyser, committer, executor, gap reporter, reviser, validator. Each step is a discrete agentic sub-workflow. The approach is: analyse, verify, use analysis to generate code, confirm, revise, commit. He plugs Opencode (the desktop app in light mode) as his tool of choice, noting its permission-setting capabilities.
 
 The talk feels high-level and a little slow, but the relevance is hard to deny. Migration work is the kind of grunt labour nobody wants to do — and the kind where AI assistance, properly scaffolded, could actually move the needle. This wasn't the flashiest talk, but it was one of the more practically structured ones.
 
 <details>
-  <summary>
-    <b>Further Reading</b>
-  </summary>
-  - [Rewriting All of Spotify's Code Base, All the
-  Time](https://youtu.be/1oicrAfrEIk?si=2-wmDelq3ShBjREa) — Spotify takes a
-  similar agentic approach to large-scale migrations across thousands of
-  repositories. While Rishab's focus on repository understanding through tools
-  feels like speculative theory with good intent (lacking concrete examples of
-  "scar tissue"), Spotify demonstrates the need for clear observability through
-  both methods and actions that have less abstract rootedness in the
-  presentation. - [Moving Mountains: Migrating Legacy Code in Weeks Instead of
-  Years](https://www.infoq.com/presentations/refactoring-ai-agents/) by David
-  Stein, ServiceTitan — Migration stories are both generalistic and custom, just
-  like building any other software I suppose. It's hard to take a concrete
-  understanding that is more practical than meta. It's even more important in
-  the context of non-deterministic LLM tools. Here, David focuses on operating
-  this migration pipeline that Rishab's skills help us setup with another
-  assembly-line approach and improving this migration factory over time.
+  <summary><b>Further Reading</b></summary>
+
+- [Rewriting All of Spotify's Code Base, All the Time](https://youtu.be/1oicrAfrEIk?si=2-wmDelq3ShBjREa) — Spotify takes a similar agentic approach to large-scale migrations across thousands of repositories. While Rishab's focus on repository understanding through tools feels like speculative theory with good intent (lacking concrete examples of "scar tissue"), Spotify demonstrates the need for clear observability through both methods and actions that have less abstract rootedness in the presentation.
+- [Moving Mountains: Migrating Legacy Code in Weeks Instead of Years](https://www.infoq.com/presentations/refactoring-ai-agents/) by David Stein, ServiceTitan —  Migration stories are both generalistic and custom, just like building any other software I suppose. It's hard to take a concrete understanding that is more practical than meta. It's even more important in the context of non-deterministic LLM tools. Here, David focuses on operating this migration pipeline that Rishab's skills help us setup with another assembly-line approach and improving this migration factory over time.
+
 </details>
 
 ---
 
-[TBC] [██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 10/40
+### 1.11 You Logged Into Your React App. Now What? | Omal Wijegunawardana, Associate Technical Lead, WSO2
+
+Omal Wijegunawardana from WSO2 starts with a simple yet fundamental question: *How confident are you in the role-based access control of your React application?* I know that feeling. RBAC is one of those things where you would always want to say I'm fully confident, but wish to rush tests across one last time.
+
+He says the talk is about authorization, which is genuinely a hard problem. And I wish I came across enough codebases that roll their own auth from scratch where the same application can expose completely different capabilities depending on the user's role or subscription tier. Role based Access Control. Our applications do have a fully hand rolled, and very intricate role based access control with Cognito's authentication.
+
+And as expected one of the first things he points out is that hiding a component behind an `if` condition in the UI isn't really security. The headless endpoints behind it could still be open. Instead, permissions need to be enforced in three places: **routes, components, and data**.
+
+Initially, I expected him to frame it as **frontend, backend, and database**. But thinking about it, these are really application-level enforcement points. Routes control what users can navigate to, components determine what they see, and data is what ultimately needs protecting. That doesn't necessarily mean the database itself enforces authorization. In practice, especially with many popular NoSQL databases that lack PostgreSQL-style Row-Level Security, these checks often live in the application or API layer instead.
+
+That naturally leads to his main point: the real gate is on the server, where the data lives. The same application may serve different classes of users, but the authorization token should be the single source of truth. It should consistently gate routes, components, and data. The UI is really just a courtesy.
+
+Then comes the inevitable WSO2 product plug. They position their identity platform as enterprise-ready, flexing RBI as one of their customers. The pitch: a drop-in React SDK with built-in role management, enterprise features, and a free tier.
+
+I also learn that **Asgardeo** was the previous branding before being folded under WSO2. It ships with React hooks and support for user tiers, and from the demo it looks like it makes RBAC integration surprisingly seamless for React applications.
+
+Towards the end, Omal briefly mentions **ThunderID**, an upcoming fully open-source RBAC solution where you own the authorization code yourself. Later, outside the sponsor area, I ask him about our custom RBAC setup and that leads him to elaborate further on ThunderID. Apparently someone from WSO2 will be demoing it later on Day 2.
+
+<details>
+  <summary>
+    <b>Further Reading</b>
+  </summary>
+  - [How Authentication Works in React](https://youtu.be/2hvX-kpGse4?si=9knnhk3eZdDYwhfn) by Shruti Kapoor — Shruti explains the authentication layer: how users log in, how JWTs or session tokens securely represent a user's identity, and why production systems often combine both approaches. Omal focuses on what happens after login—using that identity to authorize access. A good exercise and refresher on authentication fundamentals.
+  - [How Google Built a Consistent, Global Authorization System; and You Can Too!](https://youtu.be/xbKCLLNX1cI?si=26RXNZYy9usnp3rW) by Sohan Maheshwar — Sohan here describes the highly popular, relationship-based access control white paper Google Zanzibar. Zanzibar becomes relevant if your authorization rules evolve beyond static roles into more dynamic, resource-specific relationships, or if you want to centralize authorization across multiple services rather than embedding it in each API. It essentially depends on the relationship and not on the roles directly, where the access for the user object is determined by traversing through the directed acyclic object graph of the relationships to groups or document using relationship tuples.
+  - [How To Handle Permissions Like A Senior Dev](https://youtu.be/5GG-VUvruzE?si=ZyV6DZQUljJ8vcoE) by Kyle Cook — Kyle Cook expands on the authorization concepts Omal introduces, moving from simple role checks to maintainable permission-based systems and eventually Attribute-Based Access Control (ABAC). Whereas Omal focuses on where permissions should be enforced—routes, components, and data—Kyle focuses on how those permissions should be designed as applications become more complex. A lot of this will give a good nostalgia and relevance on how we have been handling auth.
+</details>
+
+---
+
+[TBC] [███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 11/40
