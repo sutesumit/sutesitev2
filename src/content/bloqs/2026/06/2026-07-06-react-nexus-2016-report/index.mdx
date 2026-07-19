@@ -276,7 +276,7 @@ The talk feels high-level and a little slow, but the relevance is hard to deny. 
 
 ### 1.11 You Logged Into Your React App. Now What? | Omal Wijegunawardana, Associate Technical Lead, WSO2
 
-Omal Wijegunawardana from WSO2 starts with a simple yet fundamental question: *How confident are you in the role-based access control of your React application?* I know that feeling. RBAC is one of those things where you would always want to say I'm fully confident, but wish to rush tests across one last time.
+[Omal Wijegunawardana](https://omal.dev) from WSO2 starts with a simple yet fundamental question: *How confident are you in the role-based access control of your React application?* I know that feeling. RBAC is one of those things where you would always want to say I'm fully confident, but wish to rush tests across one last time.
 
 He says the talk is about authorization, which is genuinely a hard problem. And I wish I came across enough codebases that roll their own auth from scratch where the same application can expose completely different capabilities depending on the user's role or subscription tier. Role based Access Control. Our applications do have a fully hand rolled, and very intricate role based access control with Cognito's authentication.
 
@@ -303,4 +303,18 @@ Towards the end, Omal briefly mentions **ThunderID**, an upcoming fully open-sou
 
 ---
 
-[TBC] [███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 11/40
+### 1.12 Shipping React with AI Coding Agents: What Works, What Breaks, What Scales | Kumar Prince, Software Engineer 3, Walmart
+
+Kumar takes the stage for his first-ever React Nexus talk. He's sincere, maybe a touch nervous, and his slides are full of memes and screenshots from his editor. The framing is practical: what actually works when you ship React with AI coding agents?
+
+What works: refactoring, test generation, boilerplate, code review. Mocking becomes easy. AI can find potential memory leaks and file extension issues. It can prioritise issues it finds.
+
+What breaks: architecture, edge cases, business context. The AI's blind spot is business logic — it can generate code that passes tests but misses why the code exists in the first place. It struggles with ownership boundaries and the judgement calls that experienced developers make without thinking.
+
+What scales: bounded tasks with clear context, existing patterns to follow, human review of all outputs.
+
+The talk is practical but stays at a high level. He did give quick examples, though I would have liked more depth on the code smells and frequent failure patterns. Kumar closes by wishing everyone a very long career and hopes they can change their jobs. A warm ending, if not a technically satisfying one.
+
+---
+
+[TBC] [████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░] 12/40
