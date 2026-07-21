@@ -31,20 +31,25 @@ function formatTimeAgo(iso: string): string {
   return formatTimestamp(iso);
 }
 
+function maxSequence(entries: LiveEntry[]): number {
+  if (entries.length === 0) return 0;
+  return Math.max(...entries.map((e) => e.sequence));
+}
+
 export function LiveBloqFeed({
   session,
   initialEntries,
   slug,
 }: LiveBloqFeedProps) {
-  const sortedInitialEntries = [...initialEntries].sort((a, b) => b.sequence - a.sequence);
-  const [entries, setEntries] = useState<LiveEntry[]>(sortedInitialEntries);
+  const isInitiallyLive = session.status === "active";
+  // Live: DESC (newest first). Closed: keep server ASC (oldest first).
+  const [entries, setEntries] = useState<LiveEntry[]>(
+    isInitiallyLive ? [...initialEntries].reverse() : initialEntries,
+  );
   const [liveStatus, setLiveStatus] = useState(session.status);
   const [connectionOk, setConnectionOk] = useState(true);
-  const lastSequenceRef = useRef(
-    sortedInitialEntries.length > 0
-      ? sortedInitialEntries[0].sequence
-      : 0,
-  );
+  const lastSequenceRef = useRef(maxSequence(initialEntries));
+  const liveStatusRef = useRef(session.status);
 
   const isLive = liveStatus === "active";
 
@@ -67,9 +72,8 @@ export function LiveBloqFeed({
             (e: LiveEntry) => !existingIds.has(e.id),
           );
           if (newEntries.length === 0) return prev;
-          const combined = [...newEntries, ...prev];
-          combined.sort((a, b) => b.sequence - a.sequence);
-          return combined;
+          // API returns ASC; reverse batch then prepend so newest stays at index 0.
+          return [...[...newEntries].reverse(), ...prev];
         });
         const maxSeq = Math.max(
           ...data.entries.map((e: LiveEntry) => e.sequence),
@@ -80,6 +84,10 @@ export function LiveBloqFeed({
       }
 
       if (data.sessionStatus && data.sessionStatus !== "active") {
+        if (liveStatusRef.current === "active") {
+          setEntries((current) => [...current].reverse());
+        }
+        liveStatusRef.current = data.sessionStatus;
         setLiveStatus(data.sessionStatus);
       }
     } catch {
@@ -100,21 +108,21 @@ export function LiveBloqFeed({
       <div className="flex items-center justify-between flex-wrap pt-2 gap-2">
         <div className="flex items-center gap-3">
           {isLive ? (
-            <div className="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-3 py-1 text-sm font-medium text-red-500">
+            <div className="inline-flex items-center gap-2 rounded-sm bg-red-500/10 px-2.5 py-1 text-sm font-medium text-red-500">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-[1px] bg-red-400 opacity-75" />
+                <span className="relative inline-flex h-full w-full rounded-[1px] bg-red-500" />
               </span>
               Live
             </div>
           ) : liveStatus === "closed" ? (
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <div className="inline-flex items-center gap-2 rounded-sm border border-slate-300 bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+              <span className="h-2 w-2 border border-slate-300 dark:border-slate-600" />
               Session ended
             </div>
           ) : (
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-sm font-medium text-amber-600 dark:text-amber-400">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
+            <div className="inline-flex items-center gap-2 rounded-sm bg-amber-500/10 px-2.5 py-1 text-sm font-medium text-amber-600 dark:text-amber-400">
+              <span className="h-2 w-2 rounded-[1px] bg-amber-500" />
               Cancelled
             </div>
           )}

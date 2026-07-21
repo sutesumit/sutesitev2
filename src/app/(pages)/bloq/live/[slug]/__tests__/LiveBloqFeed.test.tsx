@@ -76,6 +76,42 @@ describe("LiveBloqFeed", () => {
     expect(times.length).toBe(2);
   });
 
+  it("shows newest entry first for active session", () => {
+    const session = makeSession({ status: "active", entry_count: 2 });
+    const entries = [
+      makeEntry({ sequence: 1, content: "Older entry" }),
+      makeEntry({ sequence: 2, content: "Newer entry" }),
+    ];
+
+    render(
+      <LiveBloqFeed session={session} initialEntries={entries} slug="test" />
+    );
+
+    const items = document.querySelectorAll("li p");
+    expect(items[0].textContent).toBe("Newer entry");
+    expect(items[1].textContent).toBe("Older entry");
+  });
+
+  it("shows oldest entry first for closed session", () => {
+    const session = makeSession({
+      status: "closed",
+      closed_at: new Date().toISOString(),
+      entry_count: 2,
+    });
+    const entries = [
+      makeEntry({ sequence: 1, content: "Older entry" }),
+      makeEntry({ sequence: 2, content: "Newer entry" }),
+    ];
+
+    render(
+      <LiveBloqFeed session={session} initialEntries={entries} slug="test" />
+    );
+
+    const items = document.querySelectorAll("li p");
+    expect(items[0].textContent).toBe("Older entry");
+    expect(items[1].textContent).toBe("Newer entry");
+  });
+
   it("shows Live badge for active session", () => {
     const session = makeSession({ status: "active" });
 
@@ -287,5 +323,50 @@ describe("LiveBloqFeed", () => {
       expect(screen.getByText("Entry 2")).toBeDefined();
       expect(screen.getByText("Entry 3")).toBeDefined();
     });
+
+    const items = document.querySelectorAll("li p");
+    expect(items[0].textContent).toBe("Entry 3");
+    expect(items[1].textContent).toBe("Entry 2");
+    expect(items[2].textContent).toBe("Entry 1");
+  });
+
+  it("flips to oldest-first when session closes mid-poll", async () => {
+    const session = makeSession({ status: "active", entry_count: 2 });
+    const entries = [
+      makeEntry({ sequence: 1, content: "Older entry" }),
+      makeEntry({ sequence: 2, content: "Newer entry" }),
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          entries: [],
+          sessionStatus: "closed",
+        }),
+    });
+
+    render(
+      <LiveBloqFeed
+        session={session}
+        initialEntries={entries}
+        slug="test"
+      />
+    );
+
+    // While live: newest first
+    let items = document.querySelectorAll("li p");
+    expect(items[0].textContent).toBe("Newer entry");
+    expect(items[1].textContent).toBe("Older entry");
+
+    await capturedPollCallback!();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Session ended/i)).toBeDefined();
+    });
+
+    items = document.querySelectorAll("li p");
+    expect(items[0].textContent).toBe("Older entry");
+    expect(items[1].textContent).toBe("Newer entry");
   });
 });
