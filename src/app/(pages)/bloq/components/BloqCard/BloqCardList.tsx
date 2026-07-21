@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { motion as m } from "framer-motion";
 import { BloqPost } from "@/lib/bloq";
+import { getBloqEngagementIdentity } from "@/lib/content-identity";
 import { cn } from "@/lib/utils";
 import {
   BloqDate,
@@ -25,6 +26,7 @@ export const BloqCardList = ({
   className,
 }: BloqCardListProps) => {
   const isFeatured = post.featured;
+  const { type: engagementType, id: engagementId } = getBloqEngagementIdentity(post);
   const animationProps = {
     initial: "rest",
     whileHover: "hover",
@@ -66,13 +68,13 @@ export const BloqCardList = ({
                 )}
               >
                 <ViewCounter
-                  type="bloq"
-                  identifier={post.url}
+                  type={engagementType}
+                  identifier={engagementId}
                   className="text-xs flex items-center text-gray-500"
                 />
                 <ClapsCounter
-                  postId={post.url}
-                  postType="bloq"
+                  postId={engagementId}
+                  postType={engagementType}
                   interactive={false}
                   className="text-xs !p-0 flex items-center text-gray-500"
                 />

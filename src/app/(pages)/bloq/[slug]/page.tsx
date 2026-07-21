@@ -71,7 +71,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const relatedPosts = getRelatedPosts(post);
 
   return (
-    <article className="container py-10">
+    <article className="container relative isolate py-10">
       {renderJsonLd(buildBloqPostSchema(post))}
       <TrackView type="bloq" identifier={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />

@@ -1,9 +1,10 @@
 import type { BloqPost } from "@/lib/bloq/types";
+import { buildLiveBloqEngagementId } from "@/lib/content-identity";
 import type { LiveSession } from "./types";
 
 export function liveSessionToBloqPost(session: LiveSession): BloqPost {
   return {
-    url: `live/${session.slug}`,
+    url: buildLiveBloqEngagementId(session.slug),
     slug: session.slug,
     title: session.title,
     publishedAt: session.started_at,

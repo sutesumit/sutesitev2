@@ -2,6 +2,7 @@ import Link from "next/link";
 import { motion as m, AnimatePresence } from "framer-motion";
 import { Undo2 } from "lucide-react";
 import { BloqPost } from "@/lib/bloq";
+import { getBloqEngagementIdentity } from "@/lib/content-identity";
 import { cn } from "@/lib/utils";
 import { useCardCollapse } from "../../hooks/useCardCollapse";
 import { BloqDate, BloqTitle, BloqSummary, BloqBackground, BloqReadingTime } from "./parts";
@@ -17,6 +18,7 @@ interface BloqCardDetailProps {
 export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
   const { isCollapsed, mouseHandlers } = useCardCollapse();
   const isFeatured = post.featured;
+  const { type: engagementType, id: engagementId } = getBloqEngagementIdentity(post);
 
   return (
     <m.div
@@ -73,8 +75,8 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
                   {post.title}
                 </span>
                 <ClapsCounter
-                  postId={post.url}
-                  postType="bloq"
+                  postId={engagementId}
+                  postType={engagementType}
                   interactive={true}
                   className="text-xs opacity-90 flex items-center shrink-0"
                 />
@@ -82,13 +84,13 @@ export const BloqCardDetail = ({ post, className }: BloqCardDetailProps) => {
             ) : (
               <div className="flex items-center gap-3">
                 <ViewCounter
-                  type="bloq"
-                  identifier={post.url}
+                  type={engagementType}
+                  identifier={engagementId}
                   className="text-xs flex items-center"
                 />
                 <ClapsCounter
-                  postId={post.url}
-                  postType="bloq"
+                  postId={engagementId}
+                  postType={engagementType}
                   interactive={true}
                   className="text-xs flex items-center"
                 />

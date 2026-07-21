@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { getBloqEngagementIdentity } from "@/lib/content-identity";
 import { liveBloqService } from "@/lib/live-bloq/service";
 import { liveSessionToBloqPost } from "@/lib/live-bloq";
 import { buildBloqPostSchema, renderJsonLd } from "@/lib/metadata/schema";
@@ -42,11 +43,13 @@ export default async function LiveBloqPage({ params }: LiveBloqPageProps) {
 
   const entries = await liveBloqService.getEntries(session.id);
   const bloqPost = liveSessionToBloqPost(session);
+  const { type: engagementType, id: engagementId } =
+    getBloqEngagementIdentity(bloqPost);
 
   return (
-    <article className="container py-10">
+    <article className="container relative isolate py-10">
       {renderJsonLd(buildBloqPostSchema(bloqPost))}
-      <TrackView type="bloq" identifier={`live/${slug}`} />
+      <TrackView type={engagementType} identifier={engagementId} />
       <BloqCard
         post={bloqPost}
         variant="detail"
