@@ -37,7 +37,7 @@ const itemVariants = {
 const MenuIcon = ({ isOpen }: { isOpen: boolean }) => {
   return (
     <m.svg
-      className="w-4 h-4"
+      className="w-4 h-4 overflow-visible"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 22 22"
@@ -52,10 +52,9 @@ const MenuIcon = ({ isOpen }: { isOpen: boolean }) => {
         initial={false}
         animate={{
           rotate: isOpen ? 45 : 0,
-          x: isOpen ? 2 : 0,
           y: isOpen ? 6 : 0,
         }}
-        style={{ originX: '50%', originY: '50%' }}
+        style={{ originX: '50%', originY: '50%', transformBox: 'fill-box' }}
         transition={springTransition}
       />
       <m.path
@@ -66,7 +65,7 @@ const MenuIcon = ({ isOpen }: { isOpen: boolean }) => {
           opacity: isOpen ? 0 : 1,
           scaleX: isOpen ? 0 : 1,
         }}
-        style={{ originX: '50%', originY: '50%' }}
+        style={{ originX: '50%', originY: '50%', transformBox: 'fill-box' }}
         transition={springTransition}
       />
       <m.path
@@ -75,10 +74,9 @@ const MenuIcon = ({ isOpen }: { isOpen: boolean }) => {
         initial={false}
         animate={{
           rotate: isOpen ? -45 : 0,
-          x: isOpen ? 2 : 0,
           y: isOpen ? -6 : 0,
         }}
-        style={{ originX: '50%', originY: '50%' }}
+        style={{ originX: '50%', originY: '50%', transformBox: 'fill-box' }}
         transition={springTransition}
       />
     </m.svg>
