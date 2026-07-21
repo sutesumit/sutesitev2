@@ -2,6 +2,7 @@ import { projects } from "@/data";
 import { getBlipByIdentifier } from "@/lib/blip";
 import { getBloqPostBySlug } from "@/lib/bloq";
 import { getByteByIdentifier } from "@/lib/byte";
+import { parseLiveBloqSlug } from "@/lib/content-identity";
 import { getSessionBySlug } from "@/lib/live-bloq/repository";
 import type { CounterNotificationContentType } from "@/lib/notifications/types";
 
@@ -39,8 +40,9 @@ export async function resolveNotificationContentSummary(
       };
     }
 
-    if (contentId.startsWith("live/")) {
-      const liveSession = await getSessionBySlug(contentId.slice("live/".length));
+    const liveSlug = parseLiveBloqSlug(contentId);
+    if (liveSlug !== null) {
+      const liveSession = await getSessionBySlug(liveSlug);
       return {
         contentType,
         contentId,

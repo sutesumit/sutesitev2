@@ -1,15 +1,24 @@
 import { ClapsService, ClapsResult, PostType } from './ClapsService.interface';
 import { MAX_CLAPS } from './constants';
 
+function buildClapsPath(postType: PostType, postId: string): string {
+  const encodedId = postId
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  return `/api/claps/${postType}/${encodedId}`;
+}
+
 /**
  * Claps service implementation using the API
  */
 export class ApiClapsService implements ClapsService {
   async getClaps(postType: PostType, postId: string, fingerprint?: string): Promise<ClapsResult> {
     try {
+      const path = buildClapsPath(postType, postId);
       const url = fingerprint
-        ? `/api/claps/${postType}/${postId}?fingerprint=${fingerprint}`
-        : `/api/claps/${postType}/${postId}`;
+        ? `${path}?fingerprint=${encodeURIComponent(fingerprint)}`
+        : path;
         
       const res = await fetch(url, { method: 'GET', cache: 'no-store' });
 
@@ -31,7 +40,7 @@ export class ApiClapsService implements ClapsService {
 
   async incrementClap(postType: PostType, postId: string, fingerprint: string, ip?: string): Promise<ClapsResult> {
     try {
-      const res = await fetch(`/api/claps/${postType}/${postId}`, {
+      const res = await fetch(buildClapsPath(postType, postId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fingerprint, ip }),

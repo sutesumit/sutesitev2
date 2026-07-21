@@ -1,12 +1,13 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { getBloqPostBySlug } from "@/lib/bloq";
+import { parseLiveBloqSlug } from "@/lib/content-identity";
 import { liveBloqService } from "@/lib/live-bloq";
 import { jsonError, jsonSuccess } from "@/lib/api/responses";
 import { resolveNotificationContentSummary } from "@/lib/notifications/content-summary";
 import { telegramNotifier } from "@/lib/notifications/telegram-notifier";
 
 interface RouteParams {
-    params: Promise<{ type: string; id: string }>
+    params: Promise<{ type: string; id: string[] }>
 }
 
 const VALID_POST_TYPES = ['bloq', 'blip', 'byte', 'project'] as const;
@@ -16,10 +17,17 @@ function validatePostType(type: string): type is PostType {
     return VALID_POST_TYPES.includes(type as PostType);
 }
 
+function resolveEngagementId(idParts: string[]): string {
+    return idParts.join("/");
+}
+
 async function ensureBloqPostExists(id: string): Promise<boolean> {
     const post = getBloqPostBySlug(id);
     if (post) return true;
-    const liveSlug = id.startsWith('live/') ? id.slice(5) : id;
+
+    const liveSlug = parseLiveBloqSlug(id);
+    if (liveSlug === null) return false;
+
     const session = await liveBloqService.getSession(liveSlug);
     return session !== null;
 }
@@ -29,7 +37,8 @@ export async function POST(
     { params }: RouteParams
 ) {
     try {
-        const { type, id } = await params;
+        const { type, id: idParts } = await params;
+        const id = resolveEngagementId(idParts);
 
         if (!validatePostType(type)) {
             return jsonError("Invalid post type. Must be 'bloq', 'blip', 'byte', or 'project'", 400);
@@ -90,7 +99,8 @@ export async function GET(
     { params }: RouteParams
 ) {
     try {
-        const { type, id } = await params;
+        const { type, id: idParts } = await params;
+        const id = resolveEngagementId(idParts);
 
         if (!validatePostType(type)) {
             return jsonError("Invalid post type. Must be 'bloq', 'blip', 'byte', or 'project'", 400);

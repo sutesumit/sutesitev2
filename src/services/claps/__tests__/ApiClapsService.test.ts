@@ -24,4 +24,22 @@ describe("ApiClapsService", () => {
       body: JSON.stringify({ fingerprint: "fingerprint-1", ip: "1.2.3.4" }),
     }));
   });
+
+  it("builds catch-all paths for live bloq engagement ids", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        userClaps: 0,
+        claps: 3,
+      }),
+    } as Response);
+
+    const service = new ApiClapsService();
+    await service.getClaps("bloq", "live/react-conf");
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/claps/bloq/live/react-conf",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
 });

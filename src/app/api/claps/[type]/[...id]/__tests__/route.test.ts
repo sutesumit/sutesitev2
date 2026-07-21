@@ -47,7 +47,7 @@ vi.mock("@/lib/notifications/content-summary", () => ({
 
 import { GET, POST } from "../route";
 
-describe("/api/claps/[type]/[id] GET", () => {
+describe("/api/claps/[type]/[...id] GET", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resolveNotificationContentSummaryMock.mockResolvedValue({
@@ -71,7 +71,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     });
 
     const response = await GET(new Request("http://localhost/api/claps/bloq/test-post"), {
-      params: Promise.resolve({ type: "bloq", id: "test-post" }),
+      params: Promise.resolve({ type: "bloq", id: ["test-post"] }),
     });
     const payload = await response.json();
 
@@ -86,7 +86,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     });
 
     const response = await GET(new Request("http://localhost/api/claps/blip/001"), {
-      params: Promise.resolve({ type: "blip", id: "001" }),
+      params: Promise.resolve({ type: "blip", id: ["001"] }),
     });
     const payload = await response.json();
 
@@ -101,7 +101,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     });
 
     const response = await GET(new Request("http://localhost/api/claps/byte/001"), {
-      params: Promise.resolve({ type: "byte", id: "001" }),
+      params: Promise.resolve({ type: "byte", id: ["001"] }),
     });
     const payload = await response.json();
 
@@ -123,7 +123,7 @@ describe("/api/claps/[type]/[id] GET", () => {
 
     const response = await GET(
       new Request("http://localhost/api/claps/bloq/test-post?fingerprint=abc123"),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
 
@@ -146,7 +146,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     });
 
     const response = await GET(new Request("http://localhost/api/claps/bloq/live/live-post"), {
-      params: Promise.resolve({ type: "bloq", id: "live/live-post" }),
+      params: Promise.resolve({ type: "bloq", id: ["live", "live-post"] }),
     });
     const payload = await response.json();
 
@@ -157,7 +157,7 @@ describe("/api/claps/[type]/[id] GET", () => {
 
   it("returns 400 for invalid type", async () => {
     const response = await GET(new Request("http://localhost/api/claps/invalid/123"), {
-      params: Promise.resolve({ type: "invalid", id: "123" }),
+      params: Promise.resolve({ type: "invalid", id: ["123"] }),
     });
     const payload = await response.json();
 
@@ -173,7 +173,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     vi.mocked(liveBloqService.getSession).mockResolvedValue(null);
 
     const response = await GET(new Request("http://localhost/api/claps/bloq/non-existent"), {
-      params: Promise.resolve({ type: "bloq", id: "non-existent" }),
+      params: Promise.resolve({ type: "bloq", id: ["non-existent"] }),
     });
     const payload = await response.json();
 
@@ -194,7 +194,7 @@ describe("/api/claps/[type]/[id] GET", () => {
     });
 
     const response = await GET(new Request("http://localhost/api/claps/bloq/test-post"), {
-      params: Promise.resolve({ type: "bloq", id: "test-post" }),
+      params: Promise.resolve({ type: "bloq", id: ["test-post"] }),
     });
     const payload = await response.json();
 
@@ -203,7 +203,7 @@ describe("/api/claps/[type]/[id] GET", () => {
   });
 });
 
-describe("/api/claps/[type]/[id] POST", () => {
+describe("/api/claps/[type]/[...id] POST", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resolveNotificationContentSummaryMock.mockResolvedValue({
@@ -231,7 +231,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123", ip: "1.2.3.4" }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
     await Promise.resolve();
@@ -260,7 +260,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "blip", id: "001" }) }
+      { params: Promise.resolve({ type: "blip", id: ["001"] }) }
     );
     const payload = await response.json();
 
@@ -279,7 +279,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "byte", id: "001" }) }
+      { params: Promise.resolve({ type: "byte", id: ["001"] }) }
     );
     const payload = await response.json();
 
@@ -306,7 +306,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "live/live-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["live", "live-post"] }) }
     );
     const payload = await response.json();
 
@@ -327,7 +327,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({}),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
 
@@ -347,7 +347,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: 123 }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
 
@@ -361,7 +361,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "invalid", id: "123" }) }
+      { params: Promise.resolve({ type: "invalid", id: ["123"] }) }
     );
     const payload = await response.json();
 
@@ -381,7 +381,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "non-existent" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["non-existent"] }) }
     );
     const payload = await response.json();
 
@@ -406,7 +406,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
 
@@ -431,7 +431,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
 
@@ -441,6 +441,11 @@ describe("/api/claps/[type]/[id] POST", () => {
 
   it("returns success when notification resolution fails", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { getBloqPostBySlug } = await import("@/lib/bloq");
+    vi.mocked(getBloqPostBySlug).mockReturnValue({
+      slug: "test-post",
+      title: "Test Post",
+    } as unknown as { slug: string; title: string });
     resolveNotificationContentSummaryMock.mockRejectedValueOnce(new Error("Resolver failed"));
     vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
       data: { user_claps: 1, total_claps: 11, max_reached: false },
@@ -452,7 +457,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
     await Promise.resolve();
@@ -466,6 +471,11 @@ describe("/api/claps/[type]/[id] POST", () => {
 
   it("returns success when notifier send fails", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { getBloqPostBySlug } = await import("@/lib/bloq");
+    vi.mocked(getBloqPostBySlug).mockReturnValue({
+      slug: "test-post",
+      title: "Test Post",
+    } as unknown as { slug: string; title: string });
     telegramNotifierMock.notifyClapIncrement.mockRejectedValueOnce(new Error("Telegram down"));
     vi.mocked(supabaseMock.rpc).mockResolvedValueOnce({
       data: { user_claps: 1, total_claps: 11, max_reached: false },
@@ -477,7 +487,7 @@ describe("/api/claps/[type]/[id] POST", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
     await Promise.resolve();
@@ -491,18 +501,24 @@ describe("/api/claps/[type]/[id] POST", () => {
   });
 });
 
-describe("/api/claps/[type]/[id] error handling", () => {
+describe("/api/claps/[type]/[...id] error handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("handles invalid JSON body gracefully", async () => {
+    const { getBloqPostBySlug } = await import("@/lib/bloq");
+    vi.mocked(getBloqPostBySlug).mockReturnValue({
+      slug: "test-post",
+      title: "Test Post",
+    } as unknown as { slug: string; title: string });
+
     const response = await POST(
       new Request("http://localhost/api/claps/bloq/test-post", {
         method: "POST",
         body: "invalid json",
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
 
     const payload = await response.json();
@@ -514,7 +530,7 @@ describe("/api/claps/[type]/[id] error handling", () => {
     vi.mocked(supabaseMock.rpc).mockRejectedValueOnce(new Error("Database connection failed"));
 
     const response = await GET(new Request("http://localhost/api/claps/blip/001"), {
-      params: Promise.resolve({ type: "blip", id: "001" }),
+      params: Promise.resolve({ type: "blip", id: ["001"] }),
     });
     const payload = await response.json();
 
@@ -536,7 +552,7 @@ describe("/api/claps/[type]/[id] error handling", () => {
         method: "POST",
         body: JSON.stringify({ fingerprint: "abc123" }),
       }),
-      { params: Promise.resolve({ type: "bloq", id: "test-post" }) }
+      { params: Promise.resolve({ type: "bloq", id: ["test-post"] }) }
     );
     const payload = await response.json();
 
@@ -548,7 +564,7 @@ describe("/api/claps/[type]/[id] error handling", () => {
     vi.mocked(supabaseMock.rpc).mockRejectedValueOnce("string error");
 
     const response = await GET(new Request("http://localhost/api/claps/byte/001"), {
-      params: Promise.resolve({ type: "byte", id: "001" }),
+      params: Promise.resolve({ type: "byte", id: ["001"] }),
     });
     const payload = await response.json();
 
