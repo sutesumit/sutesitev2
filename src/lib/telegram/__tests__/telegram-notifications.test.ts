@@ -170,7 +170,7 @@ describe("telegram replies and formatters", () => {
       created_at: "2026-07-01T10:00:00Z",
     });
 
-    expect(result).toContain("Sumit is bringing you live notes: 🔴");
+    expect(result).toContain("Sumit is bringing you live updates 🔴");
     expect(result).toContain("<b>React Conf 2026</b>");
     expect(result).toContain("/bloq/live/react-conf-2026");
     expect(result).toContain("Follow along →");
