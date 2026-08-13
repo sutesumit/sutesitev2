@@ -363,11 +363,28 @@ The last talk of the day.
 </details>
 
 ---
+
 ## Day 2
+
+Day 2's schedule leans more toward production engineering — crash resistance, load testing, observability, image perf. A different register from yesterday, and one I'm looking forward to. The auditorium is 25% filled at 9:30. Bijoy said he'd bring his laptop. Firmer handshakes from yesterday's people.
+
+The emcees are candid and engaging — I should give them more credit. They're trying well. The first session is on React Native crash resistance. Only one React Native talk in the whole schedule. Then load testing, observability, image performance with MCPs. The morning is stacked with infra and reliability before the agentic talks pick up later.
 
 ---
 
 ### 2.1 Building crash resistent React Native apps | Nikhil Soni, Engineering Manager, Quince
+
+Nikhil's talk is the only React Native session of the conference, and it starts the day on a technical, grounded note.
+
+Crashes, he explains, grow with user adoption. The curve rises exponentially until about week ten before it starts to flatten. His team went into a "Code Red" — no features, only fixes — and ran crash rate benchmarking. Best in industry: Hotels and Booking at 0.4% crash rate. The worst are much higher.
+
+His toolkit: Datadog and Bugsnag for crash identification, user journey investigation. Traces with dSYM files (debugging symbols) for full stack visibility. Hermes dSYM, specifically, is what he calls a life-saver for getting proper trace data. These tools helped diagnose the hardest category: launch crashes. A launch crash is particularly brutal because the first attempt that fails leaves almost no trace to debug.
+
+The real villain throughout is memory. Image-heavy e-commerce applications on mobile face a specific set of challenges: size, resolution, image buffering. His team's biggest intervention was a partial unmounting strategy: instead of keeping the entire navigation stack alive, inactive screens were torn down, keeping memory usage roughly constant. Images were only one part of the problem; long-lived screens and decoded image buffers were steadily accumulating RAM. This alone dropped memory warnings by 85%. But then came the image buffer explosion. Scheduled cache cleaning — an `useEffect` with an interval calling `clearMemory()` — was needed. Beyond that: thresholding the number of images via cache limits with SDImage, using dynamic cache units to find optimal values per device, and querying device memory variables to adjust caching strategies.
+
+Module Registration Architecture introduced another class of crashes: modules failing from the main thread. The fix was forcing those modules to run only on the JS thread, since the UI thread would crash them.
+
+Nikhil mentions the solace and joy of watching the crash report graph go down — it became his wallpaper. Their stability rate is now 99.99%. A talk that was technical, low-level, and satisfying.
 
 ---
 
