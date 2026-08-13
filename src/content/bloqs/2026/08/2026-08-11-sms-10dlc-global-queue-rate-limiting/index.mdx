@@ -1,0 +1,533 @@
+---
+title: "SMS Under 1 MPS: Incremental Patches and the Global Queue"
+publishedAt: "2026-08-11"
+summary: "Seven uncoordinated producers share one 10DLC origination number at roughly one message-part per second. We knew a global queue was the durable fix; this documents the incremental patches we tried first — concurrency limits, wall-clock pacing, chunk sizing — and what each failed to solve under parallel fan-out, silent drops, and API-layer success vs carrier throttle."
+slug: "sms-10dlc-global-queue-rate-limiting"
+tags:
+  - architecture
+  - debugging
+  - backend
+  - devops
+  - reflections
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: true
+---
+
+> "Our carrier limit is one message-part per second per origination number. A bulk schedule change spawned over a thousand parallel Lambda invocations, each pacing only itself."
+
+This is not a story of discovering throttling. We knew the ~1 MPS 10DLC ceiling before the storm. We also knew the durable fix: a global queue with a single serial consumer, the same pattern Alexa for Hospitality (A4H) announcements already used. The other structural option was a shared token bucket in `sendSmsMessage` — a DynamoDB or Redis counter every caller checks before sending — but we deferred it: synchronous under load, contended across parallel Lambdas, no built-in retry. What we were testing first was whether incremental patches on the existing path could close the gap without new infrastructure.
+
+---
+
+## The Slack Alert Storm
+
+On a Tuesday afternoon, Slack filled with Pinpoint throttle alerts: `429 THROTTLED` on per-recipient delivery results from bulk `BatchAnnouncement` sends. Same origination number, same five-minute window, alert count climbing.
+
+The logs:
+
+- Over a thousand batch-send invocations in a single hour
+- One or two recipients per invocation — product fan-out (one SMS per future class registration change), not duplicate sends
+- One origination number absorbing most of the traffic
+- Roughly a quarter of messages throttled in a five-minute window
+- Throttled messages not retried; `silent drop`
+
+```text
+bulk schedule change
+        |
+ ~1204 invokes/hr · 1-2 recipients each
+        |
+  L1   L2   L3   L4  ...  Ln           parallel threads
+  |    |    |    |        |
+  |    |    |    |        |            uncoordinated
+  +----+----+----+---+----+
+        \       |       /
+         \      |      /                 funnel
+          \     |     /
+           `-- [10DLC #] --'              one neck
+                 |
+            .----+----.
+            | 1 MPS  |==== overflow ====> 429 (~25%)
+            '----+----'                       |
+                 |                            v
+            delivered                      [ drop ]
+             (~75%)                    silent, no retry
+```
+
+Inference, labeled as such: likely a bulk discharge / move-out cascade — message copy like “You have unregistered **yourself**,” branch names pointing that way. I never confirmed an admin UI click. What I do know is that each registration change fired its own async invoke, individually valid. Under normal interactive load that pattern stays under 1 MPS. Under bulk fan-out it does not.
+
+I had already shipped a stopgap — concurrency down, throttle detection in, delay scaffolding wired up, no new queue. At incident time the inter-message delay was off; we had toggled it during experiments. A4H already had the pattern I needed. Announcements to Echo devices in resident rooms — spoken in-unit messages, proactive cards on Echo Show — go through a shared Hospitality queue so Amazon's APIs are paced by a single consumer. Batch SMS was still `fire-and-forget`: each send launched its own worker with no shared drain.
+
+```text
+BATCH SMS (incident)      | A4H (already shipped)
+~~~~~~~~~~~~~~~~~~~~~     | ~~~~~~~~~~~~~~~~~~~~~
+
+reg change                | announcement
+    |                     |      |
+ W1  W2  W3  ...  Wn      |  [=============]
+ |   |   |        |       |  [    queue     ]
+ +-+ +-+ +-+  ... +-+     |  [======+=======]
+ |p| |p| |p|      |p|     |         |
+ +-+ +-+ +-+  ... +-+     |    .----+----.
+ delay OFF in each        |    | 1 worker |
+  \   |   |       /       |    |  paced   |
+   \  |   |      /        |    '----+----'
+    \ |   |     /         |         |
+     \|   |    /          |         |
+      +---+---+           |         v
+          |               |    Echo / Show
+    >>> Pinpoint >>>      |
+          |               |
+   overflow ===> 429 drop |
+```
+
+Under bulk load, a thousand private pacers still lose to one neck. A4H had the durable intermediary sitting there the whole time.
+
+---
+
+## Two Ceilings, One Number
+
+Every SMS from our platform flows through a single AWS Pinpoint origination number. From day one our design work targeted the carrier ceiling, not the API ceiling — Pinpoint accepts ~4,000 `sendMessages` calls/sec, and we were never close to that.
+
+The binding limit is **carrier 10DLC throughput** (~1 message-part/sec per origination number): "Will the carrier accept delivery?" It surfaces as `429 THROTTLED` on the per-recipient result — not necessarily as a thrown exception. Pinpoint can return HTTP 200 while individual recipients are throttled. That mismatch between API success and delivery outcome was a recurring triage trap.
+
+Seven independent producers call Pinpoint through the same number with no shared pacing:
+
+```text
+ seven producers · no shared drain
+
+  #1  announcements (class registration changes)  --+
+  #2  forgot-password OTP                           |
+  #3  check-in greetings                            |
+  #4  Speak2↔Family bridge messages                 | independent
+  #5  onboarding SMS invites                        | producers
+  #6  new registrant welcome SMS                    |
+  #7  relative-delete notification                  --+
+                          |
+                          v
+                   [ Pinpoint · 10DLC ]
+                    ~1 msg-part / sec
+
+  #1 via CustomSmsHandler — N parallel async invokes (storm source)
+```
+
+Batch announcements also have indirect upstream callers (`ServiceInstance` registration alerts, event deletion cascades, manual facility announcements) that all funnel into producer #1. Tightening announcements does nothing useful if OTP and check-in still share the neck — the drain has to be global, or you are just rearranging who overflows first.
+
+---
+
+## Concurrency and Pacing Inside One Invocation
+
+> "Concurrency limits how many sends run at once. Pacing limits how fast they complete. You need both — but only inside the invocation you control."
+
+The stopgap in detail: tighten concurrency, detect throttles, and pace inside the handler — still fire-and-forget, still no global drain. After the initial throttling patch, we reduced in-function concurrency from 10 to 1, added throttle detection, and wired a `finally` block to guarantee minimum wall-clock time between sends within a single invocation. Concurrency and pacing together are the right combination for rate control *inside one worker*.
+
+```text
+one invocation · two knobs
+
+ concurrency = width          pacing = min gap
+ ~~~~~~~~~~~~~~~~~~~          ~~~~~~~~~~~~~~~~
+
+ concurrency:10               concurrency:1, no delay
+ [||||||||||] burst           [>><>><>><>>]  ~5ms round-trip
+                                     |
+                                     v
+                               still > 1 MPS
+
+ concurrency:1 + finally { delay(remaining) }
+ [send]----1s----[send]----1s----[send]
+         ^ min wall-clock gap per recipient
+```
+
+The gap is scope. When each SMS is its own fire-and-forget async invocation, the delay inside one invocation does not coordinate a thousand parallel ones. They do not share a `finally` block or a rate limiter instance.
+
+```text
+scope gap · each invoke paces itself only
+
+ invoke A          invoke B          invoke C
++-----------+     +-----------+     +-----------+
+| finally   |     | finally   |     | finally   |
+| delay     |     | delay     |     | delay     |
+| limiter A |     | limiter B |     | limiter C |
++-----+-----+     +-----+-----+     +-----+-----+
+      |                 |                 |
+      +--------+--------+--------+--------+
+                       |
+                       v
+                Pinpoint <<burst>>
+         (N invokes · N separate pacers)
+```
+
+Even within one invocation, concurrency alone is insufficient: Pinpoint can respond in ~5ms, so `concurrency: 1` without wall-clock pacing still bursts faster than 1 MPS. You need the `minTime` / `finally` delay as well.
+
+```text
+concurrency:1 alone (no pacing)     with finally delay
+
+  t=0ms   5ms  10ms  15ms  20ms       t=0ms      1000ms    2000ms
+   |     |    |    |    |             |            |         |
+   v     v    v    v    v             v            v         v
+ [s1]  [s2] [s3] [s4] [s5]           [s1]--------[s2]------[s3]
+  ^^^^^ bursts past 1 MPS            ^^^^^ ~1/sec within this invoke
+```
+
+A4H's `announcementHelper.js` already used `Bottleneck` with `exponential-backoff` for the same pattern. We should have aligned SMS with that earlier instead of reinventing a partial version.
+
+The pattern that eventually mattered:
+
+```javascript
+// Inside a single invocation — guarantees minimum gap per recipient
+finally {
+  await delay(remainingTime); // remainingTime = MIN_INTERVAL - elapsed
+}
+```
+
+And for throttle detection:
+
+```javascript
+function isThrottled(response) {
+  // HTTP-layer success can still mean "not now" per recipient
+  return response.statusCode === 429 || response.deliveryStatus === 'THROTTLED';
+}
+```
+
+Concurrency plus wall-clock pacing is the right combination *inside one worker*. Across parallel invocations you need a shared drain, which is the part I kept postponing.
+
+---
+
+## Pacing Experiments — Heuristics vs. Documentation
+
+> "I knew 1000ms was the documented target. I tried 400ms first to see if a lighter patch would hold."
+
+Second patch — still on the stopgap: turn the inter-message delay on. I set it to 400ms (~2.5/sec) because observed bursts seemed to tolerate it, and because a full second per send eats the Lambda 15-minute timeout on larger batches (roughly 900 sends at 1s each; fewer with multi-part SMS). The timer guarantees at least `MIN_SEND_INTERVAL_MS` of wall time per recipient regardless of API latency — elapsed subtracted, sleep the rest. A private theka. Same scope leak as before; 400ms failed the storm for the same reason a thousand private pacers always will.
+
+Third patch: align with documented 1 MPS. Raise to 1000ms. Put `Bottleneck` in the new worker — same library A4H already used. Legacy paths updated for consistency.
+
+```text
+third patch · align with docs + A4H
+
+ 400ms (~2.5/sec)  --------->  1000ms (1 MPS)
+ heuristic                       documented
+
+ finally { delay }  -------->  Bottleneck
+ per-invoke patch               same lib as A4H hospitality
+```
+
+Timeout math drove chunk size: at 1s per send, a 15-minute Lambda caps out around 900 single-part messages — less with retries, backoff, callback work, or multi-part texts. I chose chunk size 300 with margin. Production batches mostly landed 300–450; a few approached 800.
+
+```text
+lambda timeout · chunk size (@ 1 MPS, 15 min)
+
+ theoretical max                         ~900 sends
+ |==================================================|
+ chosen chunk (margin)                   300
+ |===============|
+ production typical                      300–450
+ |=======================|
+ rare peak                               ~800
+ |==========================================|
+
+ retries · backoff · callbacks shrink usable headroom
+```
+
+What pacing-only still left open:
+
+- **overlapping invokes** — N workers hit the gateway alone
+- **uncoordinated producers** — OTP, check-in, and friends share one number
+- **silent drop** — throttled meant gone (pre-queue)
+- **no durability** — async crash loses unsent phones
+- **retry unit** — SQS redelivers a chunk, not each phone; in-loop 429 backoff is a different scope
+- **blast radius** — one giant in-Lambda batch vs bounded chunks
+
+Async invoke with `InvocationType: Event` is `fire-and-forget`. If the worker crashes mid-batch, those phone numbers are gone — nothing records them for retry. A queue gives at-least-once delivery, global serialization with a single consumer, chunking, and a dead-letter path. What I shipped still made the **chunk** the durable unit — one SQS message holds up to 300 phones, one Lambda owns the whole loop. Throttle backoff retries a single 429 inside that loop. Chunk size × interval + retry overhead still has to stay under the timeout ceiling; durability still needs a durable intermediary; global MPS still needs a single drain.
+
+---
+
+## From Eight Queues to One — The Great Slim-Down
+
+I wrote an RFC with four queues, four dead-letter queues, a dispatch queue, a global FIFO send queue, a priority lane for one-time passwords, a callback queue, and matching workers for each. A post office with four sorting rooms for a building that needed one mailbox.
+
+```text
+ RFC · Tracks A+B (4 queues · 4 DLQs)
+
+      entry
+        |
+        v
+   +----------+    +------------+
+   | dispatch |--->| dispatcher |--+------------------+
+   |    q     |    +------------+  |                  |
+   +----+-----+                     |                  |
+        |                          |                  |
+       DLQ                          v                  v
+                           +-------------+     +-------------+
+                           | global FIFO |     | priority    |
+                           |   send q    |     |   OTP q     |
+                           +------+------+     +------+------+
+                                  |                   |
+                                 DLQ                 DLQ
+                                  |                   |
+                                  +---------+---------+
+                                            |
+                                            v
+                                   +----------------+
+                                   |  send workers  |
+                                   +--------+-------+
+                                            |
+                                            v
+                                        Pinpoint
+                                            |
+                                            v
+                                   +----------------+
+                                   |  callback q    |
+                                   +--------+-------+
+                                            |
+                                           DLQ
+                                            |
+                                            v
+                                   +----------------+
+                                   |callback worker |
+                                   +----------------+
+```
+
+Then I deleted most of it:
+
+- OTP priority lane — forgot-password almost never waits behind a bulk blast. OTP stays on the direct path (sync bypass).
+- Dispatch queue — the existing handler becomes the splitter.
+- Callback queue — async invoke the callback worker instead.
+
+What shipped: one send queue, one worker, one callback. That *is* the migration. OTP and the other low-volume producers stay direct by design. I also deferred a shared token bucket in `sendSmsMessage` (DynamoDB or Redis counter every caller checks before sending) — synchronous under load, contended across parallel Lambdas, no built-in retry. The global queue with a single serial consumer was the durable fix A4H already proved.
+
+```text
+ shipped pipeline · slim (1 queue · 1 DLQ)
+
+      entry
+        |
+        v
+   +----------------+
+   |    splitter    |-- chunks ≤300 phones
+   +--------+-------+   prefetches config · enqueues
+            |
+            v
+   +----------------+
+   |   send queue   |-- 1 msg = ≤300 phones
+   +--------+-------+   batch=1 · concurrency=1
+            |          global single drain
+           DLQ
+        poison / timeout
+            |
+            v
+   +----------------+
+   |  paced worker  |-- 1 MPS · backoff on 429
+   +--------+-------+   sends · classifies outcomes
+            |
+      +-----+-----+
+      |           |
+      v           v
+  Pinpoint   +----------------+
+             |callback worker |-- async invoke
+             +----------------+   Slack on failure only
+
+ OTP · direct path (unchanged)
+```
+
+I deployed the slim version and tore the over-engineered queues out of the stack. The minimum pipeline that closes the global-drain gap was enough.
+
+---
+
+## The Splitter, the Worker, and the Callback
+
+**The splitter** chunks phone numbers at 300 or fewer, prefetches gateway configuration once, and enqueues to the send queue. Chunks and prefetches. The worker is the only thing allowed to talk to Pinpoint.
+
+**The send queue** — standard queue, batch size one, worker reserved concurrency one. Serializes work across all facilities globally — the single drain.
+
+**The paced worker** uses the same two npm libraries A4H hospitality already relied on. **Bottleneck** enforces the 1 MPS gap between phones (`minTime: 1000`, `maxConcurrent: 1`). **`exponential-backoff`** retries only on `429 THROTTLED` — up to 5 attempts, starting at 2s, max 256s. Outcomes land in three buckets: success, hard throttle (retries exhausted), and other errors.
+
+```javascript
+const Bottleneck = require("bottleneck/es5");
+const { backOff } = require("exponential-backoff");
+
+const limiter = new Bottleneck({ minTime: 1000, maxConcurrent: 1 });
+
+const THROTTLE_BACKOFF = {
+  numOfAttempts: 5,
+  startingDelay: 2000,
+  maxDelay: 256000,
+  retry: (err) => err?.isThrottle === true,
+};
+
+// per phone: limiter.schedule(() => backOff(() => send(...), THROTTLE_BACKOFF))
+```
+
+```text
+ paced worker · per phone in chunk
+
+ for each phone (serial)
+      |
+      v
+ +----------------+
+ |  Bottleneck    |-- minTime 1000ms between phones
+ |  .schedule()   |   maxConcurrent 1
+ +--------+-------+
+          |
+          v
+ +----------------+
+ | exponential-   |-- attempt 1..5 on 429 only
+ | backoff loop   |
+ +--------+-------+
+          |
+          v
+     Pinpoint send
+          |
+    +-----+-----+-----+
+    |     |     |
+    v     v     v
+ success 429  other error
+    |     |
+    |     +-- wait 2s -> 4s -> 8s ... (cap 256s)
+    |              |
+    |         retry or hard429[]
+    v
+ success[]
+```
+
+SQS retries the **chunk** on timeout. Backoff retries one **phone** on 429 only — different scopes, easy to blur when you are tired.
+
+**The callback worker** — async-invoked, off the critical path. Slack only when something dies. Silent on all-success. Each piece fails in its own lane; a Slack outage does not block SMS delivery.
+
+---
+
+## Timeout, Redelivery, and the Dead Letter Queue
+
+The slim pipeline — splitter → send queue → paced worker → async callback — routes **batch announcements** through the global drain. OTP and the other producers still call Pinpoint directly; that is intentional.
+
+The durable unit is the **chunk**, not each phone. One SQS message carries up to 300 numbers; one Lambda runs a serial loop over all of them. There is no per-recipient queue record — `hard429` and other errors land in the callback payload, not back on the queue.
+
+My first instinct was catch-everything-in-code: if the worker handles all errors and acknowledges only after the **entire chunk** finishes, maybe a DLQ is unnecessary. Walking through a timeout mid-chunk closed that idea before I shipped.
+
+```text
+ without DLQ · timeout mid-chunk
+
+ [send queue] --> [worker]
+                      |
+              phones 1..150 sent
+                      |
+                  TIMEOUT
+              (no catch · no delete)
+                      |
+                      v
+              message visible again
+                      |
+                      +------+
+                      |      |  redrive forever
+                      v      |
+                   [worker]--+
+                      |
+              re-sends 1..150  DUPLICATE SMS
+```
+
+A function timeout kills the process before any `catch` runs. With no DLQ and no `maxReceiveCount` cap, the queue message becomes visible again and can redrive indefinitely. Each redelivery re-runs the **entire** phone list — including numbers already sent.
+
+```text
+ with DLQ · maxReceiveCount 1 (shipped)
+
+ [send queue] --> [worker]
+                      |
+              phones 1..150 sent
+                      |
+                  TIMEOUT
+              (no catch · no delete)
+                      |
+                      v
+           receive count exceeded
+                      |
+                      v
+                    [DLQ]
+         (worker stops looping on same chunk)
+
+ guard: visibility timeout > lambda timeout
+   (960s > 900s — else two workers overlap -> DUPLICATE)
+```
+
+So the migration includes a dead-letter queue: `maxReceiveCount: 1`, visibility timeout greater than the function timeout. On timeout, the chunk lands in DLQ instead of looping forever.
+
+The DLQ does not erase the half-sent problem. If the worker times out after phones 1–150, those 150 already went out. The queue has no memory of per-phone progress — phones 151–300 sit in DLQ with the rest of the message. Loss for the unsent tail. Blind replay of that DLQ message would text 1–150 again. Per-recipient queue retry was never in scope for this migration; I traded infinite duplicates for a stuck tail, and I still have to be careful with my hands on the DLQ.
+
+---
+
+## Prefetch: Four Reads Per Recipient to Four Once
+
+In version one, every recipient triggered four database reads for gateway configuration. 300 recipients: 1,200 reads. That path had already bitten us before the storm.
+
+```text
+ prefetch · v1 vs v2
+
+ V1 · per recipient in worker        V2 · once at splitter
+
+ [worker]                            [splitter]
+    |                                    |
+ phone 1: 4x DB read                 4x DB read
+ phone 2: 4x DB read                 (once per chunk)
+ phone 3: 4x DB read                     |
+   ...                                   v
+ 300 phones                        [queue message]
+    |                               + pinpointparams
+ 1,200 Mongo reads                      |
+    |                                   v
+ cold-start TLS on                   [worker]
+ send path                           (no DB on send)
+    |                                   |
+    v                                   v
+ Pinpoint                            Pinpoint
+```
+
+A two-recipient registration batch failed one of two sends. Same message, two phone numbers, one async `CustomSmsHandler` invocation. The sequence from timestamps:
+
+1. The API handler fires with a warm database connection, async-invokes `CustomSmsHandler`, returns 200.
+2. A fresh worker container cold-starts (~1.7s init, plus VPC ENI attach — Lambda wiring a network interface into our private network so it can reach Mongo).
+3. First recipient: new Mongo client, four parallel `DbParameters.Get` calls for Pinpoint config. TLS/pool instability on the cold path (`MongoNetworkError`, pool cleared). Error swallowed upstream.
+4. Reported error: `"No Parameters found for the given filter"` — sends triage to the config table instead of the connection layer.
+5. Second recipient, ~650ms later: pool recovered, config loads, Pinpoint `SUCCESSFUL`.
+
+```text
+ cold start masked failure (2-phone batch)
+
+ API (warm) ----async----> [worker cold start ~1.7s]
+                               |
+                    +----------+----------+
+                    |                     |
+               recipient 1           recipient 2
+               4x DB read             4x DB read
+               TLS wobble             pool OK
+            "No params found"         SUCCESS
+                    |
+         triage chases config — failure was connection
+```
+
+---
+
+## The Production Audit
+
+Before the edges — because it mostly worked — the production numbers. Window: 2026-07-29 11:11 UTC → 2026-08-14 (**15 days**).
+
+Worker `batch complete`:
+
+- 2,407 invocations — START / END / REPORT / batch complete all 2,407; gap 0
+- 14,214 phones attempted
+- 14,209 worker-reported success (**99.965%**)
+- 5 hard429 — every worker-bucket failure
+- 0 otherErrors, 0 timeouts
+
+Pinpoint `DeliveryStatus` on `Message sent!` attempt events:
+
+- 13,438 `SUCCESSFUL`
+- 771 `PERMANENT_FAILURE` (opt-outs and similar)
+- 3,616 `THROTTLED` — retries; do not add them to `SUCCESSFUL`
+- 17,825 events total
+
+Worker success is exactly 771 higher than Pinpoint `SUCCESSFUL`: 14,209 = 13,438 + 771. The classifier treated any non-throttle as success — including opt-outs — so `otherErrors` stayed 0 and Slack never fired. Classic `lying success`: the pipeline high-fiving an unsubscribe. Real accept rate: 13,438 / 14,214 = **94.54%**. Phones close: 13,438 + 771 + 5 hard429 = 14,214.
+
+The SQS migration held. Every invoke that started also finished — 2,407 / 2,407, gap 0, zero timeouts. Of 14,214 phones, five exhausted backoff (**0.035%**). Strip the 771 opt-outs and Pinpoint accepted **13,438 / 13,443 = 99.96%**. The old storm dropped a quarter with no retry. This path still hits the 1 MPS ceiling — 3,616 `THROTTLED` events are retries that recovered — and almost always gets through.
+
+A shorter or paged Insights view can undercount (stream count, window, UI paging). The log truth for this window is 2,407. Pinpoint `SUCCESSFUL` means Pinpoint accepted the send; carrier delivery receipts are a later stream we do not collect; SMS has no signal that the phone displayed the message. Both Insights queries were cheap (~16 MB scanned each). Typical distribution still holds: lots of tiny batches, a few whales.
+
+Throttle still happens. Backoff is why fifteen days look like success. Say whose success you counted — worker bucket, Pinpoint accept, or a phone lighting up — and audit the shape of the traffic, not only the failures.
