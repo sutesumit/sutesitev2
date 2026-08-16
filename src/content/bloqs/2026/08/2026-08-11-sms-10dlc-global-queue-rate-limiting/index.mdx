@@ -1,7 +1,7 @@
 ---
-title: "SMS Under 1 MPS: Incremental Patches and the Global Queue"
+title: "From Incremental Patches to a Global Queue: Designing Around the Shared Neck"
 publishedAt: "2026-08-11"
-summary: "Seven uncoordinated producers share one 10DLC origination number at roughly one message-part per second. We knew a global queue was the durable fix; this documents the incremental patches we tried first — concurrency limits, wall-clock pacing, chunk sizing — and what each failed to solve under parallel fan-out, silent drops, and API-layer success vs carrier throttle."
+summary: "A dozen workers pacing themselves against one shared resource will still burst past it. This documents the incremental patches we tried: concurrency limits, wall-clock pacing, chunk sizing. Until we finally accepted that the only way was to serialize every producer through a single global queue"
 slug: "sms-10dlc-global-queue-rate-limiting"
 tags:
   - architecture
@@ -16,68 +16,73 @@ draft: false
 featured: true
 ---
 
-> "Our carrier limit is one message-part per second per origination number. A bulk schedule change spawned over a thousand parallel Lambda invocations, each pacing only itself."
+Imagine a one-lane bridge, and a thousand drivers who all know about the bridge. Every driver leaves a careful gap. Every driver obeys the limit. And since none of them can see the others, they all arrive at the bridge at once anyway. A quarter of them get turned away.
 
-This is not a story of discovering throttling. We knew the ~1 MPS 10DLC ceiling before the storm. We also knew the durable fix: a global queue with a single serial consumer, the same pattern Alexa for Hospitality (A4H) announcements already used. The other structural option was a shared token bucket in `sendSmsMessage` — a DynamoDB or Redis counter every caller checks before sending — but we deferred it: synchronous under load, contended across parallel Lambdas, no built-in retry. What we were testing first was whether incremental patches on the existing path could close the gap without new infrastructure.
+That was our SMS pipeline. The bridge is a carrier rule called 10DLC (ten-digit long code, the US carrier framework for application-sent SMS): one message-part per second, per phone number. The rule is enforced with a shrug — the API answers `200 OK`, and the message quietly doesn't go. On a Tuesday afternoon, that shrug cost us a quarter of a bulk send. There was no retry and no error. The messages were simply gone.
+
+What follows is everything we tried before admitting the drivers could never fix this: concurrency limits, wall-clock pacing, chunk sizing. Three patches, each sensible on its own, each defeated by the same one-lane bridge. Hotel-room announcements on our platform already cross their own bridge through a single toll booth — one queue, one patient consumer — and we spent those three patches hoping SMS would be the exception. Then we built ours.
+
+Fifteen days after the toll booth went up, the production numbers: 14,214 messages attempted. 2,407 worker runs, every one of them finished. 3,616 sends got turned away and made it through on a later attempt. Five exhausted every retry and gave up — 0.035%. The bridge is still one lane. The toll booth turned out to be enough.
 
 ---
 
-## The Slack Alert Storm
+## A Thousand Private Pacers, One Neck
 
-On a Tuesday afternoon, Slack filled with Pinpoint throttle alerts: `429 THROTTLED` on per-recipient delivery results from bulk `BatchAnnouncement` sends. Same origination number, same five-minute window, alert count climbing.
+On a Tuesday afternoon, Slack filled with Pinpoint throttle alerts: `429 THROTTLED` on per-recipient delivery results from bulk `BatchAnnouncement` sends. `429` is HTTP's *Too Many Requests* status. The carrier refused the message because we were sending faster than the origination number's rate limit allowed. `THROTTLED` is Pinpoint's per-recipient status label for exactly that refusal. Same origination number, alert count climbing.
 
 The logs:
 
 - Over a thousand batch-send invocations in a single hour
 - One or two recipients per invocation — product fan-out (one SMS per future class registration change), not duplicate sends
 - One origination number absorbing most of the traffic
-- Roughly a quarter of messages throttled in a five-minute window
+- Roughly a quarter of messages throttled
 - Throttled messages not retried; `silent drop`
 
 ```text
-bulk schedule change
-        |
+        bulk schedule change
+              |
  ~1204 invokes/hr · 1-2 recipients each
-        |
+              |
+  +----+----+----+---+----+
   L1   L2   L3   L4  ...  Ln           parallel threads
   |    |    |    |        |
   |    |    |    |        |            uncoordinated
   +----+----+----+---+----+
-        \       |       /
-         \      |      /                 funnel
-          \     |     /
-           `-- [10DLC #] --'              one neck
-                 |
-            .----+----.
-            | 1 MPS  |==== overflow ====> 429 (~25%)
-            '----+----'                       |
-                 |                            v
-            delivered                      [ drop ]
-             (~75%)                    silent, no retry
+      \        |       /
+       \       |      /                funnel
+        \      |     /
+         `-[10DLC#]-'                 one neck
+               |
+          .----+----.
+          |  1 MPS  |==== overflow ====> 429 (~25%)
+          '----+----'                       |
+               |                            v
+          delivered                     [ drop ]
+            (~75%)                   silent, no retry
 ```
 
-Inference, labeled as such: likely a bulk discharge / move-out cascade — message copy like “You have unregistered **yourself**,” branch names pointing that way. I never confirmed an admin UI click. What I do know is that each registration change fired its own async invoke, individually valid. Under normal interactive load that pattern stays under 1 MPS. Under bulk fan-out it does not.
+Inference, labeled as such: likely a bulk discharge / move-out cascade — message copy like “You have unregistered **yourself**,” branch names pointing that way. Each registration change fired its own async invoke, individually valid. Under normal interactive load that pattern stays under 1 MPS. Under bulk fan-out it does not.
 
-I had already shipped a stopgap — concurrency down, throttle detection in, delay scaffolding wired up, no new queue. At incident time the inter-message delay was off; we had toggled it during experiments. A4H already had the pattern I needed. Announcements to Echo devices in resident rooms — spoken in-unit messages, proactive cards on Echo Show — go through a shared Hospitality queue so Amazon's APIs are paced by a single consumer. Batch SMS was still `fire-and-forget`: each send launched its own worker with no shared drain.
+I had already shipped a stopgap — concurrency down, throttle detection in, delay scaffolding wired up, no new queue. At incident time the inter-message delay was off; we had toggled it during experiments. A4H (Alexa for Hospitality) already had the pattern I needed. Announcements to Alexa Echo devices in resident rooms — spoken in-unit messages, proactive cards on Echo Show — go through a shared Hospitality queue so Amazon's APIs are paced by a single consumer. Batch SMS was still `fire-and-forget`: each send launched its own worker with no shared drain.
 
 ```text
 BATCH SMS (incident)      | A4H (already shipped)
 ~~~~~~~~~~~~~~~~~~~~~     | ~~~~~~~~~~~~~~~~~~~~~
 
-reg change                | announcement
-    |                     |      |
- W1  W2  W3  ...  Wn      |  [=============]
+    reg change            |    announcement
+        |                 |         |
+ W1  W2  W3  ...  Wn      |  [==============]
  |   |   |        |       |  [    queue     ]
  +-+ +-+ +-+  ... +-+     |  [======+=======]
  |p| |p| |p|      |p|     |         |
  +-+ +-+ +-+  ... +-+     |    .----+----.
- delay OFF in each        |    | 1 worker |
-  \   |   |       /       |    |  paced   |
+ delay OFF in each        |    | 1 worker|
+  \   |   |       /       |    |  paced  |
    \  |   |      /        |    '----+----'
     \ |   |     /         |         |
      \|   |    /          |         |
       +---+---+           |         v
-          |               |    Echo / Show
+          |               |    Alexa Echo / Show
     >>> Pinpoint >>>      |
           |               |
    overflow ===> 429 drop |
@@ -87,33 +92,33 @@ Under bulk load, a thousand private pacers still lose to one neck. A4H had the d
 
 ---
 
-## Two Ceilings, One Number
+## The 429 Inside the 200
 
 Every SMS from our platform flows through a single AWS Pinpoint origination number. From day one our design work targeted the carrier ceiling, not the API ceiling — Pinpoint accepts ~4,000 `sendMessages` calls/sec, and we were never close to that.
 
-The binding limit is **carrier 10DLC throughput** (~1 message-part/sec per origination number): "Will the carrier accept delivery?" It surfaces as `429 THROTTLED` on the per-recipient result — not necessarily as a thrown exception. Pinpoint can return HTTP 200 while individual recipients are throttled. That mismatch between API success and delivery outcome was a recurring triage trap.
+The binding limit is **carrier 10DLC throughput** (~1 message-part/sec per origination number): "Will the carrier accept delivery?" It surfaces as `429 THROTTLED` on the per-recipient result — not necessarily as a thrown exception. The word is borrowed from mechanics — a throttle controls flow by opening or restricting a passage — and computing kept only the restrictive side of it: slowing or limiting to avoid overload. Pinpoint can return HTTP 200 while individual recipients are throttled. That mismatch between API success and delivery outcome was a recurring triage trap.
 
 Seven independent producers call Pinpoint through the same number with no shared pacing:
 
 ```text
  seven producers · no shared drain
 
-  #1  announcements (class registration changes)  --+
+  #1  announcements (class registration changes)----+
   #2  forgot-password OTP                           |
-  #3  check-in greetings                            |
-  #4  Speak2↔Family bridge messages                 | independent
+  #3  check-in greetings                            | independent
+  #4  cross app bridge messages                     | sms
   #5  onboarding SMS invites                        | producers
   #6  new registrant welcome SMS                    |
-  #7  relative-delete notification                  --+
+  #7  relative-delete notification              ----+
                           |
                           v
-                   [ Pinpoint · 10DLC ]
-                    ~1 msg-part / sec
+                  [ Pinpoint · 10DLC ]
+                  ~1 msg-part / sec
 
   #1 via CustomSmsHandler — N parallel async invokes (storm source)
 ```
 
-Batch announcements also have indirect upstream callers (`ServiceInstance` registration alerts, event deletion cascades, manual facility announcements) that all funnel into producer #1. Tightening announcements does nothing useful if OTP and check-in still share the neck — the drain has to be global, or you are just rearranging who overflows first.
+Batch announcements also have indirect upstream triggers — someone signing up for a class, an event getting deleted mid-schedule, a staff member sending a manual facility announcement — and all of them funnel into producer #1 announcements. Tightening announcements does nothing useful if OTP and check-in still share the neck — the drain has to be global, or you are just rearranging who overflows first.
 
 ---
 
@@ -124,20 +129,20 @@ Batch announcements also have indirect upstream callers (`ServiceInstance` regis
 The stopgap in detail: tighten concurrency, detect throttles, and pace inside the handler — still fire-and-forget, still no global drain. After the initial throttling patch, we reduced in-function concurrency from 10 to 1, added throttle detection, and wired a `finally` block to guarantee minimum wall-clock time between sends within a single invocation. Concurrency and pacing together are the right combination for rate control *inside one worker*.
 
 ```text
-one invocation · two knobs
+one invocation · two knobs: width (concurrency) · gap (pacing)
 
- concurrency = width          pacing = min gap
- ~~~~~~~~~~~~~~~~~~~          ~~~~~~~~~~~~~~~~
+ concurrency:10, unpaced
+ [s1][s2][s3][s4][s5][s6][s7][s8][s9][s10]    10-wide burst
 
- concurrency:10               concurrency:1, no delay
- [||||||||||] burst           [>><>><>><>>]  ~5ms round-trip
-                                     |
-                                     v
-                               still > 1 MPS
+ concurrency:1 · only the gap changes
 
- concurrency:1 + finally { delay(remaining) }
- [send]----1s----[send]----1s----[send]
-         ^ min wall-clock gap per recipient
+        unpaced                         + finally { delay(remaining) }
+        [s1]                            [send]
+         |  5ms = Pinpoint round-trip   |  1s = min wall-clock gap
+        [s2]                            [send]
+         |  5ms                         |  1s
+        [s3] ...                        [send]
+        still > 1 MPS                   ~1 MPS
 ```
 
 The gap is scope. When each SMS is its own fire-and-forget async invocation, the delay inside one invocation does not coordinate a thousand parallel ones. They do not share a `finally` block or a rate limiter instance.
@@ -145,33 +150,22 @@ The gap is scope. When each SMS is its own fire-and-forget async invocation, the
 ```text
 scope gap · each invoke paces itself only
 
- invoke A          invoke B          invoke C
-+-----------+     +-----------+     +-----------+
-| finally   |     | finally   |     | finally   |
-| delay     |     | delay     |     | delay     |
-| limiter A |     | limiter B |     | limiter C |
-+-----+-----+     +-----+-----+     +-----+-----+
-      |                 |                 |
-      +--------+--------+--------+--------+
-                       |
-                       v
-                Pinpoint <<burst>>
-         (N invokes · N separate pacers)
+ invoke A   +----------------------------+
+            | finally · delay · limiter A|-----+
+            +----------------------------+     |
+ invoke B   +----------------------------+     |
+            | finally · delay · limiter B|-----+
+            +----------------------------+     |
+ invoke C   +----------------------------+     |
+            | finally · delay · limiter C|-----+
+            +----------------------------+     |
+                                               |
+                                               v
+                              Pinpoint <<burst>>
+                 (N invokes · N separate pacers)
 ```
 
-Even within one invocation, concurrency alone is insufficient: Pinpoint can respond in ~5ms, so `concurrency: 1` without wall-clock pacing still bursts faster than 1 MPS. You need the `minTime` / `finally` delay as well.
-
-```text
-concurrency:1 alone (no pacing)     with finally delay
-
-  t=0ms   5ms  10ms  15ms  20ms       t=0ms      1000ms    2000ms
-   |     |    |    |    |             |            |         |
-   v     v    v    v    v             v            v         v
- [s1]  [s2] [s3] [s4] [s5]           [s1]--------[s2]------[s3]
-  ^^^^^ bursts past 1 MPS            ^^^^^ ~1/sec within this invoke
-```
-
-A4H's `announcementHelper.js` already used `Bottleneck` with `exponential-backoff` for the same pattern. We should have aligned SMS with that earlier instead of reinventing a partial version.
+A4H's `announcementHelper.js` — the helper module that paces those Echo announcement sends — already used two small npm libraries for exactly this pattern. [`Bottleneck`](https://www.npmjs.com/package/bottleneck) is a rate limiter: instead of calling an API directly, you hand each call to `limiter.schedule()`, and the library enforces the knobs for you — a minimum gap between calls, a cap on how many run at once. It is the `finally { delay }` patch, generalized and done correctly. [`exponential-backoff`](https://www.npmjs.com/package/exponential-backoff) is a retry helper: when a call fails or comes back throttled, it waits and tries again with a delay that doubles each attempt — 2s, 4s, 8s — instead of hammering a sender that just said *not now*. The stopgap I was assembling by hand — concurrency 1, a wall-clock gap, throttle detection — is what those two give you off the shelf. We should have aligned SMS with that earlier instead of reinventing a partial version.
 
 The pattern that eventually mattered:
 
