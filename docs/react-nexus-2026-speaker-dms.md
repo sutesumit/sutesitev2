@@ -9,39 +9,6 @@ a shared doc. Not the live URL. Give them room to correct before it goes public.
 
 ---
 
-## Tapas Adhikary (1.1 — React Is Becoming a Platform)
-
-Hey Tapas. Attended your keynote at React Nexus. Wrote up a summary for my
-team. Would love your eye on it. Check if I got your argument right. If I
-missed anything. Or if you want me to link something specific. No rush.
-
-Also. Every year you applied. This year you keynoted. That detail stayed with
-me.
-
----
-
-## Sreetam Das (1.2 — TanStack Start)
-
-Sreetam. Your talk was the nerdiest and most personal of the day. The site
-that started in 2016. The frameworks it survived. The scratch file that
-outlasts everything. I wrote up a summary. Before I publish. Mind glancing at
-it? Tell me if I got TanStack Start's mental model right.
-
-Also. Karma theme. 25k downloads. Deserved plug.
-
----
-
-## Archana Agivale (1.3 — Partial Prerendering)
-
-Archana. Your talk was a straight line. No fluff. Appreciated that. I wrote a
-summary for my colleagues. Would you check it? Make sure I didn't flatten the
-PPR nuance. If you have slides or references to share. I'll add them.
-
-Also. Stellar contributor across Next.js, Strapi, Shadcn. That deserves more
-mention.
-
----
-
 ## Piyush Assudani (1.4 — The Third State / Activity API)
 
 Piyush. Your energy was exactly what the room needed. I said in my notes
@@ -63,16 +30,6 @@ The `if/else` in `createRoot(el)`. Still thinking about that.
 
 ---
 
-## Smile Gupta (1.7 — Building Payments)
-
-Smile. Those slides. I wrote a whole section just trying to capture the
-warmth of the presentation before the technical depth cut through. I wrote up
-a summary. Would you check it? I want to make sure I didn't skip a nuance
-around token lifecycles or error UX. Also. The pufferfish blog post. I linked
-it. Hope that's okay.
-
----
-
 ## Apurv Khare (1.8 — AI-Generated React UI That Follows Your Design System)
 
 Apurv. Third year at React Nexus. Mad respect. I wrote up your design system
@@ -81,15 +38,6 @@ a step in the six-part framework. Also. Your meta-skill on GitHub. I linked
 it. Let me know if there's a better link.
 
 "You can find his Vue slides here" — I couldn't find the actual link. Help?
-
----
-
-## Nattu Alagappan (1.9 — The Agentic React Engineer)
-
-Nattu. CEO energy on stage. Noted. I captured the twelve competencies slide.
-But six of them flashed by too fast. Could you share the full list? Also. I
-wrote a summary of your talk. Would you glance at it? Tell me if I'm off
-anywhere.
 
 ---
 
@@ -148,28 +96,6 @@ fair? If not. Tell me.
 Also. FactsMap. Thunderstone. The SOLID callout. I hope I got the details
 right. Would you review?
 
----
-
----
-
-## Kiran (Organizer)
-
-Kiran. I attended React Nexus this year. First time. I wrote up a long report
-for my team. The kind where you take messy live notes and then spend weeks
-finding references and connecting threads. It's not a review. It's what I
-carried home.
-
-I was honest about what hit and what didn't. But the closing section. That's
-the part I'd want you to read. I realized I judged the conference with the
-wrong yardstick. It wasn't about polished answers. It was a map of signals.
-Some talks pointed me to papers and repos I'd never have found otherwise.
-That's real value. Just slower to reveal itself.
-
-Before I publish. Would you read it? Not for a seal of approval. Just to see
-it. If I got any facts wrong about the conference itself. Let me know.
-
-Also. Thank you. The event was run tight. Day 1 started right on time. I
-noticed.
 
 ---
 
