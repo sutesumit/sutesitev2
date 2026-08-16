@@ -15,6 +15,7 @@ category: "Engineering"
 draft: false
 featured: true
 ---
+##
 
 Imagine a one-lane bridge, and a thousand drivers who all know about the bridge. Every driver leaves a careful gap. Every driver obeys the limit. And since none of them can see the others, they all arrive at the bridge at once anyway. A quarter of them get turned away.
 
@@ -191,9 +192,9 @@ Concurrency plus wall-clock pacing is the right combination *inside one worker*.
 
 ## Pacing Experiments — Heuristics vs. Documentation
 
-> "I knew 1000ms was the documented target. I tried 400ms first to see if a lighter patch would hold."
+> "The docs said 1000ms. I shipped 400ms anyway, because 'observed bursts seemed fine' is the kind of load-bearing assumption you get to test exactly once."
 
-Second patch — still on the stopgap: turn the inter-message delay on. I set it to 400ms (~2.5/sec) because observed bursts seemed to tolerate it, and because a full second per send eats the Lambda 15-minute timeout on larger batches (roughly 900 sends at 1s each; fewer with multi-part SMS). The timer guarantees at least `MIN_SEND_INTERVAL_MS` of wall time per recipient regardless of API latency — elapsed subtracted, sleep the rest. A private theka. Same scope leak as before; 400ms failed the storm for the same reason a thousand private pacers always will.
+Second patch — still on the stopgap: turn the inter-message delay on. I set it to 400ms (~2.5/sec) because observed bursts seemed to tolerate it, and because a full second per send eats the Lambda 15-minute timeout on larger batches (roughly 900 sends at 1s each; fewer with multi-part SMS). The timer guarantees at least `MIN_SEND_INTERVAL_MS` of wall time per recipient regardless of API latency — elapsed subtracted, sleep the rest. A private rhythm. Same scope leak as before; 400ms failed the storm for the same reason a thousand private pacers always will.
 
 Third patch: align with documented 1 MPS. Raise to 1000ms. Put `Bottleneck` in the new worker — same library A4H already used. Legacy paths updated for consistency.
 
@@ -239,10 +240,46 @@ Async invoke with `InvocationType: Event` is `fire-and-forget`. If the worker cr
 
 ## From Eight Queues to One — The Great Slim-Down
 
-I wrote an RFC with four queues, four dead-letter queues, a dispatch queue, a global FIFO send queue, a priority lane for one-time passwords, a callback queue, and matching workers for each. A post office with four sorting rooms for a building that needed one mailbox.
+The request for comments I'd circulated before building anything, the RFC, opened from the correct insight — the drain has to be global — though by then it was less insight than surrender. Three patches deep, there was no better patch than finally just accepting the global queue. Its centerpiece was sound: a **global FIFO send queue** — first in, first out, messages leave in the order they arrive — that every producer writes into and exactly one consumer drains at 1 MPS. That box survived every draft. The other seven queues grew out of reviewing it. Each pass over the diagram asked *what about*, and every *what about* became a new box.
+
+> None of it felt like over-engineering at the time. Every box answered a question I could defend in review, so I kept answering.
+
+**What about the seven producers?** They do not arrive with the same semantics. Bulk announcements are fire-eventually; forgot-password codes are fire-now; check-in greetings are scheduled; the other four are low-volume transactional drips. So the RFC grouped them into four **track queues** — one per message class, each with its own dead-letter queue — so retry policy, alarms, and blast radius could be tuned per class. A poisoned announcements track would never so much as touch the OTP track.
+
+**What about ingress?** No producer should embed routing logic. The next engineer adding producer #8 should be able to enqueue one message and trust the pipeline to sort it. So a **dispatch queue** feeding a **dispatcher worker**: a single uniform entry point that owns the lane decision, keeping producers dumb and routing centralized.
+
+**What about latency?** A login screen is a person staring at a blank code field — no spinner, no status, no way to tell slow from never. One 300-phone chunk at 1 MPS is five minutes of queue depth; behind a real bulk blast, an OTP code might as well arrive expired. So the **priority OTP lane** — a separate queue drained ahead of the FIFO for anything time-sensitive.
+
+**What about outcomes?** Delivery classification and Slack alerts do not belong on the send path; a slow alert webhook should never hold the 1 MPS cadence hostage. So a **callback queue** with a **callback worker**, asynchronous by construction.
+
+Matching workers for each. Every queue got a consumer, every queue a DLQ, every DLQ an alarm. Twelve SQS resources if you count the dead letters — eight if you don't.
 
 ```text
- RFC · Tracks A+B (4 queues · 4 DLQs)
+ RFC design flow · every box answered the previous box's question
+
+ the neck: 1 MPS -----> [ global FIFO send queue ]     the actual fix
+                                |
+                    "what about the seven producers?"
+                                v
+                       [ 4 track queues + 4 DLQs ]    classify ingress
+                                |
+                    "who owns the routing decision?"
+                                v
+                       [ dispatch q + dispatcher ]     centralize routing
+                                |
+                    "what if OTP waits behind bulk?"
+                                v
+                       [ priority OTP lane ]           latency class
+                                |
+                    "where do outcomes go?"
+                                v
+                       [ callback q + worker ]         off the send path
+```
+
+Read in order, the flow is **compelling**: every addition is locally justified, every box answers a question the previous box raised, and the diagram only ever grows by one box at a time. Read against the incident, it is embarrassing. The storm needed four things — serialize every producer, make work durable, bound the blast radius with chunks, dead-letter the poison — and the RFC delivered those, then kept designing: imagined producer #8, imagined per-class SLAs, imagined scale, flexibility with no ticket attached. Even the FIFO did not survive review once I admitted a single consumer serializes on its own; ordering was never the requirement, exclusivity was. A post office with four sorting rooms for a building that needed one mailbox.
+
+```text
+ RFC · Track (4 queues · 4 DLQs)
 
       entry
         |
@@ -250,9 +287,9 @@ I wrote an RFC with four queues, four dead-letter queues, a dispatch queue, a gl
    +----------+    +------------+
    | dispatch |--->| dispatcher |--+------------------+
    |    q     |    +------------+  |                  |
-   +----+-----+                     |                  |
+   +----+-----+                    |                  |
         |                          |                  |
-       DLQ                          v                  v
+       DLQ                         v                  v
                            +-------------+     +-------------+
                            | global FIFO |     | priority    |
                            |   send q    |     |   OTP q     |
@@ -289,39 +326,42 @@ Then I deleted most of it:
 - Dispatch queue — the existing handler becomes the splitter.
 - Callback queue — async invoke the callback worker instead.
 
-What shipped: one send queue, one worker, one callback. That *is* the migration. OTP and the other low-volume producers stay direct by design. I also deferred a shared token bucket in `sendSmsMessage` (DynamoDB or Redis counter every caller checks before sending) — synchronous under load, contended across parallel Lambdas, no built-in retry. The global queue with a single serial consumer was the durable fix A4H already proved.
+What shipped: one send queue, one worker, one callback. That *is* the migration. OTP and the other low-volume producers stay direct by design. I also deferred a shared token bucket in `sendSmsMessage` (DynamoDB or Redis counter every caller checks before sending) — synchronous under load, contended across parallel Lambdas, no built-in retry. Mostly, though, it was redundant: a single serial consumer *is* a global rate limiter, and the only sends it would not pace — the low-volume direct producers — never approach 1 MPS on their own. The global queue was the durable fix A4H already proved.
 
 ```text
  shipped pipeline · slim (1 queue · 1 DLQ)
 
-      entry
-        |
-        v
-   +----------------+
-   |    splitter    |-- chunks ≤300 phones
-   +--------+-------+   prefetches config · enqueues
+  entry · batch announcements
             |
             v
    +----------------+
-   |   send queue   |-- 1 msg = ≤300 phones
+   |    splitter    |-- chunks ≤300 phones
+   +--------+-------+   prefetches config once · enqueues
+            |
+            v
+   +----------------+
+   |   send queue   |-- 1 SQS msg = 1 chunk (≤300 phones)
    +--------+-------+   batch=1 · concurrency=1
-            |          global single drain
-           DLQ
-        poison / timeout
+            |           the single global drain
+            |
+            +-- poison / timeout --> [ DLQ ]  maxReceiveCount 1
             |
             v
    +----------------+
    |  paced worker  |-- 1 MPS · backoff on 429
    +--------+-------+   sends · classifies outcomes
             |
-      +-----+-----+
-      |           |
-      v           v
-  Pinpoint   +----------------+
-             |callback worker |-- async invoke
-             +----------------+   Slack on failure only
-
- OTP · direct path (unchanged)
+      +-----+-----------------------+
+      |                             |
+ 1 MPS serial                  async invoke
+      |                             |             
+      v                             v
+  Pinpoint ~1 msg-part/sec  +-----------------+
+  the shared neck           | callback worker |-- outcomes payload
+      ^                     +-----------------+   Slack on failure only
+      |
+  OTP + low-volume producers
+    (direct path by design)
 ```
 
 I deployed the slim version and tore the over-engineered queues out of the stack. The minimum pipeline that closes the global-drain gap was enough.
@@ -356,8 +396,8 @@ const THROTTLE_BACKOFF = {
  paced worker · per phone in chunk
 
  for each phone (serial)
-      |
-      v
+          |
+          v
  +----------------+
  |  Bottleneck    |-- minTime 1000ms between phones
  |  .schedule()   |   maxConcurrent 1
@@ -390,6 +430,65 @@ SQS retries the **chunk** on timeout. Backoff retries one **phone** on 429 only 
 
 ---
 
+## One Batch of 607, End to End
+
+The pipeline above is abstract until you run one batch through it. Take a blast of 607 numbers — one facility, one move-out cascade.
+
+One noun needs untangling first, because *message* works both sides of this street: the queue carries messages, Pinpoint sends messages, and they are not the same thing. The batch is 607 **phones**. The splitter divides by 300 — **300, 300, 7** — which makes three **chunks**. Each chunk is wrapped in one **SQS message**, the queue envelope. Inside the worker, each chunk unwraps into individual **SMS** — one text per phone.
+
+```text
+ the nouns · one batch
+
+ 607 phones              the batch · what the facility hands over
+    |
+    |  splitter / 300
+    v
+ 3 chunks · 300 300 7    the phone list · what the worker loops over
+    |
+    |  wrap one per chunk
+    v
+ 3 SQS messages          queue envelopes · the durable unit
+    |
+    |  paced worker · 1 per second
+    v
+ 607 SMS                 one text per phone · what Pinpoint sends
+```
+
+Each envelope carries its prefetched gateway configuration: twelve reads for the whole batch, not the 2,428 that per-recipient loading would cost. That collapse is its own section, below.
+
+Then the single drain takes over:
+
+```text
+ one batch of 607 · end to end · happy path
+
+ t=0      splitter: 607 -> 300 + 300 + 7
+          3 chunks wrapped -> 3 SQS envelopes · 12 reads (4 per chunk)
+
+          worker takes chunk 1 · phones 1..300
+            one per second · 1 MPS
+ t≈300s   chunk 1 done · callback invoked (async)
+
+          worker takes chunk 2 · phones 1..300
+ t≈600s   chunk 2 done · callback invoked
+
+          worker takes chunk 3 · 7 phones
+ t≈607s   chunk 3 done · callback invoked
+
+ ≈ 10 minutes wall clock · what 1 MPS costs, made visible
+```
+
+Ten minutes is the best case — empty queue besides these three, no throttling. The drain is global, so another facility's chunk can sit between your chunk 2 and chunk 3. And the send queue is standard, not FIFO: with batch size one and concurrency one the chunks almost always land in order, but nothing promises it. Ordering was never the requirement; exclusivity was.
+
+The example earns its keep mid-loop. Say phone 114 comes back `429 THROTTLED`. Backoff owns that phone: wait 2s, retry — still throttled — wait 4s, retry — through. Six seconds of sleep, then the loop moves to phone 115. The chunk never noticed. The queue did: `maxConcurrent: 1` means a sleeping phone is a paused pipeline, and every facility queued behind it waits too.
+
+A phone that exhausts all five attempts — 2s, 4s, 8s, 16s; thirty seconds of waiting — lands in `hard429[]` and the loop moves on. SQS retries nothing here. The envelope is still on its single delivery, waiting — deleted only when the loop ends.
+
+Three callbacks fire for this batch, not one — a chunk boundary each. All 607 landed, all three stay silent. Slack speaks only when something dies.
+
+And the arithmetic has teeth. A clean 300-phone chunk drains in ~300s against a 900s function timeout — 600s of slack, and every hard-throttled phone burns 30 of it. Twenty hard 429s in one chunk, under seven percent of it, and the budget is gone: 300s of pacing plus 600s of waiting lands exactly at the wire. Throttle harder than that and the worker dies mid-loop with a tail of phones unsent. What happens to that tail is the next section.
+
+---
+
 ## Timeout, Redelivery, and the Dead Letter Queue
 
 The slim pipeline — splitter → send queue → paced worker → async callback — routes **batch announcements** through the global drain. OTP and the other producers still call Pinpoint directly; that is intentional.
@@ -399,7 +498,7 @@ The durable unit is the **chunk**, not each phone. One SQS message carries up to
 My first instinct was catch-everything-in-code: if the worker handles all errors and acknowledges only after the **entire chunk** finishes, maybe a DLQ is unnecessary. Walking through a timeout mid-chunk closed that idea before I shipped.
 
 ```text
- without DLQ · timeout mid-chunk
+ without DLQ · timeout mid-chunk · chunk 1 of the 607
 
  [send queue] --> [worker]
                       |
@@ -422,7 +521,7 @@ My first instinct was catch-everything-in-code: if the worker handles all errors
 A function timeout kills the process before any `catch` runs. With no DLQ and no `maxReceiveCount` cap, the queue message becomes visible again and can redrive indefinitely. Each redelivery re-runs the **entire** phone list — including numbers already sent.
 
 ```text
- with DLQ · maxReceiveCount 1 (shipped)
+ with DLQ · maxReceiveCount 1 (shipped) · chunk 1 of the 607
 
  [send queue] --> [worker]
                       |
@@ -444,7 +543,7 @@ A function timeout kills the process before any `catch` runs. With no DLQ and no
 
 So the migration includes a dead-letter queue: `maxReceiveCount: 1`, visibility timeout greater than the function timeout. On timeout, the chunk lands in DLQ instead of looping forever.
 
-The DLQ does not erase the half-sent problem. If the worker times out after phones 1–150, those 150 already went out. The queue has no memory of per-phone progress — phones 151–300 sit in DLQ with the rest of the message. Loss for the unsent tail. Blind replay of that DLQ message would text 1–150 again. Per-recipient queue retry was never in scope for this migration; I traded infinite duplicates for a stuck tail, and I still have to be careful with my hands on the DLQ.
+The DLQ does not erase the half-sent problem. If the worker times out after phones 1–150 of chunk 1, those 150 already went out. The queue has no memory of per-phone progress — phones 151–300 sit in DLQ with the rest of the message. Loss for the unsent tail. Blind replay of that DLQ message would text 1–150 again. Per-recipient queue retry was never in scope for this migration; I traded infinite duplicates for a stuck tail, and I still have to be careful with my hands on the DLQ.
 
 ---
 
@@ -501,7 +600,7 @@ A two-recipient registration batch failed one of two sends. Same message, two ph
 
 ## The Production Audit
 
-Before the edges — because it mostly worked — the production numbers. Window: 2026-07-29 11:11 UTC → 2026-08-14 (**15 days**).
+Before the edges — because it mostly worked — the production numbers. Window: 2026-07-29 → 2026-08-14 (**15 days**).
 
 Worker `batch complete`:
 
@@ -518,10 +617,37 @@ Pinpoint `DeliveryStatus` on `Message sent!` attempt events:
 - 3,616 `THROTTLED` — retries; do not add them to `SUCCESSFUL`
 - 17,825 events total
 
-Worker success is exactly 771 higher than Pinpoint `SUCCESSFUL`: 14,209 = 13,438 + 771. The classifier treated any non-throttle as success — including opt-outs — so `otherErrors` stayed 0 and Slack never fired. Classic `lying success`: the pipeline high-fiving an unsubscribe. Real accept rate: 13,438 / 14,214 = **94.54%**. Phones close: 13,438 + 771 + 5 hard429 = 14,214.
+Worker success is exactly 771 higher than Pinpoint `SUCCESSFUL`: 14,209 = 13,438 + 771. The whole classifier is `isThrottled` — anything that isn't a throttle counts as a win, so the 771 opt-out `PERMANENT_FAILURE`s landed in `success`, `otherErrors` stayed 0, and Slack never fired. The lie is not the count; 14,209 loops really did finish. The lie is the name. `Success` vouched for a delivery it never checked — it prints the same 99.965% whether the 771 are honored opt-outs, dead numbers, or a failure nobody has named yet. Real accept rate: 13,438 / 14,214 = **94.54%**.
 
-The SQS migration held. Every invoke that started also finished — 2,407 / 2,407, gap 0, zero timeouts. Of 14,214 phones, five exhausted backoff (**0.035%**). Strip the 771 opt-outs and Pinpoint accepted **13,438 / 13,443 = 99.96%**. The old storm dropped a quarter with no retry. This path still hits the 1 MPS ceiling — 3,616 `THROTTLED` events are retries that recovered — and almost always gets through.
+Counted honestly, the fifteen days are a win three ways. The loop closed — 2,407 / 2,407 invocations, gap 0, zero timeouts. The opt-out contract held — the 771 refusals are Pinpoint refusing opt-outs and the like, and not one message went. And the throttles recovered: Pinpoint said *not now* 3,616 times, backoff asked again, and five phones of 14,214 ran out of asks (**0.035%**). The storm hit the same 1 MPS ceiling and dropped a quarter of the batch, silently, `200 OK` all the way down. Same ceiling, different answer to *not now*. Among people who had asked to be texted: **13,438 / 13,443 = 99.96%** accepted.
 
-A shorter or paged Insights view can undercount (stream count, window, UI paging). The log truth for this window is 2,407. Pinpoint `SUCCESSFUL` means Pinpoint accepted the send; carrier delivery receipts are a later stream we do not collect; SMS has no signal that the phone displayed the message. Both Insights queries were cheap (~16 MB scanned each). Typical distribution still holds: lots of tiny batches, a few whales.
+A shorter or paged Insights view can undercount (stream count, window, UI paging). The log truth for this window is 2,407 invocations. These insights queries were also dirt cheap (~16 MB scanned each). Typical distribution still holds: lots of tiny batches, a few whales.
 
-Throttle still happens. Backoff is why fifteen days look like success. Say whose success you counted — worker bucket, Pinpoint accept, or a phone lighting up — and audit the shape of the traffic, not only the failures.
+What matters is throttles recovered, not throttles hit. The ceiling has not moved — 1 MPS bit the storm and bit this window alike — and it will bite again. The difference is the *after*: the storm's throttles became silent drops; these 3,616 became retry attempts, and all but five phones got their message. Throttle count measures the ceiling. Recovery count measures the pipeline. Watch the second one.
+
+---
+
+## **When to Patch, When to Build, When to Delete**
+
+> "Patch when the fix's scope matches the failure's scope. Design for incidents you can evidence: scope, data, frequency, logs. Count only what you can name."
+
+The RFC grew one box at a time because every *what about* could defend itself in review. These are the questions I'll ask instead, in the order that would have caught me:
+
+**Does the fix's scope match the failure's scope?** Each of the three patches was correct inside its own invocation. The failure lived across a thousand invocations at once, so the patches could only lose. Concurrency and pacing are the right knobs when you own the worker. The storm was a thousand workers nobody owned. When a thousand drivers cannot see each other, the fix is the thing they share — build the toll booth. Ship a stopgap once, to buy time to think. By its third revision, a stopgap is a way of avoiding the decision.
+
+**Is this box for the incident, or for an imagination?** Define the word first, because the rubric leans on it. An incident is something bad that left evidence. The evidence has an anatomy:
+
+- **Scope** — which producers, which shared resource, which window. Here: seven producers, one origination number, one Tuesday hour.
+- **Data** — counts per outcome, queryable. 1,204 batch invocations in the storm's worst hour, 1–2 recipients each, roughly a quarter throttled. After the fix: 2,407 worker runs and 14,214 phones in fifteen days, ~160 runs a day, lots of tiny batches and a few whales.
+- **Frequency** — a rate counted over a window. Bulk sends are scheduled human operations: move-out cascades, schedule changes, staff announcements. The ceiling is documented at 1 MPS. Seven producers share one neck, so the exposure is permanent.
+- **Logs** — where the failure surfaces: Slack alerts, per-recipient delivery results. The only place a 429 inside a 200 shows its face.
+
+Then score it like a risk assessment, three axes, each with evidence:
+
+- **Severity** — a quarter of a batch, silent, no retry. Unrecoverable loss.
+- **Occurrence** — the trigger is routine and the ceiling does not move. Expect it again.
+- **Detection** — weak. `200 OK` all the way down. A failure you cannot see keeps happening.
+
+Score every proposed box on the same axes. The storm scored high on all three, with receipts, and everything that shipped answers it. The priority OTP lane had real severity — a person staring at a blank code field — and near-zero occurrence. The logs showed forgot-password almost never waits behind bulk, so the lane died. Producer #8 scored zero on occurrence because there is no producer #8. Per-class SLAs and no-ticket scale failed the same question. The DLQ shipped despite zero occurrences in 2,407 runs, and the reason is worth memorizing: its trigger is a documented mechanism (the fifteen-minute function timeout is as real as the 1 MPS ceiling), its consequence is catastrophic (redrive forever, duplicate SMS), and its guard costs almost nothing. A cheap guard against a documented mechanism is sound engineering. An expensive guard against a scenario nobody can evidence is over-engineering. The eight queues felt defensible in review because every *what about* argued well. Arguments are cheap. Incidents bring receipts. Put the evidence next to the diagram and ask, for every box, which line it would have prevented. YAGNI is accountability for that answer. The FIFO died on this test. One consumer already gives exclusivity. Ordering was extra.
+
+One note sits underneath all of them. The deliverable is a resident getting the text they asked for, and us knowing, honestly, that it went. The queue, the diagram, the migration: means. Reliability is the product. Trust is the interface. Complexity is a cost — sometimes necessary, invisible to the resident either way. The bridge is still one lane. The ceiling bit 3,616 times this window and will bite again. In the storm, every bite was a silent drop. In this window, every bite was a retry. That difference is the deliverable. So: patch when the scope matches. Stop when the third patch patches the second. Design for incidents with evidence. Delete the boxes that answer nothing. Count only what you can name. That is the whole rubric. The rest is Tuesday.
