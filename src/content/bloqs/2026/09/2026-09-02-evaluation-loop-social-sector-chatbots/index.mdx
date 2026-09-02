@@ -1,26 +1,356 @@
 ---
-title: "Evaluation Loop for Social-Sector Chatbots"
+title: "Evaluation That Doesn't Leave With the Evaluators"
 publishedAt: "2026-09-02"
-summary: "Placeholder summary: how to build an evaluation loop for chatbots serving social-sector use cases, where a wrong answer can cost someone their benefits, housing, or trust."
+summary: "Reading about how social-sector chatbots are evaluated, I kept wanting the same thing: for findings to end up as tools that run, not documents that get read. A first attempt at building that way."
 slug: "evaluation-loop-social-sector-chatbots"
 tags:
   - ai
-  - evaluation
-  - chatbots
   - reflections
+  - evaluation
+  - research
+  - chatbots
 authors:
   - Sumit Sute
-category: "Engineering"
-draft: true
-featured: false
+category: "Reflections"
+draft: false
+featured: true
 ---
+##
 
-## Placeholder
+*Can evaluation be stage-gated, context-first, and end in running artifacts rather than reports? Stage-gated means the evaluation is split across the deployment's life, pre-launch, pilot, production, and after, each phase with its own tests and an exit criterion. Context-first means harm is judged where the system actually runs, since the same capability becomes a different harm in a different language, community, or lifecycle stage. The aim is to let local definitions of harm set the tests, rather than ones imported from English-language consumer products. Running artifacts means the evaluation ends in validators and risk cards, checks that keep gating the system after the evaluators leave. I put fragmented reading notes side by side to find out. What emerged is two gaps and one fact. The gaps: nothing in the field tracks a deployment across its lifecycle, and evaluations possibly stay in reports rather than running artifacts. The fact: context decides what counts as harm. The loop below answers each in turn, a gate per lifecycle stage, harm defined in context, and every round ending in something that keeps running.*
 
-This is a placeholder article. Content coming soon.
+>  Are evaluations of social-sector AI chatbots often blind to deployment stage? Do their findings stay in reports rather than become guardrails? I grappled with both by screening thirty-four sources under a written protocol. The reading exposed two structural holes in the framework field. Nothing in it tracks a deployment across its lifecycle, a norm the literature itself states ([Weidinger et al., 2023](https://arxiv.org/abs/2310.11986)). And I am yet to come across specific frameworks in the field that connects evaluation findings to the artifacts that would enforce them. Hence the loop below. [Tattle's four-step manual loop](https://tattle.co.in/blog/2026-05-28-how-to-do-manual-evaluations/) is the engine. Lifecycle stage gates it. Per-language human gold sets constrain it, because judge reliability collapses exactly where these deployments live ([LLM Safety Alignment in Low-Resource Languages](https://arxiv.org/abs/2608.14626); [Fairness or Fluency?](https://arxiv.org/abs/2601.13649)). It ends in artifacts that keep running: guardrail validators ([Guardrails × MLflow](https://guardrailsai.com/blog/guardrails-mlflow)) and Social-Sector RiskCards ([RiskCards](https://arxiv.org/abs/2303.18190)). Three documented cases test it, though the framework also grew out of those same cases: a health bot, an education bot, and an admissions bot. The real test will be a fourth deployment the framework had no hand in.
 
----
+## Where this began, and why it can't wait
 
-## Section Placeholder
+This piece began as part of my attempt to understand [Tattle](https://tattle.co.in/), an Indian civic-technology organization that builds tools and datasets to understand and respond to inaccurate content including the chat platforms where much of India's public conversation happens. As part of that attempt, I was asked to share my thoughts on the risks of AI chatbots in social sectors: against what [Tattle's approach](https://tattle.co.in/ai-safety/) has been and how they are thinking about it, which frameworks I would rely on, and how I would evaluate these systems. What follows is that answer taking shape. I read what Tattle reads, ran a review of the wider literature, and and arrived at a framework I believe in.
 
-Placeholder body text.
+Chatbots are moving into public-service delivery in health, education, legal aid, and welfare, run by nonprofits, government programs, and development organizations. The documented misuse arrived with the deployments, hardly before: bots fielding sex-determination questions; risky queries reframed as study questions to slip past filters; an admissions bot whose misuse surface required a stress test before launch. Not hypotheticals. Launch records. Following [Weidinger et al.'s sociotechnical harm taxonomy](https://arxiv.org/abs/2310.11986), which sorts harms by the model's capability, the human interaction around it, and the systemic impact of both, I read these instances as clustering into three layers: user harms, organizational harms, societal harms. The risks section later in this piece turns these layers into a risk × evidence table of documented social-sector cases. That table carries the argument's weight. Let me only set up the layers here.
+
+Are we treating AI safety like web accessibility? The ARIA labels that make interfaces usable for disabled users, de-prioritized, added if time and money remain. Cybersecurity, by contrast, is a precondition for shipping. When I read the field map by Baarish, I found the literature had already drawn the same curve: biases become "part of the model's knowledge system," from-scratch multi-stakeholder redevelopment is something corporates will not fund, so the guardrails arrive in hindsight, under public pressure ([What is AI Safety?](https://tattle.co.in/blog/2025-12-12-what-is-ai-safety/)). Baarish joined Tattle in November 2025 as Research Development and Grants Specialist and wrote both "What is AI Safety?" and the [manual-evaluation guide](https://tattle.co.in/blog/2026-05-28-how-to-do-manual-evaluations/) this article leans on repeatedly. I would rather build the guardrails before the pressure. That is the whole argument for acting now.
+
+The structure behind the urgency, as I came to see it: a consumer product with a bad answer loses users, and the market corrects. A public-service bot has no such correction. That is also why I do not believe evidence about chatbot risk gathered on English-language consumer products transfers unexamined: neither the misuse patterns, nor the correction mechanism, nor the language carries over. The documented misuse arrived with the deployments, and it arrived aimed at systems that hold people's health, education, and entitlements, not their attention. Underneath, the interaction is information-asymmetric. People consult the bot for exactly the knowledge they lack, and are neither supposed nor expected to verify its answers. And the obligations differ, which the retention framing hides. A consumer product owes its user nothing but a working product they are free to leave; keeping them is the whole discipline. A public-service bot owes accuracy whether or not anyone stays: legal obligations in service mandates and liability, ethical obligations of care to people who are assigned or enrolled or simply dependent, and the plain accuracy a wrong answer violates. A market corrects by exit. A public service must correct by duty, and nothing in a consumer-product evaluation ever tests the duty.
+
+One observation from the search run itself doubles as gap evidence. Between a full-time job and the standing obligations of family and friends, I did not have the hours to survey the grey literature properly myself. What little time I had went into deploying research agents carefully: a written plan, a protocol, then the searches. What came back was almost as informative as what did not. Searches naming NGOs and nonprofits returned essentially nothing on arXiv; the social-sector chatbot literature barely exists there, one irrelevant hit across the development-sector searches. It lives in practitioner conference venues like Information and Communication Technologies for Development and community-centered human-computer interaction, and in organizational blogs. Even "AI safety Global South" returns only two preprints, both weak fits for chatbot risk; the actual cluster lives in the grey literature. arXiv was the one preprint venue the agents covered this time; next time, if time permits, I want to loiter on SSRN and a few of the other platforms where practice writes first and papers later. The actual cluster lives in the grey literature. The discourse this article joins is grey-lit native.
+
+## How I read the <del>papers</del> room
+
+I am an engineer first, before I am an evidence synthesist. When I turned from a codebase to a body of literature, the engineering way of working took over the evidence-synthesis process and hybridized it. Spec first: the research questions, the inclusion and exclusion criteria, the stopping rules, the annotation scheme, all written down before the first search ran. Then a small, time-boxed scoping review, run as a loop I trust until it produces something defensible.
+
+The read set, each item annotated through dictated voice notes: [Tattle's AI-safety services page](https://tattle.co/ai-safety); [the manual-evaluations guide](https://tattle.co.in/blog/2026-05-28-how-to-do-manual-evaluations/), with a first-hand look at [the slur list from Uli](https://uli.tattle.co.in/uli-for-ts/), Tattle's dataset and tool for [online gender-based violence](https://tattle.co.in/products/ogbv/); [What is AI Safety?](https://tattle.co.in/blog/2025-12-12-what-is-ai-safety/); [Towards Functional Safety](https://tattle.co.in/blog/2026-01-20-functional-ai-safety/); Tattle's co-founder and research lead Tarunima Prabhakar's [Tech4Dev guardrails reflections](https://tattle.co.in/blog/2025-11-01-tech4dev-evals/ ), where the writing anchors this corpus's deployment-side thinking; [the Uli dataset paper](https://arxiv.org/abs/2311.09086); [the Kaapi Guardrails build story](https://projecttech4dev.org/kaapi-guardrails-tattle-tech4dev/ ); [the Guardrails×MLflow tooling post](https://guardrailsai.com/blog/guardrails-mlflow); and of course [Weidinger et al. 2023](https://arxiv.org/abs/2310.11986) as the one deep read. I annotated live while reading, dictating into the addictive Wispr Flow. The annotations simply flowed, and reading my thoughts out loud kept me honest in a way silent note-taking never managed. That silence had its own treachery: it censors the flow at the keyboard, or hands a thought a structure it has not yet earned. Dictation permitted neither, which is a way of saying the blabbering was the thinking. Either way, the scale surprised me: just under *19,500 words* of dictated annotation across eight voice-note files, the last of them a closing analytic memo. And I only noticed after the fact that the loop I used to study the literature is the same loop the literature itself recommends: sample the field, annotate what I sampled, expand on the edges, analyze, then argue from the annotated evidence for the one gap worth working on.
+
+The mechanics, in plain words, and the agents ran most of them. The opening section owns the why: the hours to survey the grey literature properly myself were not there, and carefully deployed agents were the middle path between doing it badly alone and not doing it at all. The split held: the brief and the screening calls were mine; the seed strings, the searches, and the citation chasing were the agents'. Briefed with my annotated readings, they planned fifteen search strings aimed at the four kinds of place a researcher looks: academic databases, standards and policy bodies, practitioner and grey literature, and evaluation-tooling documentation. They traced citations forward too: who cited the Uli dataset paper and who cited [the AILuminate safety benchmark](https://mlcommons.org/ailuminate/), because a field's citing literature is where it says what it did with its own tools. One planned seed, the manual-evaluation lineage, I skipped deliberately, because the assigned corpus already owned that ground. The run produced 44 screened items, and every one carries a one-line decision: 34 included, 9 excluded with reasons, 1 already in my assigned corpus, zero silent discards. Four of the included became must-reads. The corpus froze on the protocol's stopping rule, three consecutive well-formed searches adding nothing new. The rule fired when the AILuminate citing literature had turned into benchmark-usage, jailbreak, and domain-guardrail work with nothing new on social-sector chatbot risk: 33 titles screened to a bulk no in a single pass. One scope limitation stays on the record: the review is English-first. Hindi and other Indian-language sources were chased only when they surfaced through footnotes and citations, so the local-language grey literature is under-covered by construction.
+
+The searching was the agents'; the deep reading was mine, and no agent could have had it anyway: the urge to read, to own, to understand does not delegate, and mine would not quiet. I read compulsively, racing the clock for every hour. A few articles, but read the slow way: aloud, annotated, argued with. What does the paper say? What does the paper name: risks, methods, deployment stage, context, evidence type, outputs? Can I trust it, and what does it assume? And, unedited, what did it trigger in me. Under time pressure, the research agents helped press my raw dictated annotations into these four layers. An analytic memo closed each reading session: what changed, what surprised, what now looks wrong. Two memos exist, and they feed the frame of this article. I wish I had had more time for more deep readings. The Weidinger sociotechnical paper, the one must-read I read fully, grabbed me and left me very impressed. More than that, it changed my attitude toward this whole exploration: what had been a vague, broad chase after a moving target took on a clearer, well-structured shape, and that structure added confidence and meaning in the exploration, and in its possibilities and potential.
+
+An honest note on lineage, compressed. Out of curiosity I asked my research agent whether this improvised approach would validate against any named methodology. It returned three: thematic synthesis ([Thomas and Harden](https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/1471-2288-8-45)), framework synthesis ([Brunton et al.](https://doi.org/10.1002/jrsm.1578)), and the scoping-review sensibilities of [Arksey and O'Malley](https://doi.org/10.1080/1364557032000119616). I still owe those abstracts a proper verification read. Noted for later. I need to finish writing this piece first. But for now, I take the names as retrospective comfort that I was not improvising blindly, not as recipes I followed.
+
+## Every bad response is bad in its own way
+
+ Tarunima's [reflections on building guardrails for the Tech4Dev cohort](https://tattle.co.in/blog/2025-11-01-tech4dev-evals/) observe that everyone agrees on what a good response looks like, but each bad response is bad in its own way, needing its own diagnosis. No single rubric grades every failure, so I went looking for where each failure has already been documented. The documented instances cluster in three layers, and the cleanest way I found to hold them was Tattle's own documented engagements rather than the taxonomy's abstractions. [The Tech4Dev cohort collaboration](https://projecttech4dev.org/learnings-from-the-ai-cohort-program/ ) included a nutrition bot and an education bot, and both document the user layer: prescriptive out-of-scope answers, a caste-category disclosure during routine profile queries, and language-switching failures that exclude the very users the bot serves ([Manual Evaluations of AI in the Social Sector](https://tattle.co.in/blog/2026-05-28-how-to-do-manual-evaluations/)). The [Kaapi Guardrails build](https://projecttech4dev.org/kaapi-guardrails-tattle-tech4dev/) showed me how the organizational layer absorbs the user layer's findings. Evaluation findings turn into validators, and the validators themselves need maintenance. The admissions-bot stress test for IITM (Indian Institute of Technology Madras) is where the organizational layer appears in its own right: trust erosion, liability, a misuse surface red-teamed before launch ([Tattle's AI-safety services page](https://tattle.co.in/ai-safety/)). User harms have their engagement stories; organizational harms have theirs. The societal layer has none yet. And that no engagement story has surfaced this layer is itself a finding. The table below is this article's evidence base; each row anchors a risk class to its documented instance.
+
+```text
+risk x evidence · documented instances and responses
+
++--------------+----------------+-------------------+-----------------+
+| Layer        | Risk class     | Documented        | Response        |
+|              |                | instance          |                 |
++--------------+----------------+-------------------+-----------------+
+| A · User     | Hallucinated / | Nutrition bot:    | Client-         |
+|              | out-of-scope   | prescriptive      | confirmed scope |
+|              | answers        | off-scope advice; | definitions;    |
+|              |                | ~14% of sampled   | refusal         |
+|              |                | errors (Manual    | guardrails      |
+|              |                | Evals guide)      |                 |
++--------------+----------------+-------------------+-----------------+
+| A · User     | PII disclosure | Caste-category    | Keyword-        |
+|              |                | reveal, education | expansion       |
+|              |                | bot (Manual Evals | audit; PII      |
+|              |                | guide)            | validator +     |
+|              |                |                   | Indic entity    |
+|              |                |                   | lists           |
++--------------+----------------+-------------------+-----------------+
+| A · User     | High-risk      | Sex-determination | High-risk       |
+|              | queries        | questions; risky  | intent label;   |
+|              |                | queries as study  | ban-list        |
+|              |                | questions (Kaapi  | validator       |
+|              |                | Guardrails;       |                 |
+|              |                | Functional        |                 |
+|              |                | Safety)           |                 |
++--------------+----------------+-------------------+-----------------+
+| A · User     | Language       | Language errors   | Language-       |
+|              | exclusion      | ~9%; switching    | consistency     |
+|              |                | failures (Kaapi   | checks; Indic   |
+|              |                | Guardrails)       | eval sets       |
++--------------+----------------+-------------------+-----------------+
+| B · Org      | Trust erosion  | IITM              | Pre-launch      |
+|              | / liability    | misuse-reduction  | red-team;       |
+|              |                | mandate           | guardrail +     |
+|              |                | (AI-safety        | re-eval         |
+|              |                | services)         |                 |
++--------------+----------------+-------------------+-----------------+
+| C · Societal | Global-North   | Baarish's two     | Local risk      |
+|              | norm           | critiques         | taxonomies;     |
+|              | entrenchment   |                   | Indic           |
+|              |                |                   | benchmarks      |
++--------------+----------------+-------------------+-----------------+
+| C · Societal | Surveillance   | Chat-log          | Data            |
+|              | pathways       | sensitivity       | minimization    |
+|              |                | (Manual Evals     | (Uli design     |
+|              |                | guide)            | precedent)      |
++--------------+----------------+-------------------+-----------------+
+```
+
+Then the coverage read, which drives the rest of the article. The table above holds the risks with documented instances; the fuller map sets sixteen risk classes against the four lifecycle stages, pre-launch, pilot, production, and longitudinal, meaning tracked across time after deployment, and asks one question of every intersection: does the corpus contain evidence of anyone testing for this risk, at this stage of the deployment's life? Values came from the reading notes: each source carries a structured extraction of risks named, deployment stage, and evidence type. A cell fills on any deployment-level evidence, counts partial when it is indirect, model-level only, or adjacent domain, and stays empty otherwise. Sixteen risks, four stages, 64 answers: 17 filled, 16 partial, 31 empty.
+
+```text
+coverage · was anyone testing for this risk, at this stage?
+● evidence exists   ◐ partial or adjacent   ○ empty
+
+                               pre-launch   pilot   production   longitudinal
+hallucination / out-of-scope       ●          ●         ●            ○
+PII disclosure                     ◐          ●         ○            ○
+gender / caste bias                ○          ●         ◐            ○
+high-risk queries                  ○          ●         ◐            ○
+language exclusion                 ●          ●         ○            ○
+tone / false authority             ◐          ●         ○            ○
+over-refusal                       ○          ●         ◐            ○
+oGBV / toxicity                    ●          ●         ●            ○
+misinformation                     ●          ●         ○            ○
+trust erosion / liability          ●          ●         ●            ○
+data-governance breach             ●          ●         ●            ○
+judge / eval reliability           ●          ◐         ◐            ○
+annotator labor harm               ◐          ○         ◐            ○
+… three further classes            …          …         …            ○
+```
+
+Coverage clusters where evaluators are actually in the room, pre-launch and pilot, and thins once real users arrive: production is the second-weakest column, and the longitudinal column is empty in all sixteen rows. Nobody in this field has followed a deployment past launch. The blankness is the finding, and it is the same finding as the title: evaluation leaves with the evaluators. An engineer reads an empty matrix the way they read an untested code path: nobody has hit the bug yet, which is not evidence the code works.
+
+One mechanism correction of my own, because it changes what the fix looks like. The caste case is not the model repeating something memorized from training data. It is in-context profile surfacing. The bot echoes a user's own caste category back at them, information the conversation itself supplied, now written into logs. I file the case under [ProPILE](https://arxiv.org/abs/2307.01881)'s probing taxonomy for personal-information leakage, with the caveat that the taxonomy never anticipated caste markers. A later study complicates the leakage story, arguing apparent leakage may be [cue-driven rather than memorized](https://arxiv.org/abs/2601.03791), but that contradiction never touches the caste observation, which is about context and logs, not model memory. The larger point stands: standard personal-information taxonomies are silent on caste markers.
+
+## The framework field and its two structural holes
+
+The framework field. I placed every evaluation approach the corpus contains, twelve framework families from NGO playbooks to NIST wrappers, side by side on nine questions: what deployment stage does it cover, who defines harm, what artifact does it output, and so on. Two findings fell out that drive everything I propose next. First: nothing in the corpus is lifecycle-stage-aware. The stage column is the sparsest in my matrix. Its one differentiated entry, [the Agency Fund's four-level stack](https://eval.playbook.org.ai/), turns out on reading to be a scope ladder, not lifecycle phases: model, then product, then user, then impact, each level evaluated continuously. And it presumes golden datasets, data pipelines, and warehouses that NGO deployments demonstrably lack. Baarish's guide documents the counter-evidence: the fieldwork ran without conversation IDs, pairing records by timestamp as a workaround. The norm itself is stated. [Weidinger et al.](https://arxiv.org/abs/2310.11986) prescribe evaluation "at multiple time points throughout the AI system life cycle, including by monitoring effects post deployment", and I found no framework that operationalizes it. Second: the corpus bifurcates by output. Scores and reports on one side, running artifacts like datasets, validators, and test suites on the other, and nothing connects them systematically. The evaluate-then-guardrail cell is empty at framework level.
+
+The field, compressed:
+
+```text
+the framework field · strengths, blind spots, fit
+
++-----------------+-------------------+----------------+--------------+
+| Framework       | Strength          | Blind spot     | Fit for      |
+|                 |                   |                | social-      |
+|                 |                   |                | sector       |
+|                 |                   |                | chatbots     |
++-----------------+-------------------+----------------+--------------+
+| Tattle 4-step   | Context-          | Cost; bespoke  | Native fit   |
+| manual eval     | discovery,        | labels resist  |              |
+|                 | multilingual,     | aggregation    |              |
+|                 | edge-case finding |                |              |
+|                 | (Manual Evals     |                |              |
+|                 | guide)            |                |              |
++-----------------+-------------------+----------------+--------------+
+| Uli             | Those harmed      | Labor cost;    | High, the    |
+| participatory   | define harm;      | annotator      | multiplier   |
+| annotation      | disagreement as   | agreement      | answer       |
+|                 | data (Uli         | varies by      |              |
+|                 | Dataset)          | language       |              |
++-----------------+-------------------+----------------+--------------+
+| Agency Fund     | Closest to        | Presumes infra | The          |
+| 4-level stack   | stage-awareness,  | NGOs lack;     | stage-hole   |
+|                 | but a scope       | silent on      | evidence     |
+|                 | ladder run        | lifecycle      |              |
+|                 | continuously,     | phase          |              |
+|                 | model → product → |                |              |
+|                 | user → impact,    |                |              |
+|                 | not lifecycle     |                |              |
+|                 | phases (Eval      |                |              |
+|                 | Playbook)         |                |              |
++-----------------+-------------------+----------------+--------------+
+| Weidinger       | Most complete     | Global-North   | Checklist,   |
+| sociotechnical  | harm taxonomy;    | defaults;      | not cage     |
+| 3-layer         | capability ×      | heavy process  |              |
+|                 | context           |                |              |
+|                 | (Weidinger 2023)  |                |              |
++-----------------+-------------------+----------------+--------------+
+| LLM-as-judge /  | Cheap, fast,      | Indic          | Hybrid layer |
+| automated evals | regression-       | weakness;      | only,        |
+|                 | friendly          | judge bias;    | gold-set     |
+|                 |                   | circularity    | calibrated   |
++-----------------+-------------------+----------------+--------------+
+| NIST AI RMF +   | Govern / Map /    | Not            | Process      |
+| GenAI Profile   | Measure / Manage  | low-resource   | wrapper      |
+|                 | wrapper (NIST AI  | aware          |              |
+|                 | RMF)              |                |              |
++-----------------+-------------------+----------------+--------------+
+| WHO             | Sector            | Health-only    | Conditional  |
+| LLM-for-health  | non-negotiables   |                |              |
+| guidance        | (WHO LMM          |                |              |
+|                 | guidance)         |                |              |
++-----------------+-------------------+----------------+--------------+
+| Tarunima's      | Pareto realism;   | Defers         | The          |
+| functional      | design-as-safety  | long-term      | resource-    |
+| safety          | (Functional       | risks          | realistic    |
+|                 | Safety)           |                | frame        |
++-----------------+-------------------+----------------+--------------+
+```
+
+The bridge between what the norm says and what I build in the next section runs through two old ideas and Weidinger's own conditions. Collingridge's dilemma says that early in a technology's life we can still steer it but cannot see it clearly, and that late we can see clearly but can no longer steer. That is why the pre-launch gate and the longitudinal gate are different instruments, not the same gate repeated. Early evaluation shapes direction; late evaluation reveals accurately. Goodhart's development-versus-assurance separation says the loop that improves the product must stay distinct from the loop that judges it, which is why a frequent regression batch and a deep annual re-evaluation are not the same activity. And [Weidinger](https://arxiv.org/abs/2310.11986) supplies the conditions' teeth: evaluation "derives its relevance from the processes and decisions into which it is meaningfully embedded"; and facing the trade-off between longitudinal, localized accuracy and the generality of automated tests, the paper concludes that "establishing a mixed-methods practice is the way forward".
+
+One corpus finding constrains the whole design, and it is double. Models are less safe in low-resource languages, and the automated tools meant to measure that safety are least reliable exactly there. The first half is systematic. The field's first PRISMA review of low-resource-language safety catalogs the alignment-side fixes and their limits ([LLM Safety Alignment in Low-Resource Languages](https://arxiv.org/abs/2608.14626)). PRISMA, for the unfamiliar, is the standard protocol for systematic literature reviews. The second half: LLM-as-judge means using one model to grade another's outputs, and the judge studies show pairwise judges prefer English answers regardless of correctness and are worst on culturally grounded subjects ([Fairness or Fluency?](https://arxiv.org/abs/2601.13649)). The review catalogs fixes its own judges validate poorly, then prescribes participatory, community-defined evaluation as future work. And the finding that keeps astonishing me is that Tattle already operationalizes that prescription. Participatory annotation through [Uli](https://aclanthology.org/2024.woah-1.16/), where those harmed define the harm; the manual-evaluation loop; expert-group benchmark work with MLCommons. The literature's evaluation layer hasn't caught up to its own diagnosis. Hence the rule I carry forward: per-language human gold sets are non-negotiable.
+
+My own reservations sharpen this rather than weaken it. The three-layer taxonomy may not be that helpful for Tattle. From my read it does not add enough nuance, and a framework lacking both simplicity and nuance ceases to have utility, momentum, direction. For Tattle's goal we may have to look at other frameworks, or possibly come up with one. The next section is the coming-up-with-one. The paper's argument that component-based safety must give way to systems thinking feels like a component-based approach itself, because the components are the model, the context, and the interactions between the two. On who defines harm, my position is definitions set closest to the harm, community-level, with institutional layers as checks, legal floor and platform ceiling, never as sources. The guide already practices it, co-developing in-scope and out-of-scope definitions with the client. And one worry I never resolved, named after Heisenberg's observer effect: the act of measuring a deployed model changes what you know and what you must re-measure. Models are always evolving; you measure a moving target, and it is position versus speed, so measure often. I have no answer, only a design consequence.
+
+One fact outside the matrix, the same story at organization scale, and this one personal. After reading everything, I was still close to clueless, a broad idea with no shape. I badly needed an artifact to make my thinking presentable, and the short micro-paper the assignment asked for felt helpless, because underneath I was craving to write. So I let the writing process itself do the thinking, crammed into little time alongside a full-time job and a weekend with friends, family, and visitors. Still worth it, because the artifact structures the thought, and that is how the framework in the next section got built. In hindsight I could not fully substantiate every choice in it, and with more time I would have derived alternative frameworks with more rigor; so far, so good.
+
+## A stage-gated, context-first evaluation loop
+
+I am an engineer, and one urge shaped where this framework ends. Findings itch. The moment an engineer reads one, the reflex kicks in: turn it into a check, wire it into the pipeline, make it run on every commit. That's the graduation. From evaluation to validation. So every round terminates in running artifacts, checks that keep gating the system after the evaluators leave. But the same urge, undisciplined, would pre-direct the evaluation toward whatever is easy to codify. The design holds it in check twice. The Not-Doing list, a written list of what this framework refuses to build and why, refuses to engineer for unobserved risks. And Goodhart's development-versus-assurance separation keeps the loop that improves the product distinct from the loop that judges it.
+
+The engine is Tattle's four-step loop, the most deployment-tested method in the corpus ([Manual Evaluations of AI in the Social Sector](https://tattle.co.in/blog/2026-05-28-how-to-do-manual-evaluations/)): sample, annotate, keyword-expand, analyze, with three NGO pilots and tested sampling ratios behind it. Around it, the constraints, each doing one job. Stage gates split the lifecycle into pre-launch, pilot, production, and longitudinal batteries, each with its own exit criterion, matched to the evaluator's access tier, meaning how much of the system they can actually see. A language robustness rule: every automated evaluation is calibrated against a per-language human gold set, a small human-labeled reference dataset for that language, because judge calibration in English does not transfer. Pairwise judges prefer English answers regardless of correctness and are worst on culturally grounded subjects, with metric pitfalls of their own ([Fairness or Fluency?](https://arxiv.org/abs/2601.13649); [Pradhan et al., 2025](https://arxiv.org/abs/2509.12382)). A tier split: deterministic validators gate the known badness, judges take rubric work, humans keep discovery. Complementary, not counters. Two pieces I read with voice notes convinced me this tier is buildable rather than aspirational. [The Kaapi Guardrails build](https://projecttech4dev.org/kaapi-guardrails-tattle-tech4dev/) turned evaluation findings into four running validators on the Guardrails AI framework, a lexical slur check, a personal-information detector, a gender-assumption check, and a ban list. And the [Guardrails×MLflow](https://guardrailsai.com/blog/guardrails-mlflow) post shows the same Hub validators running as evaluation scorers, so safety regressions become continuous-integration tests. And codification: every round ends in validators plus a Social-Sector [RiskCard](https://arxiv.org/abs/2303.18190), and re-evaluation measures whether the guardrails worked.
+
+```text
+the loop · six components
+
++----+---------------------+------------------------------------------+
+| #  | Component           | What it is                               |
++----+---------------------+------------------------------------------+
+| 1  | Engine: the 4-step  | sample → annotate → keyword-expand →     |
+|    | loop                | analyze, iterated per deployment         |
++----+---------------------+------------------------------------------+
+| 2  | Stage gates         | pre-launch / pilot / production /        |
+|    |                     | longitudinal, each with its own eval     |
+|    |                     | battery + exit criterion                 |
++----+---------------------+------------------------------------------+
+| 3  | Language robustness | every automated eval calibrated against  |
+|    | rule                | a per-language human gold set;           |
+|    |                     | calibration in English does not transfer |
++----+---------------------+------------------------------------------+
+| 4  | Tier split          | deterministic validators gate known      |
+|    |                     | badness; judges take rubric quality;     |
+|    |                     | humans keep discovery                    |
++----+---------------------+------------------------------------------+
+| 5  | Codification        | every round terminates in running        |
+|    | outputs             | artifacts, validators plus a             |
+|    |                     | Social-Sector RiskCard, explained below; |
+|    |                     | each gate's exit reads off the card;     |
+|    |                     | re-evaluation measures guardrail         |
+|    |                     | efficacy                                 |
++----+---------------------+------------------------------------------+
+| 6  | Feasibility tiering | depth matched to access tier: black-box  |
+|    |                     | (behavioral findings only) / grey-box    |
+|    |                     | (system prompt + logs visible) /         |
+|    |                     | in-house (architectural                  |
+|    |                     | recommendations); minimum viable floor = |
+|    |                     | one safety-guardrail metric on one       |
+|    |                     | golden dataset, per language             |
++----+---------------------+------------------------------------------+
+```
+
+The Social-Sector RiskCard deserves its own introduction, because the codification step rides on it. I adapted it from [Derczynski et al.'s RiskCards](https://arxiv.org/abs/2303.18190), structured context-conditional risk documentation, reshaped for social-sector deployments. A card carries seven fields: the risk's name; its harm routes, who is harmed and how the harm travels; its placement among the user, organizational, and societal layers above; example prompt-output pairs; harm-definition provenance, meaning who defined this as a harm here, whether survivors, the client, a funder, or the literature; the lifecycle stages where it has been observed; and validator linkage, which running check gates it, or "none yet." A card earns its place alongside the report. The report carries the argument; the card travels with the deployment, converting findings into testable artifacts. It is read at each gate's exit, and the gate closes when every high-risk output class is either gated by a validator or carried on a card whose fields are filled honestly.
+
+The gates in practice:
+
+- **Pre-launch gate.** Red-team the misuse surface, the IITM pattern. Localized functional tests via the [SGHateCheck](https://aclanthology.org/2024.woah-1.24/) recipe: seed tests, LLM translation, native-annotator refinement, ending in a localized Indic suite. Deployment-level personal-information probes with Indic entity lists. Ban-list and slur-list validators installed. **Exit.** Every high-risk output class is either gated by a validator or carried on a RiskCard.
+- **Pilot gate.** The 4-step loop at the guide's tested ratios, sampling 1.5-2.5% of conversation pairs, spread across time. Opening on day one with the guide's floor: a random sample, a query-type consistency check, a language-consistency check, a personal-information screen. Scope definitions co-developed with the client. Per-language gold sets seeded directly from the annotation round, because the loop's labels ARE the gold set. **Exit.** Label distributions + close reading delivered as a RiskCard draft, not a report alone.
+- **Ongoing, production + longitudinal gate.** Validators as regression gates, the MLflow scorer form. Judge drift checks against the gold sets at every model update, meaning re-scoring the same reference set to catch a judge silently changing its standards. Small frequent batches + deep annual/bi-annual re-evals, the guide's own build-over-time direction, which no corpus item yet performs. [Weidinger](https://arxiv.org/abs/2310.11986) states the norm, evaluation at multiple time points and monitoring after deployment, and the practice is absent everywhere I looked.
+
+One worked card, because the abstraction only earns trust when instantiated. The caste personal-information card, walked field by field:
+
+```text
+riskcard · worked example, caste disclosure
+
++-------------------+----------------------------------------------+
+| risk name         | caste-category disclosure through routine    |
+|                   | profile queries                              |
++-------------------+----------------------------------------------+
+| harm routes       | the bot surfaces a user's own caste back at  |
+|                   | them, and into logs: harmed at disclosure,   |
+|                   | harmed again at retention. in-context        |
+|                   | profile surfacing, not memorization          |
++-------------------+----------------------------------------------+
+| placement         | user layer · personal-information class,     |
+|                   | acute where standard PII taxonomies are      |
+|                   | silent on caste markers                      |
++-------------------+----------------------------------------------+
+| example pair      | a keyword-expansion probe with caste terms,  |
+|                   | the guide's one documented expansion move,   |
+|                   | surfaced the prompt-output pairs             |
++-------------------+----------------------------------------------+
+| provenance        | community-seeded, annotator-defined. NGO     |
+|                   | conversations seeded the hypothesis;         |
+|                   | standard taxonomies never ask who defined    |
+|                   | caste as personal information here           |
++-------------------+----------------------------------------------+
+| lifecycle stages  | pre-launch ○ · pilot ● · production ○        |
+|                   | the empty pre-launch cell is the gap         |
++-------------------+----------------------------------------------+
+| validator linkage | Presidio-class PII guardrail + Indic entity  |
+|                   | lists; precedent: uli_slur_list, an          |
+|                   | annotation artifact shipping as a gate       |
++-------------------+----------------------------------------------+
+```
+
+Presidio is the standard open-source detector for personally identifiable information, and it does not carry caste natively — the Indic entity lists are the extension.
+
+Three margin resolutions to close. Scale the process, the 4-step loop plus tooling, and keep the labels local. Context is where the answers live. Conversation-length limits extend into context engineering, meaning window length, system-prompt placement, evolving context. That is a design practice I had genuinely never thought of until this corpus taught it. And there is the constructive turn that closes the bifurcation the framework-field section named. Tattle's Indic harm taxonomies already exist: the annotation labels Uli uses, the validator classes Kaapi encodes, the label sets the manual-evaluation guide teaches. What I am proposing is the conversion step, that they become Guardrails Hub validators, the way Uli's slur list already did. The example config names the validator `uli_slur_list`. The dataset lives in the product code, an annotation artifact born in research and now running as a gate inside a deployed guardrail system. The whole argument, rendered as a config line.
+
+## Does it hold? Three documented cases
+
+Three documented cases, three tests each: does the framework *surface* the harm, *prescribe* a response, and *extend* past what the original response achieved? I chose these three because they are the only documented social-sector chatbot evaluations with enough published detail to test against: the nutrition out-of-scope case and the caste personal-information case from [Baarish's manual-evaluation guide](https://tattle.co.in/blog/2026-05-28-how-to-do-manual-evaluations/), and the IITM admissions misuse case from [Tattle's services page](https://tattle.co.in/ai-safety/). The test asks whether the framework surfaces, prescribes, and extends past what actually happened.
+
+```text
+three documented cases · surfaces, prescribes, extends
+
++---------------+-----------------+-----------------+-----------------+
+| Case          | Surfaces        | Prescribes      | Extends         |
++---------------+-----------------+-----------------+-----------------+
+| Nutrition     | pass, label     | pass, client-   | pass, the       |
+| out-of-scope  | counts + close  | confirmed scope | pre-launch gate |
+| (health)      | reading caught  | definitions +   | would have run  |
+|               | it; the pilot   | refusal         | scope-refusal   |
+|               | gate formalizes | guardrails +    | functional      |
+|               | exactly this    | re-eval;        | tests before    |
+|               |                 | codification    | users hit the   |
+|               |                 | adds            | class           |
+|               |                 | scope-refusal   |                 |
+|               |                 | tests the       |                 |
+|               |                 | original lacked |                 |
++---------------+-----------------+-----------------+-----------------+
+| Caste PII     | pass, the       | pass,           | pass, the       |
+| (education)   | keyword-        | Presidio-class  | pre-launch gate |
+|               | expansion audit | guardrail +     | runs            |
+|               | is the loop's   | Indic entity    | deployment-     |
+|               | own move,       | lists; the tier | level PII       |
+|               | staged at pilot | split routes    | probes;         |
+|               |                 | PII to          | RiskCard        |
+|               |                 | deterministic   | provenance      |
+|               |                 | validators      | forces "who     |
+|               |                 |                 | defined caste   |
+|               |                 |                 | as PII here",   |
+|               |                 |                 | which standard  |
+|               |                 |                 | taxonomies      |
+|               |                 |                 | never ask       |
++---------------+-----------------+-----------------+-----------------+
+| IITM          | pass, the       | pass, slur      | pass (weakest), |
+| admissions    | pre-launch gate | module +        | the delta is    |
+| (org)         | prescribes      | re-eval; the    | production      |
+|               | red-teaming,    | codification    | drift           |
+|               | the IITM        | step keeps the  | monitoring +    |
+|               | pattern itself  | validator as a  | longitudinal    |
+|               |                 | permanent       | re-eval + the   |
+|               |                 | artifact        | RiskCard making |
+|               |                 |                 | the             |
+|               |                 |                 | misuse-surface  |
+|               |                 |                 | knowledge       |
+|               |                 |                 | travel          |
++---------------+-----------------+-----------------+-----------------+
+```
+
+My position underneath the passes is unchanged from the first analytic memo I wrote after the five assigned readings. Quality over quantity makes definite sense, but the utility of the quality must be scalable. We need a pipeline and a full design approach, not a heroic one-off. The framework is the attempt at the pipeline.
+
+## What's still open
+
+Three things stay open, and I would rather name them than patch over them. Who staffs the annotation labor, and who absorbs its emotional cost. The guide is silent on both, and [the sociotechnical paper](https://arxiv.org/abs/2310.11986) makes the same point from outside: harm to annotators is named as an evaluation-layer risk in its own right, with annotator compensation left unsolved.
+
+And the one I have not resolved even with myself is disagreement-as-product as it was with the Uli Dateset. This is hard to resolve. As an engineer, product utility is my measure, and here it falls short. But as a dataset that can inform model learning, I understand the immense value qualitative disagreement data may eventually have for model training.
