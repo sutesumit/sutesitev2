@@ -66,7 +66,11 @@ Dates are the creation/session date. For an undated file, derive it with `git lo
 | [reports/2026-03-17-testing-infrastructure.md](reports/2026-03-17-testing-infrastructure.md) | Testing infrastructure report |
 | [reports/2026-03-22-telegram-jotbot-followup.md](reports/2026-03-22-telegram-jotbot-followup.md) | Follow-up (second pass) implementation notes for the telegram/jotbot refactor |
 | [reports/2026-03-22-telegram-jotbot-infrastructure-refactor.md](reports/2026-03-22-telegram-jotbot-infrastructure-refactor.md) | Telegram + jotbot shared infrastructure refactor |
-| [reports/security-audit-2026-03-21/](reports/security-audit-2026-03-21/README.md) | Security audit package (4 docs + README) |
+| [reports/security-audit-2026-03-21/](reports/security-audit-2026-03-21/README.md) | Security audit package (operational follow-up, [README](reports/security-audit-2026-03-21/README.md)) |
+| [reports/security-audit-2026-03-21/01-current-issues.md](reports/security-audit-2026-03-21/01-current-issues.md) | Current security issues (repo-verified) |
+| [reports/security-audit-2026-03-21/02-further-testing-plan.md](reports/security-audit-2026-03-21/02-further-testing-plan.md) | Further security testing plan |
+| [reports/security-audit-2026-03-21/03-security-testing-plan.md](reports/security-audit-2026-03-21/03-security-testing-plan.md) | Security testing plan |
+| [reports/security-audit-2026-03-21/04-recommendations-and-tradeoffs.md](reports/security-audit-2026-03-21/04-recommendations-and-tradeoffs.md) | Security recommendations and tradeoffs |
 
 ### `decisions/`
 
