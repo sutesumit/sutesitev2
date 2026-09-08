@@ -87,9 +87,9 @@ Dates are the creation/session date. For an undated file, derive it with `git lo
 
 | File | Reason archived |
 |---|---|
-| [MIGRATION_BLIP_TO_BYTE.md](MIGRATION_BLIP_TO_BYTE.md) | Executed — bytes/blips split is live |
-| [PAGE_METADATA_FIX_PLAN.md](PAGE_METADATA_FIX_PLAN.md) | Executed — superseded by implementation report + metadata owner's guide |
-| [PLAN_BYTES_AND_BLIPS_TELEGRAM_CLI.md](PLAN_BYTES_AND_BLIPS_TELEGRAM_CLI.md) | Executed — documented in `reference/jot-cli.md` + telegram reference |
+| [archive/migration-blip-to-byte.md](archive/migration-blip-to-byte.md) | Executed — bytes/blips split is live |
+| [archive/page-metadata-fix-plan.md](archive/page-metadata-fix-plan.md) | Executed — superseded by implementation report + metadata owner's guide |
+| [archive/plan-bytes-and-blips-telegram-cli.md](archive/plan-bytes-and-blips-telegram-cli.md) | Executed — documented in `reference/jot-cli.md` + telegram reference |
 
 ### `notes/`
 

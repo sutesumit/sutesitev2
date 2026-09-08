@@ -86,7 +86,7 @@ This report documents the implementation of comprehensive page metadata across t
 **Downside**: Multiple edit passes, slightly more complex git history.
 
 ### Challenge 3: Plan vs Execution Gap
-The original plan in `docs/PAGE_METADATA_FIX_PLAN.md` mentioned creating a centralized config but didn't include it in the initial implementation steps. This led to rework.
+The original plan in `docs/archive/page-metadata-fix-plan.md` mentioned creating a centralized config but didn't include it in the initial implementation steps. This led to rework.
 
 ---
 
