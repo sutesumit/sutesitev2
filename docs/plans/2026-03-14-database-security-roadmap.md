@@ -1,5 +1,7 @@
 # Database Security & Architectural Analysis: Refactoring Plan
 
+Status: Partially executed — Phase 1 (RLS) + unified views done; IP hashing, atomic upserts, enums pending
+
 This document provides a critical evaluation of the existing Supabase data structures, security policies, and database functions. It serves as both a roadmap for technical improvements and a guide for implementing production-grade PostgreSQL patterns.
 
 ---

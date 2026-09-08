@@ -1,3 +1,22 @@
+# ADR-002: Keep views and claps as separate systems
+
+## Status
+Accepted
+
+## Date
+2026-03-08
+
+## Context
+Views (passive analytics) and claps (active engagement) were built as two separate systems, and unification was proposed to reduce code duplication. The analysis below evaluates the trade-offs in [Current Architecture](#current-architecture) and [Semantic Analysis](#semantic-analysis).
+
+## Decision
+Keep the systems separate; unify shared patterns instead. See [Recommendation](#recommendation) and the [Decision Log](#decision-log).
+
+## Consequences
+The two systems evolve independently with clear semantics (view ≠ clap) at the cost of some duplicated code; shared patterns such as `noStoreHeaders`, post-existence validation, and error handling are extracted to reduce duplication without coupling the domains.
+
+---
+
 # Views vs Claps: An Architectural Trade-off Analysis
 
 > "The question isn't whether to unify, but whether the cost of unification exceeds the cost of separation."

@@ -1,5 +1,7 @@
 # SOLID Refactoring Plan
 
+Status: Partially executed — Waves overlapping the telegram/jotbot service refactor are done
+
 This document outlines a comprehensive plan to refactor the codebase to follow SOLID principles.
 
 ## Table of Contents
