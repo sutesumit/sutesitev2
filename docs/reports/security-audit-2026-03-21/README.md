@@ -51,7 +51,7 @@ Examples of findings that changed since the original March 21 package:
 
 This package supplements:
 
-- [SECURITY_REPORT_2026-03-21.md](../2026-03-21-security-report.md)
-- [DATABASE_SECURITY_ANALYSIS.md](../plans/2026-03-14-database-security-roadmap.md)
+- [Security Report (2026-03-21)](../2026-03-21-security-report.md)
+- [Database Security Roadmap (2026-03-14)](../plans/2026-03-14-database-security-roadmap.md)
 
 This folder is intended to remain the operational follow-up package for remediation and verification, but it now reflects the current repository rather than preserving the March 21 system snapshot unchanged.
