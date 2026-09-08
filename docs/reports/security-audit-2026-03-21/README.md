@@ -6,10 +6,10 @@ Scope: Revision of the March 21 follow-up package for `v2.sutesite`, using curre
 
 ## Contents
 
-- [01-current-issues.md](/Users/Sute/Documents/v2.sutesite/docs/security-audit-2026-03-21/01-current-issues.md)
-- [02-further-testing-plan.md](/Users/Sute/Documents/v2.sutesite/docs/security-audit-2026-03-21/02-further-testing-plan.md)
-- [03-security-testing-plan.md](/Users/Sute/Documents/v2.sutesite/docs/security-audit-2026-03-21/03-security-testing-plan.md)
-- [04-recommendations-and-tradeoffs.md](/Users/Sute/Documents/v2.sutesite/docs/security-audit-2026-03-21/04-recommendations-and-tradeoffs.md)
+- [01-current-issues.md](01-current-issues.md)
+- [02-further-testing-plan.md](02-further-testing-plan.md)
+- [03-security-testing-plan.md](03-security-testing-plan.md)
+- [04-recommendations-and-tradeoffs.md](04-recommendations-and-tradeoffs.md)
 
 ## Purpose
 
@@ -51,7 +51,7 @@ Examples of findings that changed since the original March 21 package:
 
 This package supplements:
 
-- [SECURITY_REPORT_2026-03-21.md](/Users/Sute/Documents/v2.sutesite/docs/SECURITY_REPORT_2026-03-21.md)
-- [DATABASE_SECURITY_ANALYSIS.md](/Users/Sute/Documents/v2.sutesite/docs/DATABASE_SECURITY_ANALYSIS.md)
+- [SECURITY_REPORT_2026-03-21.md](../2026-03-21-security-report.md)
+- [DATABASE_SECURITY_ANALYSIS.md](../plans/2026-03-14-database-security-roadmap.md)
 
 This folder is intended to remain the operational follow-up package for remediation and verification, but it now reflects the current repository rather than preserving the March 21 system snapshot unchanged.
