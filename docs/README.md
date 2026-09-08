@@ -37,51 +37,50 @@ Dates are the creation/session date. For an undated file, derive it with `git lo
 
 ## Master index
 
-<!-- Skeleton: lists files at their pre-reorganization locations. Finalized after the move commits. -->
-
 ### `reference/`
 
 | File | What it is |
 |---|---|
-| [API_REFERENCE.md](API_REFERENCE.md) | SuteSite API reference (routes, payloads, auth) |
-| [blip-cli.md](blip-cli.md) | Blip CLI commands |
-| [jot-cli.md](jot-cli.md) | jot CLI for bytes and blips |
-| [METADATA_IMAGE_QA.md](METADATA_IMAGE_QA.md) | Metadata image QA |
-| [METADATA_OWNERS_GUIDE.md](METADATA_OWNERS_GUIDE.md) | Metadata owner's guide |
-| [METADATA_SYSTEM_REPORT.md](METADATA_SYSTEM_REPORT.md) | How the metadata system works |
-| [TELEGRAM_NOTIFICATIONS_TECHNICAL_REPORT.md](TELEGRAM_NOTIFICATIONS_TECHNICAL_REPORT.md) | Telegram notification system technical reference |
-| [GITHUB_ACTIONS_BLOQ_NOTIFICATIONS.md](GITHUB_ACTIONS_BLOQ_NOTIFICATIONS.md) | GitHub Actions workflow for bloq publication notifications |
-| [reading-time-feature.md](reading-time-feature.md) | Reading time feature |
+| [reference/api-reference.md](reference/api-reference.md) | SuteSite API reference (routes, payloads, auth) |
+| [reference/blip-cli.md](reference/blip-cli.md) | Blip CLI commands |
+| [reference/jot-cli.md](reference/jot-cli.md) | jot CLI for bytes and blips |
+| [reference/metadata-image-qa.md](reference/metadata-image-qa.md) | Metadata image QA |
+| [reference/metadata-owners-guide.md](reference/metadata-owners-guide.md) | Metadata owner's guide |
+| [reference/metadata-system.md](reference/metadata-system.md) | How the metadata system works |
+| [reference/telegram-notifications.md](reference/telegram-notifications.md) | Telegram notification system technical reference |
+| [reference/github-actions-bloq-notifications.md](reference/github-actions-bloq-notifications.md) | GitHub Actions workflow for bloq publication notifications |
+| [reference/reading-time.md](reference/reading-time.md) | Reading time feature |
 
 ### `reports/`
 
 | File | What it is |
 |---|---|
-| [AGENTIC_ENGINEERING_VIEWS_CLAPS_REFACTOR_2026-03-25.md](AGENTIC_ENGINEERING_VIEWS_CLAPS_REFACTOR_2026-03-25.md) | Session documentary of the views/claps refactor |
-| [BLOQ_CONTENT_AUDIT_2026-03-22.md](BLOQ_CONTENT_AUDIT_2026-03-22.md) | Bloq content audit |
-| [DEBUG_REPORT_VISIT_TRACKING.md](DEBUG_REPORT_VISIT_TRACKING.md) | Debug report: visit tracking API always returning same data |
-| [METADATA_CONSISTENCY_AUDIT_2026-03-27.md](METADATA_CONSISTENCY_AUDIT_2026-03-27.md) | Metadata consistency audit |
-| [PAGE_METADATA_IMPLEMENTATION_REPORT.md](PAGE_METADATA_IMPLEMENTATION_REPORT.md) | Page metadata implementation report |
-| [PAGINATION_SEARCH_IMPLEMENTATION_REPORT.md](PAGINATION_SEARCH_IMPLEMENTATION_REPORT.md) | Pagination and search implementation report |
-| [SECURITY_REPORT_2026-03-21.md](SECURITY_REPORT_2026-03-21.md) | Security report |
-| [SITEMAP_RSS_REPORT.md](SITEMAP_RSS_REPORT.md) | Sitemap and RSS feed implementation report |
-| [TESTING_INFRASTRUCTURE_REPORT.md](TESTING_INFRASTRUCTURE_REPORT.md) | Testing infrastructure report |
-| [follow-up-implementation-notes-2026-03-22.md](follow-up-implementation-notes-2026-03-22.md) | Follow-up (second pass) implementation notes for the telegram/jotbot refactor |
-| [telegram-jotbot-shared-infrastructure-refactor-2026-03-22.md](telegram-jotbot-shared-infrastructure-refactor-2026-03-22.md) | Telegram + jotbot shared infrastructure refactor |
-| [security-audit-2026-03-21/](security-audit-2026-03-21/README.md) | Security audit package (4 docs + README) |
+| [reports/2026-03-25-views-claps-refactor-session.md](reports/2026-03-25-views-claps-refactor-session.md) | Session documentary of the views/claps refactor |
+| [reports/2026-03-22-bloq-content-audit.md](reports/2026-03-22-bloq-content-audit.md) | Bloq content audit |
+| [reports/2026-03-12-debug-visit-tracking.md](reports/2026-03-12-debug-visit-tracking.md) | Debug report: visit tracking API always returning same data |
+| [reports/2026-03-27-metadata-consistency-audit.md](reports/2026-03-27-metadata-consistency-audit.md) | Metadata consistency audit |
+| [reports/2026-03-14-page-metadata-implementation.md](reports/2026-03-14-page-metadata-implementation.md) | Page metadata implementation report |
+| [reports/2026-03-17-pagination-search-implementation.md](reports/2026-03-17-pagination-search-implementation.md) | Pagination and search implementation report |
+| [reports/2026-03-21-security-report.md](reports/2026-03-21-security-report.md) | Security report |
+| [reports/2026-03-23-sitemap-rss.md](reports/2026-03-23-sitemap-rss.md) | Sitemap and RSS feed implementation report |
+| [reports/2026-03-17-testing-infrastructure.md](reports/2026-03-17-testing-infrastructure.md) | Testing infrastructure report |
+| [reports/2026-03-22-telegram-jotbot-followup.md](reports/2026-03-22-telegram-jotbot-followup.md) | Follow-up (second pass) implementation notes for the telegram/jotbot refactor |
+| [reports/2026-03-22-telegram-jotbot-infrastructure-refactor.md](reports/2026-03-22-telegram-jotbot-infrastructure-refactor.md) | Telegram + jotbot shared infrastructure refactor |
+| [reports/security-audit-2026-03-21/](reports/security-audit-2026-03-21/README.md) | Security audit package (4 docs + README) |
 
 ### `decisions/`
 
 | File | What it is |
 |---|---|
 | [decisions/ADR-001-github-heatmap-month-fetching.md](decisions/ADR-001-github-heatmap-month-fetching.md) | ADR-001: Fetch GitHub heatmap data one month at a time |
+| [decisions/ADR-002-keep-views-and-claps-separate.md](decisions/ADR-002-keep-views-and-claps-separate.md) | ADR-002: Keep views and claps as separate systems |
 
 ### `plans/`
 
 | File | What it is |
 |---|---|
-| [DATABASE_SECURITY_ANALYSIS.md](DATABASE_SECURITY_ANALYSIS.md) | Database security and architectural refactoring roadmap |
-| [SOLID_REFACTORING_PLAN.md](SOLID_REFACTORING_PLAN.md) | SOLID refactoring plan |
+| [plans/2026-03-10-solid-refactoring.md](plans/2026-03-10-solid-refactoring.md) | SOLID refactoring plan — Status: partially executed |
+| [plans/2026-03-14-database-security-roadmap.md](plans/2026-03-14-database-security-roadmap.md) | Database security and architectural refactoring roadmap — Status: partially executed |
 
 ### `archive/`
 
@@ -95,7 +94,7 @@ Dates are the creation/session date. For an undated file, derive it with `git lo
 
 | File | What it is |
 |---|---|
-| [react-nexus-2026-speaker-dms.md](react-nexus-2026-speaker-dms.md) | React Nexus 2026 speaker outreach notes |
+| [notes/react-nexus-2026-speaker-dms.md](notes/react-nexus-2026-speaker-dms.md) | React Nexus 2026 speaker outreach notes |
 
 ### `feature-reports/`
 

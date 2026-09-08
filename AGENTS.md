@@ -141,3 +141,9 @@ src/
 - Use named exports for HTTP methods: `export async function GET()`, `POST()`, etc.
 - Return `NextResponse.json()` with proper status codes
 - Handle missing environment variables with descriptive errors
+
+## Documentation
+
+- Before creating any file in `docs/`, read `docs/README.md` and place the file per its decision tree, using its naming rules.
+- After adding a doc, add a row to the master index in `docs/README.md`.
+- Dated docs (`plans/`, `reports/`) are frozen records; corrections go into new dated docs with a "Supersedes:" link.
