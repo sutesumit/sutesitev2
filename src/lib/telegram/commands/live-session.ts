@@ -70,7 +70,8 @@ export async function handleLiveSession(
           `🔴 Live session started: <b>${escapeHtml(session.title)}</b>\n<a href="${SITE_URL}/bloq/live/${encodeURIComponent(session.slug)}">${SITE_URL}/bloq/live/${encodeURIComponent(session.slug)}</a>`,
           { parse_mode: "HTML" }
         );
-      } catch {
+      } catch (error: unknown) {
+        console.error("livesession start failed:", error);
         await ctx.reply(replies.liveSessionStartFailed, {
           parse_mode: "HTML",
         });
@@ -96,7 +97,8 @@ export async function handleLiveSession(
           `${replies.liveSessionClosed}\n<a href="${url}">${url}</a>`,
           { parse_mode: "HTML" }
         );
-      } catch {
+      } catch (error: unknown) {
+        console.error("livesession close failed:", error);
         await ctx.reply(replies.liveSessionCloseFailed, {
           parse_mode: "HTML",
         });
@@ -118,7 +120,8 @@ export async function handleLiveSession(
         await liveBloqService.cancelSession(sessionId);
         clearActiveSession(userId);
         await ctx.reply(replies.liveSessionCancelled, { parse_mode: "HTML" });
-      } catch {
+      } catch (error: unknown) {
+        console.error("livesession cancel failed:", error);
         await ctx.reply(replies.liveSessionCancelFailed, {
           parse_mode: "HTML",
         });
@@ -147,7 +150,8 @@ export async function handleLiveSession(
           `Summary updated: "${escapeHtml(subcommandArgs)}"`,
           { parse_mode: "HTML" }
         );
-      } catch {
+      } catch (error: unknown) {
+        console.error("livesession summary failed:", error);
         await ctx.reply(replies.liveSessionSummaryFailed, {
           parse_mode: "HTML",
         });
@@ -187,7 +191,8 @@ export async function handleLiveSession(
             staleWarning,
           { parse_mode: "HTML" }
         );
-      } catch {
+      } catch (error: unknown) {
+        console.error("livesession status failed:", error);
         await ctx.reply(replies.liveSessionStatusFailed, {
           parse_mode: "HTML",
         });

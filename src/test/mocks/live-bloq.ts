@@ -14,6 +14,7 @@ export const mockLiveBloqService = {
   addEntry: vi.fn(),
   closeSession: vi.fn(),
   cancelSession: vi.fn(),
+  updateSummary: vi.fn(),
   getSession: vi.fn(),
   getSessionById: vi.fn(),
   getEntries: vi.fn(),

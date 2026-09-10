@@ -250,6 +250,67 @@ describe("handleLiveSession", () => {
     );
   });
 
+  // ── summary ────────────────────────────────────────────────
+
+  it("updates summary for active session", async () => {
+    vi.mocked(getOrRecoverActiveSession).mockResolvedValueOnce("session-1");
+    mockLiveBloqService.updateSummary.mockResolvedValueOnce({
+      id: "session-1",
+      slug: "my-slug",
+      summary: "Ship day",
+      status: "active",
+    });
+
+    const ctx = createMockContext("summary Ship day");
+    await handleLiveSession(ctx, createMockBot() as never);
+
+    expect(mockLiveBloqService.updateSummary).toHaveBeenCalledWith(
+      "session-1",
+      "Ship day"
+    );
+    expect(ctx.reply).toHaveBeenCalledWith(
+      expect.stringContaining("Summary updated"),
+      expect.anything()
+    );
+  });
+
+  it("shows usage when summary has no text", async () => {
+    const ctx = createMockContext("summary");
+    await handleLiveSession(ctx, createMockBot() as never);
+
+    expect(mockLiveBloqService.updateSummary).not.toHaveBeenCalled();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      expect.stringContaining("Usage:"),
+      expect.anything()
+    );
+  });
+
+  it("shows no-active message for summary", async () => {
+    vi.mocked(getOrRecoverActiveSession).mockResolvedValueOnce(null);
+
+    const ctx = createMockContext("summary text");
+    await handleLiveSession(ctx, createMockBot() as never);
+
+    expect(mockLiveBloqService.updateSummary).not.toHaveBeenCalled();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      expect.stringContaining("No active"),
+      expect.anything()
+    );
+  });
+
+  it("handles service errors during summary gracefully", async () => {
+    vi.mocked(getOrRecoverActiveSession).mockResolvedValueOnce("session-1");
+    mockLiveBloqService.updateSummary.mockRejectedValueOnce(new Error("DB error"));
+
+    const ctx = createMockContext("summary text");
+    await handleLiveSession(ctx, createMockBot() as never);
+
+    expect(ctx.reply).toHaveBeenCalledWith(
+      expect.stringContaining("Failed to update summary"),
+      expect.anything()
+    );
+  });
+
   // ── unknown subcommand / no subcommand ────────────────────
 
   it("shows usage for unknown subcommand", async () => {
