@@ -8,6 +8,8 @@ import { HomeContent } from "@/components/home/HomeContent";
 import { buildStaticMetadata } from '@/lib/metadata/builders';
 import { buildHomeSchema, renderJsonLd } from '@/lib/metadata/schema';
 
+export const revalidate = 60;
+
 export const metadata: Metadata = buildStaticMetadata('home');
 
 export default async function Home() {
