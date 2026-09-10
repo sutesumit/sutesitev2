@@ -4,6 +4,7 @@ import { getBloqEngagementIdentity } from "@/lib/content-identity";
 import { liveBloqService } from "@/lib/live-bloq/service";
 import { liveSessionToBloqPost } from "@/lib/live-bloq";
 import { buildBloqPostSchema, renderJsonLd } from "@/lib/metadata/schema";
+import { buildDetailMetadata } from "@/lib/metadata/builders";
 import TrackView from "@/components/shared/TrackView";
 import BloqCard from "@/app/(pages)/bloq/components/BloqCard";
 import { LiveBloqFeed } from "./LiveBloqFeed";
@@ -26,11 +27,17 @@ export async function generateMetadata({
   const session = await getCachedSession(slug);
   if (!session) return { title: "Not Found" };
 
-  return {
+  const description = liveSessionToBloqPost(session).summary;
+
+  return buildDetailMetadata({
     title: `${session.title} — Live`,
-    description:
-      session.summary ?? `${session.entry_count} entries from live session`,
-  };
+    description,
+    path: `/bloq/live/${slug}`,
+    ogType: "article",
+    publishedTime: session.started_at,
+    modifiedTime: session.closed_at ?? undefined,
+    generatedImagePath: `/og/live/${slug}`,
+  });
 }
 
 export default async function LiveBloqPage({ params }: LiveBloqPageProps) {

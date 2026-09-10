@@ -361,6 +361,40 @@ export function BlipIndexOgCard({
   );
 }
 
+type LiveOgCardProps = SharedOgProps & { status: 'active' | 'closed'; entryCount: number };
+
+export function LiveOgCard({
+  title,
+  description,
+  status,
+  entryCount,
+  footerLeft = '/bloq/live',
+  footerRight = SITE_NAME,
+}: LiveOgCardProps): ReactElement {
+  const isLive = status === 'active';
+  const accent = isLive ? '#dc2626' : OG_TOKENS.blue;
+  const background = isLive
+    ? `linear-gradient(135deg, ${OG_TOKENS.paper} 0%, #fee2e2 100%)`
+    : `linear-gradient(135deg, ${OG_TOKENS.paper} 0%, ${OG_TOKENS.blueSoft} 100%)`;
+
+  return (
+    <Frame background={background} color={OG_TOKENS.ink}>
+      <Header eyebrow={isLive ? '● live now' : 'live · ended'} accent={accent} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={TITLE_STYLE}>{truncateOgText(title, 110)}</div>
+        <div style={{ ...DESCRIPTION_STYLE, color: OG_TOKENS.inkSoft }}>
+          {truncateOgText(description, 210)}
+        </div>
+      </div>
+      <Footer
+        left={footerLeft}
+        right={isLive ? `${entryCount} entries` : footerRight}
+        color={accent}
+      />
+    </Frame>
+  );
+}
+
 export function ArticleOgCard({
   title,
   description,
