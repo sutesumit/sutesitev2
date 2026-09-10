@@ -2,6 +2,7 @@ import { Bot, Context } from "grammy";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { BOT_COMMANDS } from "../lib/telegram/bot-commands";
 
 type MyContext = Context;
 
@@ -29,17 +30,6 @@ function loadEnvFile(filePath: string): void {
 
 loadEnvFile(path.resolve(process.cwd(), ".env.local"));
 loadEnvFile(path.resolve(process.cwd(), ".env"));
-
-const BOT_COMMANDS = [
-  { command: "start", description: "Show help" },
-  { command: "byte", description: "Create a byte (short thought)" },
-  { command: "blip", description: "Create a blip (term:meaning)" },
-  { command: "list", description: "List bytes or blips" },
-  { command: "get", description: "Get a byte or blip" },
-  { command: "edit", description: "Edit a byte or blip" },
-  { command: "del", description: "Delete a byte or blip" },
-  { command: "livesession", description: "Manage live bloq sessions" },
-] as const;
 
 async function main(): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;

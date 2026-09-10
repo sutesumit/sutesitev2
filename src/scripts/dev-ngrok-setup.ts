@@ -2,6 +2,7 @@ import { Bot } from "grammy";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { BOT_COMMANDS } from "../lib/telegram/bot-commands";
 
 function loadEnvFile(filePath: string): void {
   if (!fs.existsSync(filePath)) return;
@@ -47,16 +48,7 @@ async function main() {
   console.log(`   Webhook: ${ngrokUrl}`);
 
   console.log("\n2. Registering commands...");
-  await bot.api.setMyCommands([
-    { command: "start", description: "Show help" },
-    { command: "byte", description: "Create a byte (short thought)" },
-    { command: "blip", description: "Create a blip (term:meaning)" },
-    { command: "list", description: "List bytes or blips" },
-    { command: "get", description: "Get a byte or blip" },
-    { command: "edit", description: "Edit a byte or blip" },
-    { command: "del", description: "Delete a byte or blip" },
-    { command: "livesession", description: "Manage live bloq sessions" },
-  ]);
+  await bot.api.setMyCommands([...BOT_COMMANDS]);
   console.log("   Commands registered (including /livesession)");
 
   console.log("\n3. Verifying webhook...");
