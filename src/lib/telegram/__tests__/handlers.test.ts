@@ -166,6 +166,10 @@ describe("telegram command handlers", () => {
       entry_sequence: 3,
       session_slug: "my-slug",
     });
+    vi.mocked(mockLiveBloqService.getSessionById).mockResolvedValueOnce({
+      id: "session-1",
+      slug: "my-slug",
+    });
 
     const ctx = createMockContext("live update!");
     await handleMessage(ctx, createMockBot() as never);
@@ -175,7 +179,11 @@ describe("telegram command handlers", () => {
       "live update!"
     );
     expect(ctx.reply).toHaveBeenCalledWith(
-      "Entry <b>#3</b> added.",
+      expect.stringContaining("added — "),
+      { parse_mode: "HTML" }
+    );
+    expect(ctx.reply).toHaveBeenCalledWith(
+      expect.stringContaining("/bloq/live/my-slug"),
       { parse_mode: "HTML" }
     );
     expect(byteServiceMock.createByte).not.toHaveBeenCalled();

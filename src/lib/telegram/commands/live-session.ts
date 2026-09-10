@@ -89,9 +89,13 @@ export async function handleLiveSession(
       }
 
       try {
-        await liveBloqService.closeSession(sessionId);
+        const session = await liveBloqService.closeSession(sessionId);
         clearActiveSession(userId);
-        await ctx.reply(replies.liveSessionClosed, { parse_mode: "HTML" });
+        const url = `${SITE_URL}/bloq/live/${encodeURIComponent(session.slug)}`;
+        await ctx.reply(
+          `${replies.liveSessionClosed}\n<a href="${url}">${url}</a>`,
+          { parse_mode: "HTML" }
+        );
       } catch {
         await ctx.reply(replies.liveSessionCloseFailed, {
           parse_mode: "HTML",

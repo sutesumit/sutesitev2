@@ -73,5 +73,8 @@ export const replies = {
   liveSessionSummaryUsage: "Usage: <code>/livesession summary</code> &lt;text&gt;",
   liveSessionSummaryFailed: "Failed to update summary.",
   liveSessionEntryFailed: "Could not add that update to the live session.",
-  liveEntryAdded: (sequence: number) => `Entry <b>#${sequence}</b> added.`,
+  liveEntryAdded: (sequence: number, url?: string) =>
+    url
+      ? `Entry <b>#${sequence}</b> added — ${url}`
+      : `Entry <b>#${sequence}</b> added.`,
 } as const;

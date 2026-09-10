@@ -1,4 +1,5 @@
 import { Bot, Context } from "grammy";
+import { SITE_URL } from "@/config/metadata";
 import { createBlipService } from "@/lib/blip/service";
 import { parseBlipCommandInput } from "@/lib/blip/validation";
 import { createByteService } from "@/lib/byte/service";
@@ -301,7 +302,11 @@ export async function handleMessage(ctx: Context, bot: Bot<Context>): Promise<vo
   if (activeSessionId) {
     try {
       const entry = await liveBloqService.addEntry(activeSessionId, text);
-      await ctx.reply(replies.liveEntryAdded(entry.entry_sequence), {
+      const session = await liveBloqService.getSessionById(activeSessionId);
+      const url = session
+        ? `<a href="${SITE_URL}/bloq/live/${encodeURIComponent(session.slug)}">live page</a>`
+        : "live page";
+      await ctx.reply(replies.liveEntryAdded(entry.entry_sequence, url), {
         parse_mode: "HTML",
       });
       return;
