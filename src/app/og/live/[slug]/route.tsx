@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { liveBloqService } from '@/lib/live-bloq/service';
 import { LiveOgCard, createOgImageResponse } from '@/lib/metadata/og-image';
 
-export const revalidate = 60;
+export const revalidate = false;
 
 export async function GET(
   _request: Request,

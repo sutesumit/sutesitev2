@@ -45,6 +45,18 @@ const liveBloqRepository: LiveBloqRepository = {
   findActiveSession: findActiveSessionRecord,
 };
 
+function revalidateLiveSessionCache(
+  slug: string,
+  includeListings: boolean
+): void {
+  revalidatePath(`/bloq/live/${slug}`);
+  revalidatePath(`/og/live/${slug}`);
+  if (includeListings) {
+    revalidatePath('/bloq');
+    revalidatePath('/');
+  }
+}
+
 export function createLiveBloqService(deps?: {
   repository?: LiveBloqRepository;
   mutationEffect?: ContentMutationEffect;
@@ -104,17 +116,20 @@ export function createLiveBloqService(deps?: {
 
     async closeSession(sessionId: string): Promise<LiveSession> {
       const session = await repository.closeSession(sessionId);
-      revalidatePath(`/bloq/live/${session.slug}`);
-      revalidatePath('/bloq');
-      revalidatePath('/');
+      revalidateLiveSessionCache(session.slug, true);
       return session;
     },
 
     async cancelSession(sessionId: string): Promise<LiveSession> {
-      const session = await repository.cancelSession(sessionId);
-      revalidatePath(`/bloq/live/${session.slug}`);
-      revalidatePath('/bloq');
-      revalidatePath('/');
+      let session: LiveSession;
+      try {
+        session = await repository.cancelSession(sessionId);
+      } catch (error) {
+        const existing = await repository.getSessionById(sessionId);
+        if (!existing || existing.status !== "cancelled") throw error;
+        session = existing;
+      }
+      revalidateLiveSessionCache(session.slug, true);
       return session;
     },
 
@@ -123,7 +138,9 @@ export function createLiveBloqService(deps?: {
       if (!trimmed) {
         throw new ValidationError("Summary cannot be empty");
       }
-      return repository.updateSummary(sessionId, trimmed);
+      const session = await repository.updateSummary(sessionId, trimmed);
+      revalidateLiveSessionCache(session.slug, false);
+      return session;
     },
 
     async getSession(slug: string): Promise<LiveSession | null> {

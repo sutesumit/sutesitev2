@@ -10,7 +10,7 @@ import BloqCard from "@/app/(pages)/bloq/components/BloqCard";
 import { LiveBloqFeed } from "./LiveBloqFeed";
 import type { Metadata } from "next";
 
-export const revalidate = 60;
+export const revalidate = false;
 
 const getCachedSession = cache((slug: string) =>
   liveBloqService.getSession(slug),
