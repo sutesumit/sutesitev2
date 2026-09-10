@@ -486,8 +486,7 @@ CREATE TABLE blog_views (
 - Activity feed via GraphQL API
 - Service: `GitHubGraphQLService`
 - Environment variable: `GITHUB_TOKEN`
-- Heatmap requests are month-scoped through `/api/github-activity?year=YYYY&month=MM`
-- See `docs/decisions/ADR-001-github-heatmap-month-fetching.md` for the month-on-demand and client-cache rationale
+- Heatmap requests are month-scoped through `/api/github-activity?year=YYYY&month=MM`, fetching months on demand so payloads stay small and the client can cache a full month at a time
 
 ### IP Geolocation
 

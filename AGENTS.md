@@ -144,6 +144,5 @@ src/
 
 ## Documentation
 
-- Before creating any file in `docs/`, read `docs/README.md` and place the file per its decision tree, using its naming rules.
-- After adding a doc, add a row to the master index in `docs/README.md`.
-- Dated docs (`plans/`, `reports/`) are frozen records; corrections go into new dated docs with a "Supersedes:" link.
+- `docs/` is local-only and gitignored; it is never committed. Do not reference docs files from repo-level guidance, code, or CI.
+- Treat existing local docs (ADRs, plans, reports) as frozen records; corrections go into new dated docs with a "Supersedes:" link.
