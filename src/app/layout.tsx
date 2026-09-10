@@ -69,8 +69,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: DEFAULT_OG_IMAGE,
-        width: 800,
-        height: 600,
+        width: 1200,
+        height: 630,
         alt: 'Screenshot of Sumit Sute\'s Dev Page',
       },
     ],
