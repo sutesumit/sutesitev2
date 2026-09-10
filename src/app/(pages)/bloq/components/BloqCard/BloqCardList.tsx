@@ -12,6 +12,7 @@ import {
 } from "./parts";
 import ViewCounter from "@/components/shared/ViewCounter";
 import ClapsCounter from "@/components/shared/ClapsCounter";
+import { LiveBadge } from "@/components/shared/LiveBadge";
 // import TagList from '../TagList'
 
 interface BloqCardListProps {
@@ -82,15 +83,7 @@ export const BloqCardList = ({
             </div>
             <div className="flex items-center gap-2 min-w-0">
               <BloqTitle post={post} isFeatured={isFeatured} />
-              {post.liveStatus === "active" && (
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-500">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                    <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
-                  </span>
-                  Live
-                </span>
-              )}
+              {post.liveStatus === "active" && <LiveBadge />}
             </div>
             <BloqSummary post={post} />
           </div>

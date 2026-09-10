@@ -7,6 +7,7 @@ import type { Blip } from "@/types/blip";
 import type { Byte } from "@/types/byte";
 import { formatTimeAgo } from "@/lib/formatTimeAgo";
 import ScrambleText from "@/components/shared/ScrambleText";
+import { LiveBadge } from "@/components/shared/LiveBadge";
 
 type LatestUpdatesClientProps = {
   latestBloq: BloqPost | null;
@@ -27,15 +28,7 @@ const UpdateItem = ({ href, label, text, date, liveStatus }: UpdateItemProps) =>
     <Link href={href} className="flex-1 truncate">
       {label} <ScrambleText text={text} />
     </Link>
-    {liveStatus === "active" && (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-500">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-          <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
-        </span>
-        Live
-      </span>
-    )}
+    {liveStatus === "active" && <LiveBadge />}
     <span className="opacity-50 ml-auto text-gray-500 text-xs">
       <ScrambleText text={formatTimeAgo(date)} />
     </span>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Wifi, WifiOff } from "lucide-react";
+import { LiveBadge } from "@/components/shared/LiveBadge";
 import type { LiveEntry, LiveSession } from "@/lib/live-bloq/types";
 
 interface LiveBloqFeedProps {
@@ -108,13 +109,7 @@ export function LiveBloqFeed({
       <div className="flex items-center justify-between flex-wrap pt-2 gap-2">
         <div className="flex items-center gap-3">
           {isLive ? (
-            <div className="inline-flex items-center gap-2 rounded-sm bg-red-500/10 px-2.5 py-1 text-sm font-medium text-red-500">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-[1px] bg-red-400 opacity-75" />
-                <span className="relative inline-flex h-full w-full rounded-[1px] bg-red-500" />
-              </span>
-              Live
-            </div>
+            <LiveBadge />
           ) : liveStatus === "closed" ? (
             <div className="inline-flex items-center gap-2 rounded-sm border border-slate-300 bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
               <span className="h-2 w-2 border border-slate-300 dark:border-slate-600" />
