@@ -37,7 +37,7 @@ The proof it works is already published. The messy notes from React Nexus 2026 w
 
 This piece is the narrative of the architecture, the state machine, the render pipeline, the side effects, and the corners where the design is honestly weird. If you are one of the colleagues who followed along from notifications: this is what the machine you were reading off looks like from the inside.
 
-[PLACEHOLDER (screenshot): a real conference-notes Telegram chat. The raw material a live bloq publishes.]
+<Image src="/telegram_bot_screenshots/jotbot_livesession_3.webp" alt="Telegram chat of raw React Nexus conference notes, each answered by an Entry #N added. receipt" />
 
 ---
 
@@ -298,15 +298,15 @@ Here is the part I find quietly delightful: the capture habit needed zero behavi
 
 The whole lifecycle runs through one command with subcommands: `/livesession start`, `/livesession summary`, `/livesession close`, `/livesession cancel`, `/livesession status`. A session can be run entirely from my phone, which matters, because during a talk the laptop is busy being a laptop.
 
-[PLACEHOLDER (screenshot): the /livesession start bot reply, confirmation plus the live page URL]
+<Image src="/telegram_bot_screenshots/jotbot_livesession_1.webp" alt="Telegram reply to /livesession start with the live page URL and OG card preview" />
 
 One design decision does heavy lifting here: the bot is a thin trigger, and every reply is computed on the server and written as a refresher. Misspell a subcommand and you get the full usage block back. Not an error, a syntax lesson. Add an entry and the receipt is numbered, `Entry #12 added.`, so the reply itself proves which mode the system was in and where your text went. Ask for status and you get title, entry count, runtime, and the page URL, which means "where is the live page again" never requires leaving Telegram. The operator never has to memorize anything, because the interface re-teaches itself on every miss. It is UX for an audience of one, and that audience is forgetful at conferences.
 
-[PLACEHOLDER (screenshot): the /livesession usage refresher reply the bot sends after a bare or misspoken command]
+<Image src="/telegram_bot_screenshots/jotbot_livesession_6.webp" alt="Telegram replies showing the /livesession usage refresher after a bare command and the session closed confirmation" />
 
 `/livesession status` carries the system's one alarm: past eight hours of runtime, the reply grows a warning to close or cancel the session. No talk is eight hours long, so a session that old has been forgotten. The worst case is hardly dramatic — `start` refuses while a session is active, so a forgotten one blocks the next, and the site keeps pulsing a Live badge over a page that ended hours ago. It is less a fire alarm than a nudge to tidy up.
 
-[PLACEHOLDER (screenshot): /livesession status output showing entry count, runtime, and the 8-hour warning if one of the piloted sessions ever earned it]
+<Image src="/telegram_bot_screenshots/jotbot_livesession_5.webp" alt="Telegram /livesession status reply showing 194 entries, 8h 30m runtime, and the over-8-hours warning" />
 
 The trick worth naming is the mode switch. The bot's plain-text handler, the one that normally turns any text I send into a byte, checks for an active session first:
 
@@ -323,7 +323,7 @@ plain text message
 
 One input surface. Meaning depends on system state. The risk is a note landing somewhere unintended, which is why every reply is an explicit numbered receipt and the escape hatch is documented up front: during a session, plain messages become entries, and `/byte` forces a byte.
 
-[PLACEHOLDER (screenshot): the "Entry #N added." bot reply, the mode confession]
+<Image src="/telegram_bot_screenshots/jotbot_livesession_4.webp" alt="JotBot help text documenting that plain messages become session entries during a live session, with /byte to force a byte" />
 
 ---
 
@@ -334,8 +334,6 @@ One input surface. Meaning depends on system state. The risk is a note landing s
 The website already has a strong opinion about what a piece of writing is: a `BloqPost`. Cards render them. View counts and claps attach to them. RSS ships them. The homepage picks a latest one. Structured data describes them to search engines. All of that machinery speaks exactly one shape.
 
 So instead of teaching every consumer about a new "live session" shape, the session gets a translator: `liveSessionToBloqPost`, in `src/lib/live-bloq/to-bloq-post.ts`. One function, session in, `BloqPost` out. The integration is free. The [bloq feed](/bloq) merges MDX posts and live sessions into a single date-sorted list, the RSS feed includes sessions, view tracking and claps work on live slugs like any other, and not one of those consumers contains a special case.
-
-[PLACEHOLDER (screenshot): the /bloq feed with a live session sitting between regular bloqs, indistinguishable until you read the card]
 
 The adapter does commit a few small dishonesties, politely:
 
@@ -515,6 +513,8 @@ close    →  revalidate the live page + the OG card + /bloq + /
 cancel   →  the same four busts — idempotently
             (then every public surface forgets, §9)
 ```
+
+<Image src="/telegram_bot_screenshots/jotbot_livesession_2.webp" alt="Telegram /livesession summary reply confirming the session summary was updated" />
 
 ---
 
