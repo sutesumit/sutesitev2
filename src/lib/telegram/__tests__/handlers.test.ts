@@ -175,7 +175,7 @@ describe("telegram command handlers", () => {
       "live update!"
     );
     expect(ctx.reply).toHaveBeenCalledWith(
-      "Entry #3 added.",
+      "Entry <b>#3</b> added.",
       { parse_mode: "HTML" }
     );
     expect(byteServiceMock.createByte).not.toHaveBeenCalled();
@@ -212,7 +212,8 @@ describe("telegram command handlers", () => {
     );
     expect(byteServiceMock.createByte).not.toHaveBeenCalled();
     expect(ctx.reply).toHaveBeenCalledWith(
-      "Could not add that update to the live session."
+      "Could not add that update to the live session.",
+      { parse_mode: "HTML" }
     );
   });
 

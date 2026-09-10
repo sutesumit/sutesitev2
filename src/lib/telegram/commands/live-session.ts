@@ -34,7 +34,7 @@ export async function handleLiveSession(
   void bot;
 
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
 

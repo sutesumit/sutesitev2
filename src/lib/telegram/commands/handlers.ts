@@ -22,29 +22,29 @@ const blipService = createBlipService({
 
 export async function handleStart(ctx: Context): Promise<void> {
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
-  await ctx.reply(replies.startIntro);
+  await ctx.reply(replies.startIntro, { parse_mode: "HTML" });
 }
 
 export async function handleByte(ctx: Context, bot: Bot<Context>): Promise<void> {
   void bot;
 
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
 
   const match = ctx.match;
   const content = typeof match === "string" ? match.trim() : null;
   if (!content) {
-    await ctx.reply(replies.usageByte);
+    await ctx.reply(replies.usageByte, { parse_mode: "HTML" });
     return;
   }
 
   if (content.length > MAX_CONTENT_LENGTH) {
-    await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH));
+    await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH), { parse_mode: "HTML" });
     return;
   }
 
@@ -52,7 +52,7 @@ export async function handleByte(ctx: Context, bot: Bot<Context>): Promise<void>
     const byte = await byteService.createByte(content);
     await ctx.reply(replies.byteCreated(byte.byte_serial), { parse_mode: "HTML" });
   } catch {
-    await ctx.reply(replies.createFailed);
+    await ctx.reply(replies.createFailed, { parse_mode: "HTML" });
   }
 }
 
@@ -60,19 +60,19 @@ export async function handleBlip(ctx: Context, bot: Bot<Context>): Promise<void>
   void bot;
 
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
 
   const match = ctx.match;
   const args = typeof match === "string" ? match.trim() : null;
   if (!args) {
-    await ctx.reply(replies.usageBlip);
+    await ctx.reply(replies.usageBlip, { parse_mode: "HTML" });
     return;
   }
 
   if (args.length > MAX_CONTENT_LENGTH) {
-    await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH));
+    await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH), { parse_mode: "HTML" });
     return;
   }
 
@@ -80,7 +80,7 @@ export async function handleBlip(ctx: Context, bot: Bot<Context>): Promise<void>
   try {
     parsed = parseBlipCommandInput(args);
   } catch {
-    await ctx.reply(replies.usageBlip);
+    await ctx.reply(replies.usageBlip, { parse_mode: "HTML" });
     return;
   }
 
@@ -88,13 +88,13 @@ export async function handleBlip(ctx: Context, bot: Bot<Context>): Promise<void>
     const blip = await blipService.createBlip(parsed.term, parsed.meaning);
     await ctx.reply(replies.blipCreated(blip.blip_serial), { parse_mode: "HTML" });
   } catch {
-    await ctx.reply(replies.createFailed);
+    await ctx.reply(replies.createFailed, { parse_mode: "HTML" });
   }
 }
 
 export async function handleList(ctx: Context): Promise<void> {
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
 
@@ -102,7 +102,7 @@ export async function handleList(ctx: Context): Promise<void> {
   const type = typeof match === "string" ? match.trim().toLowerCase() : null;
 
   if (type !== "byte" && type !== "blip") {
-    await ctx.reply(replies.usageList);
+    await ctx.reply(replies.usageList, { parse_mode: "HTML" });
     return;
   }
 
@@ -110,7 +110,7 @@ export async function handleList(ctx: Context): Promise<void> {
     if (type === "byte") {
       const bytes = await byteService.listRecentBytes(10);
       if (bytes.length === 0) {
-        await ctx.reply(replies.noBytes);
+      await ctx.reply(replies.noBytes, { parse_mode: "HTML" });
         return;
       }
       await ctx.reply(bytes.map(formatByte).join("\n\n"), { parse_mode: "HTML" });
@@ -119,31 +119,31 @@ export async function handleList(ctx: Context): Promise<void> {
 
     const blips = await blipService.listRecentBlips(10);
     if (blips.length === 0) {
-      await ctx.reply(replies.noBlips);
+      await ctx.reply(replies.noBlips, { parse_mode: "HTML" });
       return;
     }
     await ctx.reply(blips.map(formatBlip).join("\n\n"), { parse_mode: "HTML" });
   } catch {
-    await ctx.reply(replies.fetchFailed);
+    await ctx.reply(replies.fetchFailed, { parse_mode: "HTML" });
   }
 }
 
 export async function handleGet(ctx: Context): Promise<void> {
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
 
   const match = ctx.match;
   const args = typeof match === "string" ? match.trim() : null;
   if (!args) {
-    await ctx.reply(replies.usageGet);
+    await ctx.reply(replies.usageGet, { parse_mode: "HTML" });
     return;
   }
 
   const firstSpace = args.indexOf(" ");
   if (firstSpace === -1) {
-    await ctx.reply(replies.usageGet);
+    await ctx.reply(replies.usageGet, { parse_mode: "HTML" });
     return;
   }
 
@@ -151,7 +151,7 @@ export async function handleGet(ctx: Context): Promise<void> {
   const serial = args.slice(firstSpace + 1).trim();
 
   if (type !== "byte" && type !== "blip") {
-    await ctx.reply(replies.usageGet);
+    await ctx.reply(replies.usageGet, { parse_mode: "HTML" });
     return;
   }
 
@@ -166,36 +166,39 @@ export async function handleGet(ctx: Context): Promise<void> {
     await ctx.reply(formatBlip(blip), { parse_mode: "HTML" });
   } catch (error: unknown) {
     if (error instanceof NotFoundError) {
-      await ctx.reply(replies.blipNotFound);
+      await ctx.reply(
+        type === "byte" ? replies.byteNotFound : replies.blipNotFound,
+        { parse_mode: "HTML" }
+      );
       return;
     }
 
-    await ctx.reply(replies.fetchFailed);
+    await ctx.reply(replies.fetchFailed, { parse_mode: "HTML" });
   }
 }
 
 export async function handleEdit(ctx: Context): Promise<void> {
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
 
   const match = ctx.match;
   const args = typeof match === "string" ? match.trim() : null;
   if (!args) {
-    await ctx.reply(replies.usageEdit);
+    await ctx.reply(replies.usageEdit, { parse_mode: "HTML" });
     return;
   }
 
   const firstSpace = args.indexOf(" ");
   if (firstSpace === -1) {
-    await ctx.reply(replies.usageEdit);
+    await ctx.reply(replies.usageEdit, { parse_mode: "HTML" });
     return;
   }
 
   const secondSpace = args.indexOf(" ", firstSpace + 1);
   if (secondSpace === -1) {
-    await ctx.reply(replies.usageEdit);
+    await ctx.reply(replies.usageEdit, { parse_mode: "HTML" });
     return;
   }
 
@@ -204,19 +207,19 @@ export async function handleEdit(ctx: Context): Promise<void> {
   const newContent = args.slice(secondSpace + 1).trim();
 
   if (type !== "byte" && type !== "blip") {
-    await ctx.reply(replies.usageEdit);
+    await ctx.reply(replies.usageEdit, { parse_mode: "HTML" });
     return;
   }
 
   if (newContent.length > MAX_CONTENT_LENGTH) {
-    await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH));
+    await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH), { parse_mode: "HTML" });
     return;
   }
 
   try {
     if (type === "byte") {
       const updated = await byteService.updateByte(serial, newContent);
-      await ctx.reply(replies.blipUpdated(updated.byte_serial), { parse_mode: "HTML" });
+      await ctx.reply(replies.byteUpdated(updated.byte_serial), { parse_mode: "HTML" });
       return;
     }
 
@@ -225,30 +228,30 @@ export async function handleEdit(ctx: Context): Promise<void> {
     await ctx.reply(replies.blipUpdated(updated.blip_serial), { parse_mode: "HTML" });
   } catch (error: unknown) {
     if (error instanceof ValidationError) {
-      await ctx.reply(replies.usageEdit);
+      await ctx.reply(replies.usageEdit, { parse_mode: "HTML" });
       return;
     }
 
-    await ctx.reply(replies.updateFailed);
+    await ctx.reply(replies.updateFailed, { parse_mode: "HTML" });
   }
 }
 
 export async function handleDel(ctx: Context): Promise<void> {
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
 
   const match = ctx.match;
   const args = typeof match === "string" ? match.trim() : null;
   if (!args) {
-    await ctx.reply(replies.usageDel);
+    await ctx.reply(replies.usageDel, { parse_mode: "HTML" });
     return;
   }
 
   const firstSpace = args.indexOf(" ");
   if (firstSpace === -1) {
-    await ctx.reply(replies.usageDel);
+    await ctx.reply(replies.usageDel, { parse_mode: "HTML" });
     return;
   }
 
@@ -256,7 +259,7 @@ export async function handleDel(ctx: Context): Promise<void> {
   const serial = args.slice(firstSpace + 1).trim();
 
   if (type !== "byte" && type !== "blip") {
-    await ctx.reply(replies.usageDel);
+    await ctx.reply(replies.usageDel, { parse_mode: "HTML" });
     return;
   }
 
@@ -266,9 +269,12 @@ export async function handleDel(ctx: Context): Promise<void> {
     } else {
       await blipService.deleteBlip(serial);
     }
-    await ctx.reply(replies.blipDeleted(serial), { parse_mode: "HTML" });
+    await ctx.reply(
+      type === "byte" ? replies.byteDeleted(serial) : replies.blipDeleted(serial),
+      { parse_mode: "HTML" }
+    );
   } catch {
-    await ctx.reply(replies.deleteFailed);
+    await ctx.reply(replies.deleteFailed, { parse_mode: "HTML" });
   }
 }
 
@@ -276,7 +282,7 @@ export async function handleMessage(ctx: Context, bot: Bot<Context>): Promise<vo
   void bot;
 
   if (!isAllowed(ctx.from?.id ?? 0)) {
-    await ctx.reply(replies.unauthorized);
+    await ctx.reply(replies.unauthorized, { parse_mode: "HTML" });
     return;
   }
 
@@ -284,7 +290,7 @@ export async function handleMessage(ctx: Context, bot: Bot<Context>): Promise<vo
   if (!text || text.startsWith("/")) return;
 
   if (text.length > MAX_CONTENT_LENGTH) {
-    await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH));
+    await ctx.reply(replies.contentTooLong(MAX_CONTENT_LENGTH), { parse_mode: "HTML" });
     return;
   }
 
@@ -295,12 +301,12 @@ export async function handleMessage(ctx: Context, bot: Bot<Context>): Promise<vo
   if (activeSessionId) {
     try {
       const entry = await liveBloqService.addEntry(activeSessionId, text);
-      await ctx.reply(`Entry #${entry.entry_sequence} added.`, {
+      await ctx.reply(replies.liveEntryAdded(entry.entry_sequence), {
         parse_mode: "HTML",
       });
       return;
     } catch {
-      await ctx.reply(replies.liveSessionEntryFailed);
+      await ctx.reply(replies.liveSessionEntryFailed, { parse_mode: "HTML" });
       return;
     }
   }
@@ -309,6 +315,6 @@ export async function handleMessage(ctx: Context, bot: Bot<Context>): Promise<vo
     const byte = await byteService.createByte(text);
     await ctx.reply(replies.byteCreated(byte.byte_serial), { parse_mode: "HTML" });
   } catch {
-    await ctx.reply(replies.createFailed);
+    await ctx.reply(replies.createFailed, { parse_mode: "HTML" });
   }
 }
