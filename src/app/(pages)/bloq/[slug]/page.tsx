@@ -23,6 +23,7 @@ import { buildBloqPostSchema, renderJsonLd } from '@/lib/metadata/schema';
 import { getBloqPostBySlug, getBloqPosts, getRelatedPosts } from '@/lib/bloq';
 
 import BloqCard from '@/app/(pages)/bloq/components/BloqCard';
+import { BloqLookupCard } from '../components/BloqLookupCard';
 import MDXComponents from '@/app/(pages)/bloq/components/MDXComponents';
 
 import BloqViewCounter from '../components/BloqViewCounter';
@@ -76,7 +77,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <TrackView type="bloq" identifier={slug} />
       <BloqCard post={post} variant="detail" className="sticky backdrop-blur-3xl top-10 z-10" />
       <div className="px-4">
-        <MDXRemote source={post.content} components={{ ...MDXComponents, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, LatestUpdates, ClapsCounter, ViewCounter: BloqViewCounter, Link, MdOutlineRssFeed, FaSitemap, FaTelegram, CopyLink, ContributionHeatmap }} />
+        <MDXRemote source={post.content} components={{ ...MDXComponents, BloqLookupCard, DryKeysQuest, SeedingPlant, DitherShader, SeedingPlantASCII, MarathiClock, SeedingPlantWrapped, LatestUpdates, ClapsCounter, ViewCounter: BloqViewCounter, Link, MdOutlineRssFeed, FaSitemap, FaTelegram, CopyLink, ContributionHeatmap }} />
       </div>
       <div className="px-4">
         <RelatedPosts posts={relatedPosts} />

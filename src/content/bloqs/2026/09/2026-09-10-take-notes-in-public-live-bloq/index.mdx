@@ -1,0 +1,535 @@
+---
+title: "How a Telegram Channel Became My Live Blog"
+publishedAt: "2026-09-10"
+summary: "I did not want to lock my conference notes in my Telegram chat thread, so I made the chat the publishing pipeline. What it took: a bot, one Postgres function, a 30-second poll, ISR. And zero sockets, no presence, and no stateful server."
+slug: "take-notes-in-public-live-bloq"
+tags:
+  - architecture
+  - frontend
+  - react
+  - nextjs
+  - supabase
+  - realtime
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: false
+---
+
+## The ritual was always the phone
+
+> "Every conference produced a finished artifact, in a chat nobody could open"
+
+I have a ritual that has survived every conference I have attended: I take notes. Exhaustive ones. A speaker says something sharp, and my thumbs are already typing it into Telegram before the next slide loads. By the end of a talk, a private chat window has accumulated something that looks suspiciously like a transcript written by someone with strong opinions and no editor.
+
+The capture device was always the phone. The laptop is a secondary device at a conference: it hosts the terminal I am not looking at, and keeping it alive means spending the margins of the day hunting for a charging socket. The phone asks for none of that. It stays handy, sometimes on conference Wi-Fi, and the notes keep coming. The ritual never broke.
+
+What never worked was the wiring. The polished [bloq](/bloq) always got written eventually, but wiring a full day of chat-log into an article is real leg work, and until that work was done the notes sat in Telegram, marinating. Which is absurd when you say it out loud, because the notes were already content-shaped. Chronological. Unfiltered. Written in real time, which is the most expensive kind of honesty there is. A finished artifact on a weeks-long delay, for no better reason than that assembling it takes weeks.
+
+A live bloq is that failure, fixed at the publication step. It publishes the note-taking itself: quick, chronological, exhaustive notes from an event, on a single page, public while it happens. When the event ends, the page stops being live and becomes an archive of what happened. No second draft required. Also no second draft guaranteed.
+
+And there is a newer, louder reason this exists, and it is not abstract: my colleagues. Most of the [Beneathatree](https://beneathatree.com/) crew is not in the auditorium with me. They are at the office, holding the fort while I watch slides. The live bloq is for them. The feed delivers both the takeaways and an accurate, real-time measurement of exactly how much the conference sucks, so their fear of missing out can at least be data-driven. Dear colleagues: you are the primary audience. This article just happens to be about the plumbing.
+
+<BloqLookupCard slug="notes-from-react-nexus-2026" />
+
+The proof it works is already published. The messy notes from React Nexus 2026 went out as live bloqs, [day one](/bloq/live/notes-from-react-nexus-2026) and [day two](/bloq/live/notes-from-react-nexus-2026-day-2), published the same evenings they were typed. The polished report they fed, [A Curated Dump of React Nexus 2026](/bloq/react-nexus-2026-report), took weeks, and it is still unfinished work. That ratio is the entire argument: the live page is the instant artifact; the essay is the souvenir that ships weeks later.
+
+This piece is the narrative of the architecture, the state machine, the render pipeline, the side effects, and the corners where the design is honestly weird. If you are one of the colleagues who followed along from notifications: this is what the machine you were reading off looks like from the inside.
+
+[PLACEHOLDER (screenshot): a real conference-notes Telegram chat. The raw material a live bloq publishes.]
+
+---
+
+## Why not the containers I already have
+
+> "The site had containers for finished and polished thoughts. It had none for raw thoughts still in the making."
+
+The obvious alternative: post each conference note as a [byte](/byte) and call it a day.
+
+A byte is where a *edited* thought ends up. A raw live note is where a thought starts. The taxonomy keeps those two states, byte and live bloq, in different containers on purpose:
+
+```text
+byte      -> a boiled thought, distilled and preserved
+blip      -> a term and its meaning, retrievable
+bloq      -> boiled down, polished, published late
+live bloq -> raw, exhaustive, chronological, published now
+```
+
+Bytes have a contract: a byte is one thought, already boiled down to its smallest form. Conference notes are the opposite. Raw, in bulk, in capture order. So posting them as bytes would flood the byte feed with half-thoughts and break that contract. The event also needs one URL of its own. It is a session: one collection of all these raw thoughts, viewable and updating at that URL. Making that just a new tag in the existing byte system would be a poor design choice. A smelly one, actually.
+
+For a colleague following from a desk, the unit of reading is the event, not the note: one URL to open, in order, that catches them up and also tells them whether to be jealous. A stream of crumbs scattered across a byte feed provides neither.
+
+That is a session, not only a stream. Different data shape, different lifecycle, different reading experience. So it got its own container instead of borrowing one whose contract it would break.
+
+---
+
+## System architecture: one message's journey
+
+> "The write path and the read path never talk. They meet at a cache, and the cache keeps the peace."
+
+Before any single decision, here is the whole machine on one screen. The write path is me in an auditorium. The read path is you, wherever you are. Every decision below follows from one constraint: my typing never waits for a reader, and a reader's page never breaks because of what I typed.
+
+```text
+  WRITE PATH: me, somewhere in row 12
+  ────────────────────────────────────
+  phone
+    │  plain text, no command
+    ▼
+  Telegram webhook  (secret-checked)
+    ▼
+  bot handler  (auth, length gate, active session?)
+    ▼
+  liveBloqService.addEntry(text)
+    ▼
+  Postgres: add_live_entry() function
+    │  locks the session row
+    │  sequence = entry_count + 1
+    │  INSERT the entry
+    ▼
+  revalidatePath("/bloq/live/<slug>")
+    │  busts the ISR cache: next reader renders fresh
+    ▼
+  bot replies: "Entry #12 added."
+
+  READ PATH: you, at your desk, pretending to work
+  ────────────────────────────────────────────────
+  once, on arrival (the cache):
+  GET /bloq/live/<slug>
+    →  cached HTML, as fresh as the last bust
+  every 30 seconds while active (the poll clock):
+  GET /api/live-bloq/<slug>/entries?after=<cursor>
+    →  prepend the delta, newest live note on top
+
+  the two paths never talk directly. they meet at the ISR cache:
+  the write path busts it, the read path picks up what fell out.
+```
+
+Every box in that diagram is a real file with one job. The plain-text handler in `src/lib/telegram/commands/handlers.ts` decides what a message means. `src/lib/live-bloq/service.ts` owns the rules: validation, slugs, what gets revalidated. `src/lib/live-bloq/repository.ts` owns every Supabase call, including the `add_live_entry` database function defined in `supabase/migrations/012_live_bloq_sessions.sql`. The bot never writes a row; the website never invents a sequence. Each layer is dumb in exactly one direction.
+
+That split has a standard name: separation of concerns, expressed here as the service/repository pattern — three layers, one job each. The handler is the interface layer: it checks the message came from me, drops anything over 280 characters, and turns each outcome into a Telegram reply. The service is the business layer: it owns the rules — empty entries are rejected, slugs must not collide, closing a session revalidates the live page, the bloq index, and the homepage. The repository is the data layer: the only one that talks to Supabase. No layer reaches into another's job: the bot never writes a row, and the website never invents a sequence number. The division is by kind of change: if Telegram reworks its API, only the handler edits; if a rule changes, only the service edits; if storage moves, only the repository edits. One layer, one reason to change — the Single Responsibility Principle.
+
+Zooming in on one message, from text to pixels:
+
+```text
+  one Telegram message
+        │
+        ▼
+  one live_bloq_entries row
+  sequence = the session's entry_count, after the increment
+        │
+        ├─ to a reader loading the page:
+        │    the full server-rendered timeline,
+        │    from the freshly busted cache
+        │
+        └─ to a reader already on the page:
+             a poll delta: every row with a sequence
+             above their cursor, prepended above
+             what they already have
+```
+
+The payoff of this shape: adding the live content type touched the handler (one branch), the service (a new module), the database (two tables and one function). It did not touch the reader's page contract, the feed, or the RSS. Journeys with few crossings are journeys that do not fall over.
+
+---
+
+## The session is a state machine, not a chat room
+
+> "Three states, one direction, no drama."
+
+The core model is small on purpose. A session is a row in `live_bloq_sessions` in Supabase. Entries are rows in `live_bloq_entries`, tied to the session, each carrying a sequence number and the text I typed. The session itself moves through exactly three states:
+
+```text
+            /livesession start
+                  │
+                  ▼
+              ┌─────────┐
+              │ active  │   the happening
+              └─────────┘
+               │       │
+   /livesession      /livesession
+    close              cancel
+      ▼                 ▼
+  ┌─────────┐      ┌───────────┐
+  │ closed  │      │ cancelled │
+  └─────────┘      └───────────┘
+  the record       the retraction
+```
+
+Closed and cancelled are different on purpose. Closed means "this happened, and this is the record." Cancelled means "pretend this did not happen," which is a retraction, and a retraction is a different speech act, not a different enum value.
+
+The states earn their keep in consequences. Everything public about a session follows from which box it is in:
+
+```text
+             public page           /bloq + RSS          already-open tab       homepage "latest"
+---------    ------------------    -----------------    -------------------    ---------------------
+active       live feed, polling    listed, Live badge   newest-first, polls    eligible
+closed       static archive        stays listed         flips to oldest-first  eligible
+cancelled    404, on purpose       filtered out         amber badge, stops     should be filtered
+                                                                               (it isn't, §9)
+```
+
+One database-wide invariant rides on top: a partial unique index allows at most one `active` session in the entire table. Not a convention, not a check the bot performs. A unique index on `status WHERE status = 'active'`, straight into the migration. The database refuses to let me run two conferences at once, which is also a comment on my lifestyle.
+
+### Sequence numbers belong to the database
+
+Every entry's `sequence` is assigned by a Postgres function named `add_live_entry`, not by application code. A function that lives in the database and gets called from application code has a standard name — an RPC, short for remote procedure call — but the idea is smaller than the acronym: my code sends a function name and some arguments, the database runs the function where the data lives, and rows come back. The repository calls it, expects an array of rows back, and throws if the array comes back empty rather than inventing a sequence number and hoping nobody notices.
+
+Here is the whole function's choreography, minus the SQL ceremony:
+
+```text
+  addEntry(sessionId, text)
+        │
+        ▼
+  UPDATE live_bloq_sessions
+     SET entry_count = entry_count + 1
+   WHERE id = $1 AND status = 'active'
+   RETURNING entry_count
+        │
+        │  this UPDATE takes a row lock and holds it
+        │  until commit. two messages in flight? they
+        │  queue here, one after the other, and each
+        │  gets a count the other never saw.
+        │  no row matches? the RPC raises
+        │  "Session not found or not active" and
+        │  nothing is written anywhere.
+        ▼
+  INSERT INTO live_bloq_entries (session_id, content, sequence)
+        │
+        ▼
+  UNIQUE (session_id, sequence)
+        the backstop, only reachable if someone
+        bypasses the RPC. nothing does.
+```
+
+And the plain-language version, because "atomic" deserves its competency check. The race is real: during a talk, notes arrive in bursts, and two messages can be in flight at once. If the counter lived in app code, both requests could read the same value, one update gets lost, and the timeline lies forever about what happened when. Here, both requests hit the same `UPDATE`. Postgres serializes them on the row lock. The first returns count 11 and inserts as #11; the second returns 12 and inserts as #12. The lock is not overhead added to the counter. The lock is the counter. For notes whose entire value is chronology, that is not a rounding error.
+
+The same `WHERE` clause quietly does access control: `status = 'active'` means a closed or cancelled session rejects writes at the database, even if some client still remembers its ID and insists. Remember that clause; it comes back in the serverless section as the reason a stale cache is harmless.
+
+### Two kinds of blogs, one namespace
+
+Every [bloq](/bloq) you can read on this site is a file, published by build: the write path is a git push, and the render pipeline learns about it on the next deploy. A live bloq cannot work that way. A file-based live blog means rebuilding and redeploying the entire site every time a speaker finishes a sentence.
+
+So live bloqs are database rows, published by cache revalidation: the write path is a Telegram message, and "publishing" is a `revalidatePath` call. That sentence leans on two pieces of machinery — the ISR cache and on-demand revalidation — and both deserve more than a mention, because the rest of this system is built on top of them.
+
+The ISR cache first. ISR stands for Incremental Static Regeneration, which is Next.js's negotiated peace between a static site and a real server. The first time anyone requests `/bloq/live/[slug]`, Next.js renders the page once — server components, Supabase queries, all of it — and stores the finished HTML in what it calls the Full Route Cache. Every reader after that is handed the stored copy, instantly, without re-running any of the work. That stored copy is what I keep calling the ISR cache: the prerendered page, parked between the database and the reader. "Incremental" is the word doing the real work. Pages are not regenerated as a batch, the way `next build` regenerates everything on deploy; they regenerate individually, one path at a time. And exactly two things can tip a path over the edge: time or demand. Time is the `revalidate = N` export — after N seconds of age, the page qualifies for regeneration. Demand is a function call. This page sets `revalidate = false`, which is not a very large N; it is the time door, bolted shut. The cached page never ages out and never qualifies on its own — it moves only when something evicts it, which makes demand the only door this system has. What that choice costs, and the insurance pinned over it, comes later.
+
+The demand side is `revalidatePath`, and the honest description starts with what it does not do: it renders nothing. It is an eviction notice, not a rebuild. When the service calls `revalidatePath('/bloq/live/<slug>')`, Next.js throws out the cached HTML for that one path and puts nothing in its place. The next reader does the building: their request finds no cache entry, re-runs the server component against the current database rows, and the fresh output goes back into the cache for everyone behind them. "Publishing" is really two events with a gap — I evict now, the next reader rebuilds — and the first reader through the door pays the render, which costs a couple of Supabase queries, not a deploy. (`revalidatePath` has a sibling, `revalidateTag`, that evicts by cache tag instead of by path: same doors, different address. This system only ever needs the address.)
+
+```text
+  publishing is two events with a gap
+
+  event one: the eviction
+  a Telegram message ──► webhook ──► row written to Supabase
+        │
+        ▼
+  revalidatePath('/bloq/live/<slug>') fires in the same request
+  (the cached HTML is thrown out; nothing is rendered in its place)
+        │
+        │   ← the gap: however long it takes for the next reader
+        │     to show up, the cache stays empty
+        ▼
+  event two: the rebuild
+  the next reader pays the render: server components re-run against
+  the current rows, and the fresh HTML goes back into the cache, so
+  every reader behind them gets the stored copy instantly
+```
+
+Next.js keeps the doors to that function deliberately few, because an eviction must run in server code you control. In practice, three:
+
+```text
+  how a cached page gets evicted on demand
+
+  Server Action          a form submit — a user gesture inside the app
+  Route Handler          any HTTP caller you choose to authorize
+  revalidation endpoint  the second door, formalized: a guarded
+                         /api/revalidate route, so external systems
+                         (a CMS, a deploy hook) can knock
+
+  time-based revalidate = N is the only trigger with no caller at all
+```
+
+This system uses the second door, and it had to build nothing new to reach it, because Telegram already knocks. A message lands on `/api/telegram/webhook`, a Route Handler that authenticates the request against a shared secret and hands the update to the bot. The bot's handler calls the service, the service writes the row through the repository, and then, still inside that same request, `revalidatePath` fires with the exact slug. By the time Telegram receives its `200`, the previous HTML is dead and the next reader renders entry #13 fresh. The write path is the revalidation endpoint; publishing never leaves the message that started it. And if the eviction call ever dies mid-request, the row is written and the cache is stale until the next message — the next entry, the next summary — evicts it again. With the time door shut, an event that never happened is the one thing the cache cannot recover from on its own, which is why the terminal mutations carry insurance for exactly that case (§9 again).
+
+But the reader sees neither storage engine. Both kinds live under `/bloq`, and a URL is a URL. That is why `generateUniqueSlug` in `src/lib/live-bloq/service.ts` checks a candidate title against two namespaces at once, MDX bloq slugs read from disk and session slugs read from the database, before issuing it. If either side already owns that slug, the function appends a number and tries again: `my-title-2`, then `my-title-3`, and so on up to `my-title-11` — ten numbered fallbacks before it gives up and throws, rather than let a new session shadow an existing bloq. To the person clicking, MDX and Postgres are one namespace — the URL never reveals which storage engine is behind it.
+
+### Serverless memory is a rumor
+
+Every plain-text message arrives carrying a question: is this an entry in the live session, or a standalone byte? The answer needs the session's ID — `addEntry(sessionId, text)` takes it as an argument, and the database will verify that ID on every write but will not guess it. The database already holds the answer — the row with `status = 'active'`, at most one by the partial unique index — but asking before every message is a round trip on the busiest path in the system. So the bot remembers the answer instead: an in-memory `Map` from my user ID to the session ID — `src/lib/telegram/session-state.ts`, four functions, no dependencies.
+
+The map's entire shape is one pair:
+
+```text
+  Map<number, string>
+  123456789  ──►  "00000000-0000-0000-0000-000000000000"
+  (my Telegram ID)      (the active session's UUID)
+  both fake; the shapes are exact
+```
+
+The map does not hold the session — no title, no status, no entry count. It holds the session's *name*, and that is deliberate: everything else already lives in the database row, recoverable at any time. Caching one ID means there is nothing else to go stale. And the map never holds more than one pair — the partial unique index already promised at most one active session.
+
+The catch: serverless instances die all the time. Idle timeout, a deploy, the platform's mood — and when the instance dies, the map dies with it. So the map is a cache, never the source of truth. When it comes up empty:
+
+```text
+  a Telegram message arrives
+        │
+        ▼
+  map knows the session? ── yes ──► use it (fast path, zero queries)
+        │
+        no    ← cold instance: restarted, redeployed, or idle-killed
+        ▼
+  getOrRecoverActiveSession asks the database:
+  "is there an active session?"
+        │
+        ├─ yes ──► refill the map, use it (one query, once)
+        └─ no  ──► nothing is active; the bot says so
+```
+
+A cold instance forgets nothing that matters. It pays one query to remember again.
+
+The one failure left is a stale ID: a second instance — rare in itself — still remembers a session I have closed, and its write dies at `add_live_entry`'s `status = 'active'` clause, the one you were told to remember. The note is lost to that session for good; all that comes back is an error reply.
+
+---
+
+## The bot is the whole control plane
+
+> "Same doorway. Different room behind it, depending on the hour."
+
+Here is the part I find quietly delightful: the capture habit needed zero behavior change. I was already typing conference notes into Telegram as fast as the speaker could talk. The live bloq does not install a new habit. It gives an existing flow a public destination.
+
+The whole lifecycle runs through one command with subcommands: `/livesession start`, `/livesession summary`, `/livesession close`, `/livesession cancel`, `/livesession status`. A session can be run entirely from my phone, which matters, because during a talk the laptop is busy being a laptop.
+
+[PLACEHOLDER (screenshot): the /livesession start bot reply, confirmation plus the live page URL]
+
+One design decision does heavy lifting here: the bot is a thin trigger, and every reply is computed on the server and written as a refresher. Misspell a subcommand and you get the full usage block back. Not an error, a syntax lesson. Add an entry and the receipt is numbered, `Entry #12 added.`, so the reply itself proves which mode the system was in and where your text went. Ask for status and you get title, entry count, runtime, and the page URL, which means "where is the live page again" never requires leaving Telegram. The operator never has to memorize anything, because the interface re-teaches itself on every miss. It is UX for an audience of one, and that audience is forgetful at conferences.
+
+[PLACEHOLDER (screenshot): the /livesession usage refresher reply the bot sends after a bare or misspoken command]
+
+`/livesession status` carries the system's one alarm: past eight hours of runtime, the reply grows a warning to close or cancel the session. No talk is eight hours long, so a session that old has been forgotten. The worst case is hardly dramatic — `start` refuses while a session is active, so a forgotten one blocks the next, and the site keeps pulsing a Live badge over a page that ended hours ago. It is less a fire alarm than a nudge to tidy up.
+
+[PLACEHOLDER (screenshot): /livesession status output showing entry count, runtime, and the 8-hour warning if one of the piloted sessions ever earned it]
+
+The trick worth naming is the mode switch. The bot's plain-text handler, the one that normally turns any text I send into a byte, checks for an active session first:
+
+```text
+plain text message
+        │
+        ▼
+ active session? ──yes──► addEntry(text)  →  "Entry #12 added."
+        │
+        no
+        ▼
+ createByte(text)  →  byte created reply
+```
+
+One input surface. Meaning depends on system state. The risk is a note landing somewhere unintended, which is why every reply is an explicit numbered receipt and the escape hatch is documented up front: during a session, plain messages become entries, and `/byte` forces a byte.
+
+[PLACEHOLDER (screenshot): the "Entry #N added." bot reply, the mode confession]
+
+---
+
+## The live session wears a BloqPost costume
+
+> "Nothing in the feed needed to know. That was the design."
+
+The website already has a strong opinion about what a piece of writing is: a `BloqPost`. Cards render them. View counts and claps attach to them. RSS ships them. The homepage picks a latest one. Structured data describes them to search engines. All of that machinery speaks exactly one shape.
+
+So instead of teaching every consumer about a new "live session" shape, the session gets a translator: `liveSessionToBloqPost`, in `src/lib/live-bloq/to-bloq-post.ts`. One function, session in, `BloqPost` out. The integration is free. The [bloq feed](/bloq) merges MDX posts and live sessions into a single date-sorted list, the RSS feed includes sessions, view tracking and claps work on live slugs like any other, and not one of those consumers contains a special case.
+
+[PLACEHOLDER (screenshot): the /bloq feed with a live session sitting between regular bloqs, indistinguishable until you read the card]
+
+The adapter does commit a few small dishonesties, politely:
+
+- **Reading time is synthesized** from entry count, roughly a minute per ten notes, rounded up, never zero, because a session with no prose still should not say "0 min read"
+- **A `live` tag is appended automatically**, so sessions participate in the tag system and the related-post graph like any other bloq
+- **If no summary was written, one is fabricated** from the entry count, in the "12 entries from live session" genre of literature
+
+None of these are lies a reader can catch. All of them exist because the alternative was `if (isLive)` weeds growing through every consumer of `BloqPost` until the type system and the codebase both gave up. The senior phrase is **composition over branching**: extend the system by adding a translator at the boundary, not a conditional in every room.
+
+```text
+  two shapes, one feed: where the fork lives
+
+  the road not taken — a conditional in every room:
+
+  LiveSession ──┐
+                │
+  MDX post ─────┤
+                ├────► the feed ──── if (isLive) { ... }
+                ├────► the RSS ───── if (isLive) { ... }
+                └────► homepage ──── if (isLive) { ... }
+
+  three forks today. every consumer yet to arrive grows another.
+
+  what was built — a translator at the boundary:
+
+  LiveSession ──► liveSessionToBloqPost ──┐
+                                          │
+  MDX post ──────────────────────────────┤    already a BloqPost
+                                          ▼
+                                       BloqPost
+                                          │
+                        ┌─────────────────┼─────────────────┐
+                        ▼                 ▼                 ▼
+                     the feed          the RSS          homepage
+
+  zero forks. every consumer, present and future, sees one shape.
+```
+
+---
+
+## The read path: one pipeline, two experiences
+
+> "A live reader wants to know what just happened. An archive reader wants to know what happened first. Same entries. Opposite scrolls."
+
+There is no "live mode" anywhere in the rendering pipeline. If you arrived expecting a fork, server-rendered while live and statically generated once archived, there is no fork. The page at `/bloq/live/[slug]` sits in the Full Route Cache with `revalidate = false` — cached until an event evicts it — and active sessions and closed sessions take exactly the same route through the same server component. The render pipeline does not know it is live. Liveness is a client behavior plus a cache-busting policy, not a rendering mode.
+
+What actually differs is staleness, and staleness comes in two lanes:
+
+```text
+  how old can the page be? two lanes, two answers
+
+  on-demand busts    │◄── seconds ──►│            every addEntry revalidates the
+                                                      live page; summary, close and
+                                                      cancel also revalidate the OG
+                                                      card, and the latter two /bloq
+                                                      and / too
+
+  client poll        │◄─ ≤30s ─►│                 after hydration, while active:
+                                                      only rows newer than the cursor
+
+  active session:    both lanes do all the work. the cache has no age at all —
+                     events are the only thing that move it.
+  closed session:    the close bust fires once, then the page freezes. no timer
+                     hums underneath an archive that no longer changes.
+```
+
+Entries arrive in bursts, so the real work is on-demand cache busting: every `addEntry` calls `revalidatePath` for the exact slug, straight from the service (`src/lib/live-bloq/service.ts`). Live, the page is ISR and the polling is what makes it feel alive: every thirty seconds the browser fetches entries newer than its cursor, directly from the database, so a reader trails the room by half a minute at most, whatever the cache beneath is doing. Closed, the poll stops and one final bust renders the finished page; nothing triggers a render after that. Technically it is still ISR. In practice it is a static page — built once, served forever. Side by side:
+
+```text
+                    active                        closed
+----------------   --------------------------    --------------------------------
+render pipeline    cached forever + per-entry    same pipeline; one final render
+                   busts                         at close, then frozen
+event frequency    one bust per message          one bust on close (page + OG +
+                                                 /bloq + /)
+client effect      polls every 30s, prepends     returns early, zero network traffic
+reading order      newest-first                  oldest-first, as written
+```
+
+"No render-mode branch" is not a compromise here. It is the design point.
+
+### Cache for arrivals, poll for residents
+
+Two mechanisms keep readers current, one for each kind of reader:
+
+- **The cache serves arrivals.** Every `addEntry` busts the cached HTML for that slug, so whoever loads next gets the newest entry baked into the page.
+- **The poll serves residents.** Every 30 seconds, an open tab fetches entries newer than its cursor — the newest sequence in its HTML — from the entries endpoint, straight from the database, never through the page cache, and stacks them on top of the feed.
+
+One cache, two readers, ninety seconds:
+
+```text
+GLOBAL TIMELINE     T=0s                 T=30s                T=60s                T=90s
+                    │                    │                    │                    │
+COMMON CACHE        [Items #1–#5] ──────►[Items #1–#9] ──────►[Items #1–#12] ─────►[Items #1–#15]
+(30s Bust/Refresh)  (Initial State)      (Cache Updated)      (Cache Updated)      (Cache Updated)
+                    │                                         │
+                    │                                         │
+READER A            ● Reader A Arrives                        │
+                    ├─► Cached Base: [#1–#5]                  │
+                    └─► Polled Data:  #6, #7, #8, #9 ─────────┤
+                                                              │
+READER B                                                      ● Reader B Arrives
+                                                              ├─► Cached Base: [#1–#12]
+                                                              └─► Polled Data:  #13, #14, #15 ──►
+
+  cache row: what a newcomer's load receives; each refresh is a write, not a clock
+  ● = arrival — the cache hands over its current block, as-is
+  every arrow after ● is one poll delivery, ≤30s behind the write
+```
+
+B never polls for #10-#12: they were baked into the HTML at t=60s. A polls for all of them, because A was there before any were written. Same cache, same entries — what differs is when you walked in. Everything written before your ● is in your HTML at load; everything written after arrives by poll, at most 30 seconds behind.
+
+### Polling vs WebSockets: the ledger
+
+Start from the floor. HTTP is a conversation with strict turns: the browser asks, the server answers once, the connection hangs up. The browser never hears anything it didn't ask for, and the one thing the protocol cannot do is the thing "real-time" actually means here — the server speaking first. Push. So "real-time needs WebSockets" was half right all along: this needed push, not necessarily WebSockets. The honest candidates were WebSockets and Server-Sent Events (SSE), and each smuggles push past HTTP in its own way.
+
+```text
+                one write — entry #13 lands at T=0 — three ways it reaches an already-loaded page
+
+WEBSOCKETS      ask   ── GET + Upgrade: websocket ──►   ◄── 101 Switching Protocols
+                push  ◄═══ frame { #13 } ═══ milliseconds after the write
+                hold  ═══ the pipe never closes: ping · pong · reconnect · forever ═══►
+
+SSE             ask   ── GET /api/stream ──►   ◄── 200 OK — and the body never ends
+                push  ◄═══ data: #13 ═══ milliseconds after the write
+                hold  ═══ the response stays open for as long as the reader listens ═══►
+
+POLLING         ask   ── GET /entries?after=12 ──►   ◄── 200: [] ──        then hang up
+                push  ·· none — the write waits in the database for the next ask ··
+                ask   ── GET /entries?after=13 ──►   ◄── 200: [#13] ──     ≤30s behind
+                hold  ·· nothing: every request completes, nothing stays open ··
+
+                ──► the browser asks (HTTP's only move)   ◄══ the server speaks first: push
+```
+
+The `hold` rows are the whole argument. A WebSocket pipe must stay open, so it lives in the memory of a long-running process — and a serverless function, which arrives, runs, and dies per request, cannot host one. It would mean a second deployed system, with reconnect logic, heartbeats, and its own failure modes to babysit. For a feed with one writer, typing at human speed, for readers who tolerate 30 seconds. SSE dodges the protocol but not the lifetime: something still has to hold that never-ending response open for as long as the reader listens, and at this cadence it buys the same 30-second experience with more machinery.
+
+And notice what this pipeline already has: genuine push, on the way in. Telegram is the one party that speaks first. The instant I press send, its webhook POSTs the update to `/api/telegram/webhook` — secret-checked, row written, cache evicted, all inside one request — and Telegram retries until my side answers 200. That is push, server-to-server, with the always-on machinery running on Telegram's side of the fence. My handler stays stateless exactly because someone else's infrastructure owns the connection. So the only stretch of the journey with no push is the last mile, my server to the reader's browser — and that is the only stretch this ledger has to settle.
+
+The ledger, settled:
+
+```text
+                bought                            cost
+-------------   -------------------------------   ----------------------------------
+WebSockets      a raw bidirectional pipe;         a stateful, always-on connection
+                sub-second push both ways;        layer serverless cannot host;
+                a socket that knows the other     reconnect + heartbeat logic; a
+                end is there                      second system to babysit
+SSE             one-way push over plain HTTP;     the same held-open connection,
+                EventSource reconnects for you    less machinery, same result at
+                                                  this cadence
+cursor polling  ≤30s freshness; idempotent,       "Connected" is a euphemism (§10)
+                near-free; zero infrastructure
+```
+
+The trade-off, stated for the audience that will actually read this: conference-note readers tolerate a 30-second delay.
+
+---
+
+## Side effects: what else happens when I press send
+
+> "Pressing send deploys. Everything after the row is diplomacy."
+
+Writing an entry looks like one action and is actually several. They are wired through one seam: services emit events like `{action: "published", type: "live-bloq"}`, and a composed mutation effect decides what each event means to the outside world (`src/lib/content-publish/`). The live bloq is just a new event type on a boundary that bytes and blips already use. No new plumbing. That is the March architecture paying rent, and I am renting it out again.
+
+For live sessions, the fan-out per mutation looks like this:
+
+```text
+start    →  warm the OG image, then announce on the channel
+            (no cache busts, nobody is watching the page yet)
+entry    →  revalidate /bloq/live/<slug>, nothing else
+            (readers already on the page get the rest by polling)
+summary  →  revalidate the live page + the OG card
+            (the summary is the only content they both render)
+close    →  revalidate the live page + the OG card + /bloq + /
+            (the archive becomes official everywhere at once)
+cancel   →  the same four busts — idempotently
+            (then every public surface forgets, §9)
+```
+
+---
+
+## Closing: the draft you publish before the draft exists
+
+Some talks earn a second pass: the notes steamed, the argument reassembled, the jokes I laughed at alone given one more audition. Or it may never come, and the live bloq becomes the whole record. Both outcomes are fine now, because atleast something is out now, and even if those are just raw notes. And notes then can take their own time to mature before they are worth for another reading.
+
+<BloqLookupCard slug="react-nexus-2026-report" />
+
+The React Nexus experiment ran both paths from the same raw typing. The [curated report](/bloq/react-nexus-2026-report) took weeks, is still unfinished, and is the version for whoever wants the argument assembled. The [live pages](/bloq/live/notes-from-react-nexus-2026) are the version for the record: how the days actually went, minute by minute, published before the report existed. Same notes, two artifacts, no deadline on either. And for the colleagues who got it all live, off notifications, from a desk: you already read this article's subject matter while it was happening. This piece is just the plumbing diagram.
+
+Two sessions have been through the full lifecycle so far. A pilot, not a track record. But the machine starts, the receipts numbered themselves, and both pages are still sitting there reading exactly the way the days went.
+
+The ritual survives intact. I attend, I type on the phone that was never the problem, I run `/livesession close`. The only thing that changed is when you get to read it.
+
+One page. In order. While it happens.
+
+And if a raw, unpolished, timestamped page sounds like a lesser form of publishing, every doorway in this system started out looking like the least impressive room in the house.
