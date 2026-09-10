@@ -175,11 +175,7 @@ describe("telegram command handlers", () => {
       "live update!"
     );
     expect(ctx.reply).toHaveBeenCalledWith(
-      expect.stringContaining("added — "),
-      { parse_mode: "HTML" }
-    );
-    expect(ctx.reply).toHaveBeenCalledWith(
-      expect.stringContaining("/bloq/live/my-slug"),
+      expect.stringContaining("Entry <b>#3</b> added."),
       { parse_mode: "HTML" }
     );
     expect(byteServiceMock.createByte).not.toHaveBeenCalled();
