@@ -30,13 +30,13 @@ export const replies = {
   startIntro:
     'Jot Bot for <a href="https://www.sumitsute.com/">sumit sute</a>\n\n' +
     "Send any text and it becomes a byte. For other operations, blips and live sessions, use following commands:\n\n" +
-    "<code>/byte</code> &lt;content&gt; - Create a short thought\n" +
-    "<code>/blip</code> &lt;term&gt;:&lt;meaning&gt; - Create a term:meaning pair\n" +
-    "<code>/list</code> &lt;byte|blip&gt; - See what you've blipped\n" +
-    "<code>/get</code> &lt;byte|blip&gt; &lt;serial&gt; - Pull up a specific item\n" +
-    "<code>/edit</code> &lt;byte|blip&gt; &lt;serial&gt; &lt;text&gt; - Rewrite history\n" +
-    "<code>/del</code> &lt;byte|blip&gt; &lt;serial&gt; - Erase the evidence\n" +
-    "<code>/livesession</code> - Manage live bloq sessions (start / summary / close / cancel / status)\n\n" +
+    "• <code>/byte</code> &lt;content&gt; - Create a short thought\n" +
+    "• <code>/blip</code> &lt;term&gt;:&lt;meaning&gt; - Create a term:meaning pair\n" +
+    "• <code>/list</code> &lt;byte|blip&gt; - See what you've blipped\n" +
+    "• <code>/get</code> &lt;byte|blip&gt; &lt;serial&gt; - Pull up a specific item\n" +
+    "• <code>/edit</code> &lt;byte|blip&gt; &lt;serial&gt; &lt;text&gt; - Rewrite history\n" +
+    "• <code>/del</code> &lt;byte|blip&gt; &lt;serial&gt; - Erase the evidence\n" +
+    "• <code>/livesession</code> - Manage live bloq sessions (start / summary / close / cancel / status)\n\n" +
     "While a live session is active, plain messages become session entries instead of bytes. Use <code>/byte</code> to force a byte.",
   channelBlip: (serial: string, content: string) =>
     `🤖: <a href="https://www.sumitsute.com/blip/${encodeURIComponent(serial)}">${escapeHtml(content)}</a>`,
@@ -54,12 +54,12 @@ export const replies = {
   subscribeIntro: "Follow @blipbotlive for fresh posts.",
   liveSessionUsage:
     "Usage:\n" +
-    "<code>/livesession start</code> &lt;title&gt; - Start a live session\n" +
-    "<code>/livesession summary</code> &lt;text&gt; - Update the live session summary\n" +
-    "plain text - no command needed, just type to add the next live note\n" +
-    "<code>/livesession close</code> - Close the active session\n" +
-    "<code>/livesession cancel</code> - Cancel the active session\n" +
-    "<code>/livesession status</code> - Show session status",
+    "• <code>/livesession start</code> &lt;title&gt; - Start a live session\n" +
+    "• <code>/livesession summary</code> &lt;text&gt; - Update the live session summary\n" +
+    "• plain text - no command needed, just type to add the next live note\n" +
+    "• <code>/livesession close</code> - Close the active session\n" +
+    "• <code>/livesession cancel</code> - Cancel the active session\n" +
+    "• <code>/livesession status</code> - Show session status",
   liveSessionAlreadyActive:
     "You already have an active session. Close or cancel it first.",
   liveSessionNoActive:
