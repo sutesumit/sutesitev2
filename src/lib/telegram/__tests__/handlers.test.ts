@@ -166,10 +166,6 @@ describe("telegram command handlers", () => {
       entry_sequence: 3,
       session_slug: "my-slug",
     });
-    vi.mocked(mockLiveBloqService.getSessionById).mockResolvedValueOnce({
-      id: "session-1",
-      slug: "my-slug",
-    });
 
     const ctx = createMockContext("live update!");
     await handleMessage(ctx, createMockBot() as never);
