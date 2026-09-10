@@ -50,6 +50,7 @@ export const replies = {
   liveSessionUsage:
     "Usage:\n" +
     "/livesession start &lt;title&gt; - Start a live session\n" +
+    "/livesession summary &lt;text&gt; - Update the live session summary\n" +
     "/livesession close - Close the active session\n" +
     "/livesession cancel - Cancel the active session\n" +
     "/livesession status - Show session status",
