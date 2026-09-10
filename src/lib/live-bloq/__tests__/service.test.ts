@@ -283,6 +283,7 @@ describe("LiveBloqService", () => {
     expect(repository.closeSession).toHaveBeenCalledWith("session-1");
     expect(result).toEqual(closed);
     expect(revalidatePath).toHaveBeenCalledWith("/bloq/live/my-slug");
+    expect(revalidatePath).toHaveBeenCalledWith("/og/live/my-slug");
     expect(revalidatePath).toHaveBeenCalledWith('/');
     expect(mutationEffect.onMutation).not.toHaveBeenCalled();
   });
@@ -313,8 +314,90 @@ describe("LiveBloqService", () => {
     expect(repository.cancelSession).toHaveBeenCalledWith("session-1");
     expect(result).toEqual(cancelled);
     expect(revalidatePath).toHaveBeenCalledWith("/bloq/live/my-slug");
+    expect(revalidatePath).toHaveBeenCalledWith("/og/live/my-slug");
     expect(revalidatePath).toHaveBeenCalledWith('/');
     expect(mutationEffect.onMutation).not.toHaveBeenCalled();
+  });
+
+  it("completes retraction when cancellation already landed (webhook redelivery or retry)", async () => {
+    const repository = createRepository();
+    const service = createLiveBloqService({ repository });
+    const cancelled = makeSession({ status: "cancelled", slug: "my-slug" });
+
+    vi.mocked(repository.cancelSession).mockRejectedValueOnce(
+      new Error("JSON object requested, multiple (or no) rows returned")
+    );
+    vi.mocked(repository.getSessionById).mockResolvedValueOnce(cancelled);
+
+    const result = await service.cancelSession("session-1");
+
+    expect(result).toEqual(cancelled);
+    expect(revalidatePath).toHaveBeenCalledWith("/bloq/live/my-slug");
+    expect(revalidatePath).toHaveBeenCalledWith("/og/live/my-slug");
+    expect(revalidatePath).toHaveBeenCalledWith('/');
+  });
+
+  it("rethrows cancel errors when the session did not end up cancelled", async () => {
+    const repository = createRepository();
+    const service = createLiveBloqService({ repository });
+
+    vi.mocked(repository.cancelSession).mockRejectedValueOnce(
+      new Error("DB error")
+    );
+    vi.mocked(repository.getSessionById).mockResolvedValueOnce(
+      makeSession({ status: "active" })
+    );
+
+    await expect(service.cancelSession("session-1")).rejects.toThrow("DB error");
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  // ── updateSummary ─────────────────────────────────────────
+
+  it("updates summary and revalidates page + OG paths", async () => {
+    const repository = createRepository();
+    const service = createLiveBloqService({ repository });
+    const updated = makeSession({
+      slug: "my-slug",
+      summary: "New summary",
+    });
+
+    vi.mocked(repository.updateSummary).mockResolvedValueOnce(updated);
+
+    const result = await service.updateSummary("session-1", "  New summary  ");
+
+    expect(repository.updateSummary).toHaveBeenCalledWith(
+      "session-1",
+      "New summary"
+    );
+    expect(result).toEqual(updated);
+    expect(revalidatePath).toHaveBeenCalledWith("/bloq/live/my-slug");
+    expect(revalidatePath).toHaveBeenCalledWith("/og/live/my-slug");
+  });
+
+  it("rejects empty summary without calling repository or revalidating", async () => {
+    const repository = createRepository();
+    const service = createLiveBloqService({ repository });
+
+    await expect(service.updateSummary("session-1", "   ")).rejects.toBeInstanceOf(
+      ValidationError
+    );
+    expect(repository.updateSummary).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("propagates updateSummary errors without revalidating", async () => {
+    const repository = createRepository();
+    const service = createLiveBloqService({ repository });
+
+    vi.mocked(repository.updateSummary).mockRejectedValueOnce(
+      new Error("DB error")
+    );
+
+    await expect(
+      service.updateSummary("session-1", "summary")
+    ).rejects.toThrow("DB error");
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   // ── getSession ────────────────────────────────────────────
