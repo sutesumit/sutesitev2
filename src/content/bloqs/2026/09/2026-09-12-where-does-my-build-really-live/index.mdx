@@ -1,0 +1,625 @@
+---
+title: "Where Does My Build Really Live?"
+publishedAt: "2026-09-12"
+summary: "A weekend with my build folder, answering two questions: how static is my Next.js site really, and should the frontend and backend stay together or split apart, including one architecture where the words outlive the free tier."
+slug: "where-does-my-build-really-live"
+tags:
+  - nextjs
+  - architecture
+  - devops
+  - backend
+  - frontend
+authors:
+  - Sumit Sute
+category: "Engineering"
+draft: false
+featured: false
+---
+
+> "The tickets always felt more urgent. Curiosity can wait years for a weekend. It shouldn't have to."
+
+## The questions that never got tickets
+
+The more convenient the tools, the easier it becomes to walk past the engineering under the covers. That convenience is mostly a gift, it is why things ship, but it means a certain kind of question accumulates in a drawer. Not urgent questions. Fun ones.
+
+Two of them came up in a conversation with [Denny](https://denntenna.github.io/): Where does your build really live? Does your frontend produce static files? I answered the way you answer when something has been quietly working for months. Vercel. Serverless. It is a server build, I said, the blog posts would not be sitting inside it as static files. The answer was true as far as it went. How far it went, I would only learn that weekend, with the build folder open. His second question carried an old rule I had inherited, hardly learned: static meant Hugo, server meant Next.js, and the two did not visit each other. A belief overdue for an audit.
+
+Under Denny's two probes sat a third idea, older than both: a static shell on GitHub Pages. It had always seemed obvious to me, but I had never explored it. Cheap to keep alive, with a custom domain, it could keep serving even if the backend died or the free tier ended.
+
+There was a reason I hadn't explored it. I had carried an old counterargument for years: Next.js makes the server part of the application a first-class feature. Its appeal to frontend developers was that they could keep the frontend and backend together instead of splitting them into separate applications. Turning it back into "just a frontend" felt like a regression. But perhaps a graceful one: it could keep serving even if the backend died or the free tier ended.
+
+That argument had answered the temptation. It had never answered the benefits.
+
+So I gave the weekend to all of it. Not to change anything, the site works and the ticket list is long, but to be curious about my own house for a couple of days. Curl, the build folder, and a running note of which of my beliefs would survive contact with the artifacts. This post is that audit, and underneath it runs the older argument about where a site should live, which the weekend put back on the table.
+
+The second finding is about how a Next.js page is made. The classic decoupled setup, a client-side SPA over a separate backend, ships a single HTML file with no page content in it, plus the app's JavaScript. Every URL returns that same file, and the JavaScript builds whichever page the URL asks for, out of JSON from the backend. The visitor downloads both, and until the JavaScript runs there is nothing to read. Next.js renders outside the browser instead. The visitor gets finished HTML, paints it at once, and JavaScript then attaches the interactivity. The browser never builds the initial page. Jumping to another page loads no new document. While the link is still scrolling into view, the router quietly fetches that page as a small file of already-rendered content. On the click it swaps that into the screen. The layout stays where it is, the address bar updates, and the app that started on the first page keeps running through every jump. What the build choice controls is when the rendering happens. During the build, once per page, or on each request. A client build fixes it at the build for every route, and nothing runs afterward. A server build lets each route pick.
+
+---
+
+## The build answered the first question
+
+A confession first, because it explains the rust and atrophy: I had not run the build locally in months. Vercel runs it on every deploy, deploys start on every push, and somewhere along the way `npm run build` had left my hands entirely. The build prints its answers, and I had stopped reading it.
+
+```bash
+npm run build
+```
+
+Ten seconds of compiling, a stack of static pages, then a routing table that answers Denny's first question one route at a time. Here is what that table looks like for this site (excerpt):
+
+```text
+   ▲ Next.js 15.5.12
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 10.5s
+  ✓ Generating static pages (91/91)
+
+Route (app)                                               Size  First Load JS  Revalidate  Expire
+┌ ○ /                                                  8.05 kB         179 kB          1m      1y
+├ ○ /about                                             4.76 kB         147 kB
+├ ƒ /api/views                                          203 B         103 kB
+├ ● /bloq/[slug]                                        5.1 kB         217 kB
+├   ├ /bloq/take-notes-in-public-live-bloq
+├   ├ /bloq/evaluation-loop-social-sector-chatbots
+├   ├ /bloq/sms-10dlc-global-queue-rate-limiting
+├   └ [+30 more paths]
+├ ƒ /bloq                                              7.51 kB         200 kB
+├ ƒ /blip                                                 8 kB         204 kB
+└ ○ /feed.xml                                           203 B         103 kB          6h      1y
++ First Load JS shared by all                           102 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+```
+
+- `○` means prerendered as static content. The homepage sits here with its one-minute freshness budget showing in the Revalidate column, my RSS `feed.xml` with six hours. Expire is the ceiling the CDN will hold any cached copy to.
+- `●` means the page's HTML is written during the build, before anyone visits. `generateStaticParams` is the list of pages to write: the build turns each post on it into a finished HTML file, and prints the slug under the route, one per line. When a visitor asks for that page later, the file that already exists is what gets served. Nothing runs to make it.
+- `ƒ` means the server renders the page on each request: every `/api` route, the `/blip` and `/byte` listings, and `/bloq`. `/bloq` looks like it should be cached. `revalidate = 60` is right there in its source. But it also reads its pagination and filters from the URL, and a render that reads the URL happens per request. The build output settles it, not the source.
+- One `ƒ` route earns a note of its own: `/bloq/live/[slug]` renders once on the first request, then sits frozen in the edge cache until a `revalidatePath` call thaws it for exactly one more render: the page, OpenGraph image, and feeds together. Dynamic in the table, mostly static in practice: it re-renders only when explicitly asked.
+
+The homepage's sixty-second budget is best seen as a timeline of one route's life. It is also the behavior most of this site runs on:
+
+```text
+ one route, revalidate = 60, over its life
+
+ request      cache      age          who pays
+ ───────────  ─────────  ───────────  ───────────────────────────
+ the first    MISS       none         that visitor; render once,
+                                        then cache the result
+ next 59s     HIT        0 → 59       nobody; stored copy serves
+ at 60s       STALE      60           that visitor gets the stale
+                                        copy; re-render runs behind
+ after that   HIT        0 → 59       nobody; fresh entry replaced
+                                        the old one; clock restarts
+```
+
+That is the mental model, not the mechanics. The third row shows up for real further down: the homepage curl answers `age: 1086`, a copy eighteen minutes old still serving against a sixty-second budget while a re-render ran behind it.
+
+The other columns price each route. First Load JS is what a visitor downloads before anything runs: a 102 kB baseline shared by every route plus the route's own slice. Every `/api` row says 203 B, the weight of a thin function whose real job is querying something else.
+
+```bash
+ls .next/server/app
+```
+
+There they are, real files on a disk: an `.html` and `.rsc` pair for every prerendered route. Two files, two jobs. The `.html` is for the first visit: the whole document, markup a browser can paint before any JavaScript runs, the thing a search engine reads. The `.rsc` is for every move after that: the same page as a serialized React tree, small enough to prefetch when a link scrolls into view and to swap in on click. A baked post is two of them, `bloq/agentic-writing-skills-ai-collaboration.html` with its twin beside it. Both jobs get their full tour further down.
+
+The one I checked was 139 kB of HTML holding twenty-five references to `/_next/static` and not one line of CSS; what it carries instead is the page's own copy of the serialized tree, embedded for hydration, which is why each `.html` outweighs its twin. The JS and CSS live in the folder's other half, and the split between the halves is a trust boundary, not a filing decision:
+
+```text
+ one build folder, two sides of a line
+
+ .next/server/app/              │ .next/static/
+ every prerendered route as an  │ the JS and CSS chunks,
+ .html file with its .rsc twin  │ every name content-hashed
+ ───────────────────────────────┼────────────────────────────
+ mutable: a cache entry the     │ immutable by contract:
+ runtime may drop with a phone  │ cached forever, it can
+ call or replace on a timer     │ never serve a wrong file
+                                │
+ the homepage's .html, swapped  │ chunks/f3a9c21b.js: a
+ fresh on its 60-second ISR     │ name that is a digest of
+ timer                          │ its own contents; a new
+                                │ deploy mints new names,
+ the live page's pair, dropped  │ so a cached copy is
+ by one revalidatePath() call,  │ always the right one
+ re-baked on the next request   │ to serve
+```
+
+You can watch the split over the wire:
+
+```bash
+curl -I https://www.sumitsute.com/
+curl -I https://www.sumitsute.com/blip
+```
+
+Windows note: in PowerShell, `curl` is an alias for `Invoke-WebRequest`, which has no `-I`. Use `curl.exe -I`.
+
+On my deployment, the wire answers Denny's question one route at a time:
+
+```text
+ same site, same deploy: three routes, three answers
+
+ ┌───────────┬──────────────────────────────┬──────────────────────────────┐
+ │ route     │ the wire answers             │ what it means                │
+ ├───────────┼──────────────────────────────┼──────────────────────────────┤
+ │ /         │ x-vercel-cache: HIT or STALE │ the ISR budget at work:      │
+ │           │ age: counting up             │ I caught age: 1086 against   │
+ │           │                              │ the 60-second interval,      │
+ │           │                              │ cheerfully stale while a     │
+ │           │                              │ re-render was pending        │
+ ├───────────┼──────────────────────────────┼──────────────────────────────┤
+ │ /blip     │ x-vercel-cache: MISS         │ no cache at all: a function  │
+ │           │ cache-control: private,      │ booted for this very request │
+ │           │ no-cache, no-store,          │                              │
+ │           │ max-age=0, must-revalidate   │                              │
+ │           │ age: 0                       │                              │
+ ├───────────┼──────────────────────────────┼──────────────────────────────┤
+ │ /feed.xml │ cache-control: max-age=21600 │ a URL that ends in .xml and  │
+ │           │ age: counting toward it      │ looks like a file, but a     │
+ │           │                              │ route handler with           │
+ │           │                              │ revalidate = 21600           │
+ └───────────┴──────────────────────────────┴──────────────────────────────┘
+```
+
+A URL tells you nothing about what is serving it. Only the build output does.
+
+That is the machinery, once you can point at the artifacts: prerendered HTML to the edge as cacheable files, function bundles as small workers that boot on demand, ISR a timer stapled to a cache entry, `revalidatePath` a phone call that drops a specific entry so the next request re-bakes it. Nothing magical anywhere. Drawn as one honest visit:
+
+```text
+                      browser
+                         │
+            ┌────────────┴────────────┐
+            ▼                         ▼
+       page request              /api request
+            │                         │
+            ▼                         ▼
+     ┌─────────────────────────────────────┐
+     │              Vercel edge            │
+     └──────────┬─────────────────┬────────┘
+        cached  │                 │  miss
+                ▼                 ▼
+        HTML served from     a serverless function
+        the CDN              wakes up, renders,
+                             queries
+                              │
+                              ├─▶ your database
+                              └─▶ a third-party API
+```
+
+Site navigation begins before anyone clicks. When a link scrolls into view, the browser can prefetch it. For a static route, that means quietly fetching its React tree
+from the edge.
+
+```text
+link enters view
+      │
+      ▼
+  prefetch .rsc
+      │
+      ▼
+  tree waits in memory
+      │
+    click
+      │
+      ▼
+ router swaps the page
+```
+
+There is a name for what that diagram shows, and it predates the App Router by well over a decade: the single-page application. One document loads. After that the router owns every click. Navigation stops asking for pages and starts asking for payloads, and the DOM gets patched instead of reloaded. Angular and Ember built whole applications on that move, the Create React App era made it the default way to learn React, and Next's own Pages Router did it with JSON. What differs here is who renders the patch. A classic SPA ships the renderer to the browser and fetches JSON, doing its rendering on the client. The App Router fetches the rendering's result: the tree arrives already made, serialized on the server. SPA navigation, server rendering. Nor is the split Next's invention. SvelteKit fetches data instead of documents on navigation. Remix, now React Router 7, asks for `.data`. Nuxt asks for `_payload.json`. Gatsby, static though it is, prefetches `page-data.json` on the same link-enters-view trigger. Every one of them ends up holding the same two requests this site serves, a document for the first visit and something cheaper for everything after. On this site the cheaper thing has a name on disk: the `.rsc` twin, the serialized tree doing for the App Router what JSON did for the Pages Router.
+
+The click itself costs nothing to fetch. The router already has the tree in memory: the `.rsc` crossed the wire before the click, when the link entered view. For a static route the whole tree crosses; a dynamic one prefetched only down to its `loading` boundary and finishes the fetch at the click. What arrived is data, not code; nothing evaluates a `.rsc`. The building happens in JavaScript that came with the first load: React's runtime reads the tree, matches its interactive slots to client components already in memory, and patches the DOM. No fetch, no HTML parse. Deserialize, reconcile, patch, on runtime the visitor already has. For a visitor already on the site, the `.html` file never crosses the wire. Only the `.rsc` payload did, ahead of the click. A **hard navigation** is everything else: typing a URL, opening a search result, reloading, or arriving with a cold browser. Nothing was prefetched, so the visit walks the whole road:
+
+```text
+URL
+ │
+ ▼
+DNS
+ │
+ ▼
+secure connection
+ │
+ ▼
+nearest Vercel edge
+ │
+ ▼
+cached .html
+ │
+ ▼
+browser
+ │
+ ├── paint
+ └── hydrate
+```
+
+First, the browser asks DNS where the site lives and opens a secure connection. The network steers the request to the nearest Vercel edge node. The edge finds which deployment owns the hostname, then looks for the baked `.html` that shipped with it.
+
+The cache answers immediately:
+
+```text
+x-vercel-cache: HIT
+        │
+        └── no function boots
+```
+
+The HTML then streams down. It contains the page markup, the page's React tree, and references to the CSS and JS it needs. Those assets live under `/_next/static` on the same CDN. A returning visitor can get them directly from cache.
+
+Then comes the simple rule:
+
+```text
+paint first
+   │
+   ▼
+hydrate second
+```
+
+The browser draws the finished page first. JavaScript then attaches
+the interactivity. That leaves one meeting to explain: where the three kinds of
+HTML cargo become one page inside the browser.
+
+### One `.html`, three cargoes
+
+The `.html` file carries three things:
+
+```text
+                 one .html
+                     │
+        ┌────────────┼────────────┐
+        ▼            ▼            ▼
+     markup      inline tree    references
+        │            │            │
+        ▼            ▼            ▼
+      paint       hydrate      fetch assets
+```
+
+**Markup** is the visible structure: the words, elements, and layout of the page. **The inline tree** is the React tree. It is the same kind of payload that exists in the `.rsc` twin, but here it is embedded directly inside the document.
+
+It arrives through a series of `<script>` tags:
+
+```text
+self.__next_f.push(...)
+self.__next_f.push(...)
+self.__next_f.push(...)
+```
+
+Their job is simply to push the tree into browser memory, chunk by chunk. This is why the `.html` file is larger than its `.rsc` twin: it carries both the markup and the tree. **References** are `<link>` and `<script>` tags pointing to the hashed CSS and JS files under `/_next/static`. The HTML names those files. It does not contain them. So the browser receives three cargoes, each with its own destination:
+
+```text
+.html, unpacked
+    markup ......... paint
+    inline tree .... hydration
+    references ..... CSS + JS from the CDN
+```
+
+Three parts, not three steps. The list has no order.
+
+Paint first means exactly that. The browser can draw the finished page before JavaScript runs. If the JS never arrives, the words can still stand. That is the same floor the static shell further down will stand on. Hydrate second means React reads the inline tree and walks the DOM that is already on screen. It adopts those nodes rather than rendering the page from scratch.
+
+```text
+HTML already on screen
+          │
+          ▼
+    React reads tree
+          │
+          ▼
+     adopts the DOM
+          │
+          ▼
+    interactivity works
+```
+
+The page you can read becomes the page you can click.
+
+### The `.rsc` tree
+
+The tree we keep meeting is **RSC: React Server Components**. RSC was introduced by the React team in 2020 and reached everyday use through Next.js's App Router in 2023. The basic split is:
+
+```text
+SERVER                         BROWSER
+
+data + database
+filesystem
+server component
+      │
+      │ serialized UI tree
+      └──────────────────────► React
+                                  │
+                                  ▼
+                              interactive UI
+```
+
+A server component runs where the data lives. It can read the database or filesystem directly. Its own JavaScript does not need to go to the browser. Instead, the browser receives a serialized description of the UI it produced. That description is the tree. The `.rsc` file is that tree as a separate network artifact. The important change was making this split ordinary:
+
+```text
+server
+  │
+  ├── data work
+  ├── database access
+  └── server components
+           │
+           ▼
+      serialized tree
+           │
+           ▼
+        browser
+           │
+           └── 'use client' components
+               and their JavaScript
+```
+
+Only the interactive parts need to cost the visitor JavaScript.
+
+### Where `.rsc` earns its keep
+
+The router asks the edge for the next page's tree. In the Network tab, you can see the request:
+
+```text
+GET /next-page
+
+RSC: 1
+      │
+      ▼
+text/x-component
+```
+
+React receives the new tree and compares it with the tree already in memory, patching only what changed. Nothing downloads twice. Nothing parses twice. Nothing the browser already has needs to run again. A prefetch is the same request with one more header, `Next-Router-Prefetch: 1`, sent before the click, so the click spends a tree already in memory.
+
+Two ways to ask for one page. Both doors, followed to the post you are reading:
+
+```text
+    hard navigation                   from / or /bloq, in-site
+             │                                  │
+             ▼                                  ▼
+      the .html: the whole               link enters view
+      document — markup,                        │
+      inline tree, references                   ▼
+             │                           prefetch the post's .rsc:
+             ▼                           the route is SSG, so the
+          paint                          whole tree crosses,
+             │                           before any click
+             ▼                                  │
+         hydrate                                ▼
+             │                                 click
+             ▼                                  │
+   the SPA exists: React                        ▼
+   runtime and client                   nothing left to fetch:
+   components in memory                 React compares the trees:
+                                          │
+                                          ├── layout: stays put
+                                          ├── listing: unmounts
+                                          └── article: mounts, and
+                                             the claps button finds
+                                             its 'use client' JS
+                                             already in memory
+```
+
+Either way, one artifact crossed the wire, never both: the document that made the page an SPA, the tree that keeps it one. The edge does not decide what a page is. **The request does.**
+
+The browser is not asking for "a page" in one universal form. It is asking for the artifact it needs. And the distinction that mattered most once the folder was open: the site isn't static or dynamic. Different routes have different relationships with the runtime. Even the static-looking pages live inside a runtime system that can decide to re-render them. The difference is not that one side is a file and the other is not. Both systems ultimately serve files, and a file behind nginx can be replaced, redirected, or reconfigured like anything else. The difference is whether producing the response is still part of the application's runtime. Here it is: the edge cache is part of the program, and the program can change its mind. A static artifact has no application-level computation attached to its serving. Nothing about the serving is the program's to change. That difference is the entire subject of this post.
+
+---
+
+## Static is not the absence of a server
+
+Flip one switch in the config:
+
+```typescript
+const nextConfig: NextConfig = {
+  output: 'export',
+};
+```
+
+Now `next build` emits an `out/` folder. HTML, CSS, JS, plain files. You can drop them in an S3 bucket, serve them with nginx, push them to Cloudflare Pages, or compile them into a Go binary with `//go:embed`. No runtime. No cold starts, because there is nothing to start. Files do not fail at 3am. They either exist or they do not.
+
+This is the world Hugo lives in, the world my instinct associated with the word static. The old rule said Hugo here, Next there, and the two did not visit. With this `output: 'export'` setting, Next.js export produces the same kind of folder Hugo does. The border my instinct had been keeping for years does not exist at the artifact level. Both sides of it emit the same thing: files. So does everything that never stood on either side of it. Gatsby, React components, GraphQL, hydration, the full weight and all, ends the same way: `gatsby build` writes HTML, CSS, and JS into a `public/` folder, static by default rather than by a config switch. Eleventy writes `_site/` and, left alone, ships no JavaScript to the browser at all: Hugo's kind of artifact from a Node kind of pipeline. What actually decides the Hugo vs Next question is what you already own: a site that owns an MDX pipeline, React components, syntax highlighting, interactive bits keeps all of that through export. A site that owns none of that and never will is paying React's weight for nothing, and Hugo is the honest answer for it.
+
+The losses for a site like this, itemized from its own routes. I flipped the switch on a branch and read the errors, and the dead end was the most useful ten minutes of the weekend:
+
+- ISR gone. The homepage becomes either frozen or client-fetched.
+- `force-dynamic` gone. The `/blip` and `/byte` listings become static shells that fetch data in the browser.
+- Every `/api` route gone. Counters and write endpoints, the webhook, the live feed, all need a new home.
+- Runtime OG image generation gone. Images get baked at build or generated elsewhere.
+- `sitemap.xml` and `feed.xml` handlers gone unless they are GET-only and marked `force-static`, which bakes them into plain files at build.
+- Image optimization needs `unoptimized: true` or a third party.
+
+One detail from that dead end, worth stating plainly: the failure is total. The build does not export what it can and skip what it cannot. Nothing is emitted, not even a partial folder, and the all-or-nothing is deliberate. A file server has no runtime to fall back on, so a route that did not emit is a 404, and everything the browser expects from it fails in a visitor's browser, where no server log will ever mention it. An export that passes CI and breaks only in production is worse than no export. So the build refuses, at the last checkpoint where the failure still names its cause. Files do not fail at 3am. A half-exported site would.
+
+Keep that error list in mind. It is not done working; before this post ends, it gets a second job.
+
+---
+
+## The argument for keeping everything together
+
+Everything below this section splits something apart, so the strongest argument against all of it goes first. Not an argument discovered that weekend. It was the loudest one in the room, already in my head, the way the Hugo rule was. Years earlier I had watched [Theo's "Do you REALLY need a backend?"](https://youtu.be/2cB5Fh46Vi4?si=Z02FqsLI-JRcrv-E), and like the Hugo rule it moved in and became furniture. Stated at full strength, its claim is simple. Next.js is not a frontend framework. It is as much a frontend framework as Rails, a backend framework whose templating happens to spit out a React app. The `/api` directory is not a convenience appended to a pages framework; it is the backend. Keeping a separate Express or Go service beside a Next frontend for ordinary request-and-response work, two codebases with no real relationship between them, is the fundamental misunderstanding the video spends a half hour shouting about. The video is from June 2022, pages-router days, and every addition since, the App Router, Server Components, only strengthened it. The contract between a page and its data can now be a function call, typed end to end, with no seam at all.
+
+Held against this site, the argument mostly lands, and pretending otherwise would have wasted the weekend. The receipts, route by route: blip, byte, claps, views, visit, github-activity, the live-bloq feed, the telegram webhook and broadcast. Every one of them is request and response. A counter increments, a feed gets read, a webhook gets validated and acknowledged. None holds state between requests, none holds a connection open, none outgrows a handler. They colocate fine, exactly as the argument says they should. The validation ceremony a separate backend would impose already lives inside these handlers, and several of the routes are thin faces over a service module anyway. The logic was never welded to the framework in the first place. The contract discipline a split would demand? Colocated handlers pay it for free.
+
+The video is also honest about its exit criteria, and they are the right ones: leave when the backend starts doing something other than request and response, persistent state, pub/sub, streaming, heavy processing. And not a day before. His production pattern for his own shop, stated plainly, is Next for the entire request-and-response spine, then bought services past that edge. Buy before you build. Pusher or Ably for events, S3 for files, whatever makes sense for those jobs. The machine is what is left after the buying.
+
+Yet. Yet, every criterion in it, the exit conditions, the bought services, the colocation case, assumes a product that must be alive, and paid for, to matter. Buy before you build is advice for someone who will buy. It prices what the software does while somebody keeps the lights on. It never prices restraint: how little compute the thing can stand on, how far a free tier actually stretches, what the exit looks like the day the tier runs out and the upgrade screen gets closed instead of paid. It never prices what the software is when nobody is. There is no vocabulary in it for a site that must outlive its owner's attention, or outlast the owner's willingness to fund it.
+
+> "His question is what kind of work it is. Mine, it turned out, was also: what happens when it stops, and what survives when the free tier ends?"
+
+---
+
+## Workload and durability are different questions
+
+Theo's question, what kind of work is it, decides what runs where. It is a question about workloads, and a good one. The question it never asks is about failure domains: what dies when the free tier ends. And the phrase has to stretch before it can carry the weekend, because a free tier ending is not one event. It is a quota that quietly fills, a policy that drifts, an upgrade screen that arrives and gets closed instead of paid. Not every ending belongs to the vendor; some belong to me, the day I decide the hobby no longer earns its account. The two axes are orthogonal, and most arguments about splitting a site go in circles by reading them as one line.
+
+```text
+ the workload axis: what does producing a response need?
+ static ─────▶ request/response ─────▶ state ─────▶ streaming
+
+ the survival axis: what must outlive the failure?
+ service ─────▶ runtime ─────▶ archive
+```
+
+The first question determines the architecture of computation. The second determines the architecture of failure. They are bought separately: workload questions are answered with servers and services, survival questions with separation and artifacts. Each axis also has a budget reading, and for a personal site it is the one that matters most. Along the workload axis, compute is bought left to right: everything left of the first boot is served off a disk, and a disk does not bill by the request. Along the survival axis, the exit gets cheaper moving right: the more of the site that is artifact, the more of it stays served when a free tier ends and the card stays in the wallet. The separation that survives an account's death also survives a refusal to upgrade. Graceful degradation and graceful exit turn out to be the same mechanism.
+
+This site, all-Vercel, is a single failure domain, and while the account is alive it degrades beautifully, each route failing soft on its own terms, cache first, baked HTML next, a function on demand. But the ladder has a bottom rung, and there is a rung just above it that nobody draws: the edge of the free tier, where the site either steps down to a cheaper shape or falls onto a card. In the all-serverless shape it is a fall. Every rung lives inside an account that is, one way or another, being kept alive.
+
+The two axes also re-sort the alternatives that follow, and the sort is the structure they appear in: two workload splits first, earned when the work changes shape, then one failure-domain split, earned when the promise is survival. Different questions, buying different things.
+
+---
+
+## What dies when the free tier ends
+
+> "Functions fail at 3am. Free tiers end three years later, quietly, when nobody is watching."
+
+When the account dies, everything goes dark together, the archive included. The quota fills, the terms drift, the free tier changes its mind, or nothing happens at all except years. And the archive never needed any of it. The posts are already files, every `●` row in the build output, finished HTML sitting in a folder. The only thing coupling them to a live account is that one vendor serves both the files and the functions that decorate them.
+
+An objection, stated honestly because it deserves it: Vercel's Hobby tier is free too, so there is nothing to stop paying. But free is a price, not a promise, and not a property of the architecture either; it is a term of service. A free tier is still an account, quotas, policies, a company with a burn rate, and the how-free-can-it-stay question runs beside the survival question the whole way down: a shape whose words need no runtime is cheaper than any tier, free or paid, because there is nothing left to meter. Personal sites do not die of traffic. They die of neglect. The 3am outage has monitoring and someone's phone. The year-three death has nobody watching, which is precisely what makes it the more likely one.
+
+So the old sketch, a static shell on GitHub Pages, free forever, deserves better than the words I kept describing it with. Not "GitHub Pages is immortal." The real point is smaller and stronger: the archive is independently deployable. The deployment artifact is a static directory that can be stored, moved between hosts, and redeployed independently of any runtime. GitHub Pages is one example of a host, and how the artifact is stored is a deployment detail, not a law; publish from a branch and it literally is one. A branch inherits the source's durability, which for a personal project is the most immortal thing it owns: no compute quota, no account, no runtime. In that shape the shell's failure domain is git's, and git does not have a tier to end.
+
+```text
+ the same site, two failure-domain shapes
+
+ all-serverless, one account
+   alive      │ per-route graceful degradation: cache
+              │ serves, baked HTML serves, functions
+              │ wake on demand
+   dead       │ everything at once, the archive included
+
+ shell on a free static host, pulse fetched
+   data plane │ the site degrades to its baked self:
+       dies   │ counts go quiet, live edges go dark,
+              │ every word stays served
+   the shell  │ dies when git dies: no tier to end,
+       dies   │ no account to suspend, the artifact
+              │ is a branch
+```
+
+In the second shape, the backend dying stops being a site death and becomes a feature regression. Nothing about the workload changed, the same functions doing the same request and response. Only the failure domain moved.
+
+---
+
+## Three architectures
+
+The two axes sort the options into three shapes. The first two are workload splits, the same split at two amplitudes, and Theo judges the pair of them, his exit criteria doing the deciding. The third is the failure-domain split, judged by a different question entirely. Note also what the first two do not move: in both shapes the archive still lives inside the account that serves it, and still dies with that account. That move belongs to the third alone.
+
+### A. Everything together
+
+The status quo, and the case for it is already made: Theo wins on this site. All-serverless, one deploy target, zero ops, the contract between page and data a function call. For a solo content site shipping fast, this is the honest default, and it is what this site stays on. The rest of this section is about knowing what that choice costs on the other axis: everything dies together, the archive included, and the price of the words is whatever the tier says it is, for as long as it says so.
+
+### B. The workload splits
+
+**One more server.** Serverless functions time out. They cold start. They forget everything between requests. A live feed wants to hold long-lived connections someday, and a bot webhook wants a process that stays awake. Those two itches point at the same scratch: an always-on server next to Vercel, in Go or Elixir, on whatever box lets a process run forever: an EC2 instance, a VPS, Fly.
+
+Before that machine gets rented, though, the check Theo demands: buy before you run. Most of what a function cannot do is already a service. Pusher or Ably for events, Upstash for state, managed queues for the slow jobs. That covers both itches without a second deploy target. The box is the escalation for when the live edges grow into real streaming, real bots, real state. Not the default answer to a cold start.
+
+The integration is one `rewrites()` entry in `next.config.ts`, proxying `/api/live/*` to the machine. The browser asks Vercel, Vercel asks the box, Go or Phoenix answers. The browser sees the request as same-origin and the crossing is a server-to-server hop, so no cross-origin config ever gets written.
+
+```text
+      browser
+        │  one domain, always
+        ▼
+  ┌───────────┐  static pages, ISR, and most
+  │  Vercel   │  API functions live here
+  └─────┬─────┘
+        │ /api/live/* via rewrites
+        ▼
+  ┌─────────────────┐  an always-on machine:
+  │  AWS EC2 box    │  streaming, bots, state,
+  │  Go or Elixir   │  long-lived processes
+  └─────────────────┘
+```
+
+What this buys: real processes for the parts that outgrow functions, with Vercel's zero-ops untouched for everything else. What it costs: a second deploy target, a proxy hop of latency, two systems to monitor instead of one. When it earns its keep: the moment more than a couple of endpoints want state or streaming, and not a day before.
+
+**The whole backend moves out.** Push the first amplitude to its end. Every `route.ts`, the OG image generation, the webhooks, the feeds, all of it moves to a dedicated Go or Elixir repo. Next.js keeps the pages and nothing else. What moves is more than code: the database keys move, the webhook URLs point at the new host, the sitemap and feed either move or become build-time files. The frontend still does SSR on Vercel, or stops, which is where the next alternative begins.
+
+What this buys: a machine that holds state and keeps connections, and one backend other clients can share later. What it costs: two deployment pipelines, contract discipline, and version skew as a new word in your life; an OpenAPI spec stops being ceremony and starts keeping the two repos honest. Credit where Theo earns it: while the endpoints stay colocated, that contract costs nothing, so the split has to be bought by something stronger than ergonomics.
+
+When it earns its keep: when the backend's work stops being request and response, or when a genuine second client appears. Size is not a reason; the shape of the work is. Two hundred plain endpoints have earned nothing; a single websocket might have.
+
+### C. The shell that outlives its edges
+
+The first two alternatives answered Theo's question and were priced by his rules. This one answers the other question, the one his argument never asks, and the pricing changes hands. The work did not change, request and response same as ever, so no workload criterion earns this move. What changed is the promise: the words have to outlive the account. This is not a performance optimisation. It is a durability decision.
+
+This is the shape that started all the wondering, and the one I had been describing wrong for years. When I first sketched the idea I called it SSR from our servers into the shell, and the phrase was wrong in a way worth correcting out loud, because the correction is the architecture. Nothing renders into a static shell. The host serves files and only files; there is no origin process to render anything.
+
+The shell is baked, the pulse is fetched: `next build` with `output: 'export'` turns every post into finished HTML at build time, the browser loads that HTML complete, and the live edges, counts, claps, the live feed, arrive afterward as JSON, progressive enhancement on a page that was already whole without them. Kill the data plane and the site degrades to its baked self: the counts go quiet, every word stays.
+
+```text
+        git repo
+           │  push
+           ▼
+   GitHub Actions ── next build, output: 'export'
+           │
+           │  out/ folder, deployed as plain files
+           ▼
+     GitHub Pages ── the shell: free, static-only,
+           │        custom domain, HTTPS, no runtime
+           │  baked HTML, CSS, JS
+           ▼
+  the visitor's browser
+           │  fetch the pulse as JSON: counts, claps,
+           │  the live feed, after the page already works
+           ▼
+     the data plane, living elsewhere
+```
+
+A model check first, because it frames the whole shape: Next.js is a server-first framework, and static export is a supported retreat from that model, not a peer of it. Theo would call the retreat a waste of the framework, and be correct. The retreat is the feature.
+
+Component code barely notices: Server Components still run, during `next build` instead of during a request, and `use client` keeps its exact meaning. Everything that needs a live request goes: `use server`, `cookies()` and `headers()`, middleware, ISR, `revalidatePath`, draft mode. Route handlers survive only as GET handlers marked `force-static`. It is the same error list from the static section, which here doubles as the inventory of what must move to the data plane.
+
+ISR gets a poor man's replacement: a scheduled rebuild on a cron. Honest for feeds and sitemaps that tolerate hours of staleness, too blunt for anything minute-scale. The homepage's one-minute budget has no equivalent here. That page either freezes or fetches.
+
+Where the pulse lives, in escalating order:
+
+- Functions-only Next on Vercel's free tier. The convergence shape, and the quiet joke of the whole weekend: take Theo literally, Next is a backend framework, and ship it as one. No pages, no rendering routes, just `/api` handlers doing request and response, free tier, zero ops. The frontend moves to a host that cannot die; the backend becomes the part of Next that always was one. And because the shell's only coupling to it is one URL answering JSON, the pulse is portable between tiers: when a free one ends, the fetch moves to the next and the words stay where they are.
+- EC2 or Fly, always-on, when the live edges grow up: streaming, long-lived bot processes, real state. The machine from alternative B, promoted from escalation to data plane.
+
+The honest ledger is short. CORS becomes real config, because browser and API live on different origins now. The data plane names the exact shell origin and no one else. All data fetching moves client side, loading states become UI you owe the visitor, images ship `unoptimized`, middleware and draft mode are gone.
+
+What this buys: an archive whose survival is not coupled to any account's survival, and a cost with a floor of zero underneath it. The shell cannot tell a dead data plane from one I abandoned, which makes walking away a supported state instead of an outage.
+
+When it earns its keep: when the site's promise is archival, when vendor coupling is refused on principle, or when the backend has to be free or nothing. Not frontend taste, and not language preference; the Elixir version of this idea was taste wearing architecture's costume. And the hedge, kept from the old sketch: for a solo content site that wants minimal ops, all-serverless still wins on convenience. The shell is designed so that day can arrive without a rewrite.
+
+The three shapes, side by side, on the two axes:
+
+```text
+                      all-serverless     hybrid              static shell
+ the work             request/response   state, streams      whatever; fetched
+ what dies together   everything         everything          only the edges
+ what the words cost  the tier today,    a second bill for   the floor is zero:
+                      a card the day     the always-on       the words are an
+                      it ends            box                 artifact, not a
+                                                             metered service
+                       ─────────────────  ──────────────────  ─────────────────
+ the shape            Vercel does all    Vercel plus one     baked words on a
+                      of it. Zero ops.   always-on machine   free static host,
+                      Solo, content,     for the few things  the pulse fetched
+                      ship fast.         that outgrow        from a data plane
+                                         functions.
+```
+
+The rows are the two questions the weekend added, plus the price neither of them names directly: cost is the axes multiplied, compute per response times what must stay alive to serve it, and only the third shape zeroes the product. Workload picks a column. Failure domain picks how far apart the columns are allowed to sit, and only the third puts real distance between them; the first two share a grave, and an account. The middle column has an extreme, the backend fully out with two pipelines, but it is the same axis turned up, not a new one. The archive still dies with the frontend's account.
+
+---
+
+## The durability probe
+
+One practice leaves with me, cheaper than any migration. That `output: 'export'` branch from the dead-end section becomes a scheduled job: a CI cron that reruns the export build now and then and lets it fail. The error list stops being a one-weekend artifact and becomes the living inventory of everything this site cannot live without, checked for free on a schedule. If the probe ever turns up a new offense, a route that quietly grew a `cookies()` call, a handler that started reading `headers()`, that is the signal: something that used to be optional has become part of the site's runtime dependency graph. And every route that goes `force-static`, or moves its pulse to a fetched call, or dies of cleanup, shrinks the blast radius one line at a time.
+
+> "The export build is a smoke detector. Run it now and then; the error list is everything the site cannot live without."
+
+---
+
+## A note for Denny
+
+Denny, in case you're reading this. This post records a weekend spent ruminating over your two questions with the build folder open: where the build really lives, and whether the frontend produces static files. I know the questions were never only about the answers. One of the intentions was to check whether I still know the repo, whether I could still orient in it quickly and reason from the artifacts instead of the memory of them. The other, I suspect, was to see whether we could integrate Next.js into new projects, and on that front this repo accidentally became the case study. Next.js can technically produce a client build instead of the server build I chose here and walked you through. With `output: 'export'`, it bakes every route into finished HTML, CSS, and JS. The result is the same kind of folder `gatsby build` writes every time.
+
+But Next.js earns its keep only when the server shape does the following or similar: ISR and per-request rendering paying rent, the API colocation being the point rather than a liability. The shape Gatsby has been shipping all along could be enough. If a future project genuinely needs the server side on node, this post is the map of what that costs and buys. Until then, the gain from moving to Next.js, a decoupled frontend on a client build, was never apparent, because there isn't one.
+
+---
+
+## The decision, for next time
+
+To be clear about the immediate outcome: this site is not moving anywhere. All-serverless works, the ticket list is long, and time is finite. The weekend was not a migration plan. It was groundwork, so that the next project starts grounded: the trade-offs written down before they are load-bearing, the alternatives mapped while nothing depends on them.
+
+The taste I hold, now that I have checked it against the artifacts, mostly intact and better labeled: Hugo when a site is content-first from birth and no server is coming. Next.js static export when I want React and MDX without a runtime. Next.js server build when ISR and per-request rendering earn their keep, as they do here, quietly. And a fourth, new from this weekend: choose failure domains along with rendering modes. Keep the archive and the edges separable by design, because year three does not announce itself.
+
+The other thing I carry into the next project: the choice is not made at deploy time. Every `route.ts` is a vote for the server shape. Every `revalidate` is a vote. Every `force-dynamic` is a vote. The votes get cast either way; knowing that before the first route exists is what makes the choice deliberate instead of accidental.
+
+I don't think this site needs to move. I do think the next one should know what has to survive me. Denny's questions took one weekend to answer properly, and picking the curiosity back up cost exactly one weekend of curl. Being curious about your own house turns out to be a beautiful way to spend a break.
