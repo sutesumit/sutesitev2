@@ -9,6 +9,7 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,9 +32,33 @@ jobs:
             SLUG=$(grep '^slug:' "$bloq" | head -1 | sed 's/slug: *["'"'"']\?//' | sed 's/["'"'"']$//')
             TAGS=$(sed -n '/^tags:/,/^[a-z]/p' "$bloq" | grep '  - ' | sed 's/  - //' | tr '\n' ',' | sed 's/,$//')
 
+            if [ -z "$SLUG" ]; then
+              DIR_NAME=$(basename "$(dirname "$bloq")")
+              SLUG=${DIR_NAME#[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-}
+            fi
+            SLUG=$(printf '%s' "$SLUG" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
+
             echo "Title: $TITLE"
             echo "Slug: $SLUG"
             echo "Tags: $TAGS"
+
+            OG_URL="https://www.sumitsute.com/og/bloq/$SLUG"
+            echo "Waiting for deployment to serve: $OG_URL"
+            DEPLOY_READY=false
+            DEADLINE=$((SECONDS + 900))
+            while [ "$SECONDS" -lt "$DEADLINE" ]; do
+              status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$OG_URL" || echo 000)
+              if [ "$status" = "200" ]; then
+                DEPLOY_READY=true
+                break
+              fi
+              echo "  HTTP $status, retrying in 15s (${SECONDS}s of 900s budget elapsed)"
+              sleep 15
+            done
+
+            if [ "$DEPLOY_READY" = "false" ]; then
+              echo "::warning::Deployment did not serve $OG_URL within 15 minutes; broadcasting anyway"
+            fi
 
             curl -X POST "$BROADCAST_URL" \
               -H "Content-Type: application/json" \

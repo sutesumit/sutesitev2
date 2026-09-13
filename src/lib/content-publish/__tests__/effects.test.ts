@@ -70,6 +70,12 @@ describe("content mutation effects", () => {
 });
 
 describe("telegram mutation effect", () => {
+  const bloqEvent = {
+    action: "published" as const,
+    type: "bloq" as const,
+    bloq: { title: "Test Bloq", slug: "test-bloq", tags: ["nextjs"] },
+  };
+
   const liveBloqEvent = {
     action: "published" as const,
     type: "live-bloq" as const,
@@ -103,6 +109,15 @@ describe("telegram mutation effect", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("notifies bloq publications", async () => {
+    const notifier = createNotifier();
+    const effect = createTelegramMutationEffect(notifier);
+
+    await effect.onMutation(bloqEvent);
+
+    expect(notifier.notifyBloqPublished).toHaveBeenCalledWith(bloqEvent.bloq);
   });
 
   it("warms the live og image before broadcasting the announcement", async () => {
